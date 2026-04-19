@@ -277,11 +277,12 @@ stateDiagram-v2
 
     running --> revealing : host BEGIN_REVEAL\nbcast ROOM_STATE status:revealing
 
-    revealing --> revealing : REVEAL_NEXT index\nrevealedCount < N\nbcast REVEAL_INDEX path result
+    revealing --> revealing : REVEAL_NEXT（manual）\nor auto-timer fires（auto mode）\nrevealedCount < N\nbcast REVEAL_INDEX path result
+    revealing --> revealing : SET_REVEAL_MODE\nmode manual↔auto\ntimer start/stop
 
-    revealing --> finished : revealedCount == N\nbcast REVEAL_ALL results\nTTL extend 1h
+    revealing --> finished : revealedCount == N\nor REVEAL_ALL_TRIGGER（一鍵全揭）\nbcast REVEAL_ALL results\nTTL extend 1h
 
-    finished --> waiting : host RESET\nCLEAR ladder results\nreset players.result\nbcast ROOM_STATE waiting
+    finished --> waiting : host RESET_ROOM\nprune isOnline=false players\nclear kickedPlayerIds\nbcast ROOM_STATE waiting
 
     waiting --> [*] : room TTL expired 24h\nall disconnected 5 min
     finished --> [*] : room TTL expired 1h
@@ -298,11 +299,11 @@ export type RoomStatus = "waiting" | "running" | "revealing" | "finished";
 
 export type WsEventType =
   | "ROOM_STATE" | "ROOM_STATE_FULL" | "REVEAL_INDEX" | "REVEAL_ALL"
-  | "PLAYER_KICKED" | "SESSION_REPLACED" | "ERROR";
+  | "PLAYER_KICKED" | "SESSION_REPLACED" | "HOST_TRANSFERRED" | "ERROR";
 
 export type WsMsgType =
-  | "START_GAME" | "BEGIN_REVEAL" | "REVEAL_NEXT"
-  | "RESET_ROOM" | "KICK_PLAYER" | "PING";
+  | "START_GAME" | "BEGIN_REVEAL" | "REVEAL_NEXT" | "REVEAL_ALL_TRIGGER"
+  | "SET_REVEAL_MODE" | "RESET_ROOM" | "KICK_PLAYER" | "PING";
 
 export interface Player {
   readonly id: string;           // UUID v4
@@ -320,7 +321,8 @@ export interface LadderSegment {
 }
 
 export interface LadderData {
-  readonly seed: number;          // Mulberry32 seed (djb2 hash)
+  readonly seed: number;          // Mulberry32 seed = djb2(seedSource) >>> 0
+  readonly seedSource: string;    // UUID v4 hex generated at START_GAME, stored for auditability
   readonly rowCount: number;      // clamp(N*3, 20, 60)
   readonly colCount: number;      // = N (all players incl. offline)
   readonly segments: readonly LadderSegment[];
@@ -333,39 +335,59 @@ export interface PathStep {
 }
 
 export interface ResultSlot {
-  readonly playerIndex: number;
+  readonly playerIndex: number;   // positional index for Canvas column rendering
+  readonly playerId: string;      // stable identity reference (UUID v4)
   readonly startCol: number;
   readonly endCol: number;
-  readonly prize: string;
+  readonly isWinner: boolean;     // PRD Out-of-Scope #5: only win/lose, no named prizes
   readonly path: readonly PathStep[];
 }
 
 export interface Room {
   readonly code: string;           // 6-char room code
   status: RoomStatus;
-  readonly hostId: string;
+  hostId: string;                  // mutable: host transfer on 60s disconnect grace
   players: readonly Player[];      // max 50, incl. offline
-  prizes: readonly string[];       // W prizes (1 <= W <= N-1)
+  winnerCount: number | null;      // W (1 <= W <= N-1); null until host sets it; reset to null on play-again if W >= new N
   ladder: LadderData | null;
   results: readonly ResultSlot[] | null;
   revealedCount: number;
+  revealMode: "manual" | "auto";
+  autoRevealIntervalSec: number | null;  // 1-30s; null in manual mode
+  kickedPlayerIds: readonly string[];    // persisted in Redis; cleared on RESET_ROOM
   readonly createdAt: number;
   updatedAt: number;
 }
 
-// WS Envelope
-export interface WsEnvelope<T = unknown> {
-  readonly type: WsEventType | WsMsgType;
+// WS Envelopes (separate types prevent cross-direction type confusion)
+export interface ServerEnvelope<T = unknown> {
+  readonly type: WsEventType;
+  readonly ts: number;
+  readonly payload: T;
+}
+export interface ClientEnvelope<T = unknown> {
+  readonly type: WsMsgType;
   readonly ts: number;
   readonly payload: T;
 }
 
+export interface RoomSummaryPayload {
+  // Public GET /rooms/:code — unauthenticated, minimal exposure
+  readonly code: string;
+  readonly status: RoomStatus;
+  readonly playerCount: number;
+  readonly onlineCount: number;
+  readonly maxPlayers: 50;
+}
+
 export interface RoomStatePayload {
-  readonly room: Omit<Room, "ladder" | "results">;
+  // Broadcast to all WS clients on state changes (excludes ladder/results for brevity)
+  readonly room: Omit<Room, "ladder" | "results" | "kickedPlayerIds">;
   readonly onlineCount: number;
 }
 
 export interface RoomStateFullPayload extends RoomStatePayload {
+  // Unicast to newly connected client only
   readonly ladder: LadderData | null;
   readonly results: readonly ResultSlot[] | null;
   readonly selfPlayerId: string;
@@ -378,6 +400,11 @@ export interface RevealIndexPayload {
   readonly totalCount: number;
 }
 
+export interface HostTransferredPayload {
+  readonly newHostId: string;
+  readonly reason: "disconnect_timeout";
+}
+
 export interface ErrorPayload {
   readonly code: string;
   readonly message: string;
@@ -387,7 +414,7 @@ export interface ErrorPayload {
 // HTTP DTOs
 export interface CreateRoomRequest {
   readonly hostNickname: string;
-  readonly prizes: string[];
+  readonly winnerCount: number;    // W (1 <= W; upper bound validated after players join)
 }
 
 export interface CreateRoomResponse {
@@ -416,12 +443,12 @@ export interface JoinRoomResponse {
 
 | Method | Path | 描述 | 成功 | 錯誤 |
 |--------|------|------|------|------|
-| `POST` | `/api/v1/rooms` | 建立房間 | `201 CreateRoomResponse` | `400 INVALID_PRIZES`, `429 RATE_LIMIT` |
-| `GET` | `/api/v1/rooms/:code` | 查詢房間摘要 | `200 RoomStatePayload` | `404 ROOM_NOT_FOUND` |
-| `POST` | `/api/v1/rooms/:code/players` | 加入房間 | `201 JoinRoomResponse` | `404/409/410` |
-| `DELETE` | `/api/v1/rooms/:code/players/:id` | 踢出玩家（需 host token） | `204` | `403/404` |
-| `POST` | `/api/v1/rooms/:code/start` | 開始遊戲（需 host token） | `200 { ladder }` | `400/409` |
-| `POST` | `/api/v1/rooms/:code/reset` | 重設房間（需 host token） | `200` | `403/409` |
+| `POST` | `/api/v1/rooms` | 建立房間（含 hostNickname, winnerCount） | `201 CreateRoomResponse` | `400 INVALID_PRIZES_COUNT`, `429 RATE_LIMIT` |
+| `GET` | `/api/v1/rooms/:code` | 查詢房間公開摘要（unauthenticated） | `200 RoomSummaryPayload` | `404 ROOM_NOT_FOUND` |
+| `POST` | `/api/v1/rooms/:code/players` | 加入房間 | `201 JoinRoomResponse` | `404 ROOM_NOT_FOUND / 409 ROOM_FULL,NICKNAME_TAKEN / 409 INVALID_STATE` |
+| `DELETE` | `/api/v1/rooms/:code/players/:id` | 踢出玩家（需 hostToken；waiting 狀態限定） | `204` | `403 PLAYER_NOT_HOST / 404 / 409 INVALID_STATE` |
+| `POST` | `/api/v1/rooms/:code/start` | 開始遊戲（需 hostToken） | `200 { ladder: LadderData }` | `400 INSUFFICIENT_PLAYERS,PRIZES_NOT_SET,INVALID_PRIZES_COUNT / 409 INVALID_STATE` |
+| `POST` | `/api/v1/rooms/:code/reset` | 再玩一局（需 hostToken；finished 狀態限定） | `200 { room: RoomStatePayload }` | `403 / 409 INVALID_STATE / 400 INSUFFICIENT_ONLINE_PLAYERS` |
 | `GET` | `/api/v1/health` | 健康檢查 | `200 { redis: ok, wsCount }` | — |
 
 **Rate Limiting：**
@@ -435,30 +462,35 @@ export interface JoinRoomResponse {
 
 **連線端點：** `WSS /ws?room={code}&token={sessionToken}`
 
-Server Upgrade 階段驗證 token，失敗直接 403。
+Server Upgrade 階段驗證 JWT token，失敗直接 403。
+
+**踢除玩家重連特殊處理：** 若 playerId 在 `kickedPlayerIds` 清單中，WS Upgrade 在 HTTP 101 握手之前關閉，使用 WS close code `4003`（Application-level: Player Kicked），並在關閉前發送 JSON frame `{ type: "PLAYER_KICKED", ts, payload: { code: "PLAYER_KICKED", message: "你已被移出此房間" } }`，讓前端可區分一般認證失敗（403）與被踢（4003）。
 
 ### Server → Client
 
 ```typescript
-// ROOM_STATE — 房間狀態摘要（玩家加入/離線/踢出）
+// ROOM_STATE — 房間狀態摘要（玩家加入/離線/踢出/中獎名額變更）
 { type: "ROOM_STATE", ts, payload: RoomStatePayload }
 
-// ROOM_STATE_FULL — 新連線時發給該連線（含 ladder + results + selfPlayerId）
+// ROOM_STATE_FULL — 新連線或重連時 unicast 給該連線（含 ladder + results + selfPlayerId）
 { type: "ROOM_STATE_FULL", ts, payload: RoomStateFullPayload }
 
-// REVEAL_INDEX — 單一玩家揭示
+// REVEAL_INDEX — 單一玩家路徑揭示
 { type: "REVEAL_INDEX", ts, payload: RevealIndexPayload }
 
-// REVEAL_ALL — 全部揭示完畢
-{ type: "REVEAL_ALL", ts, payload: { results: ResultSlot[] } }
+// REVEAL_ALL — 全部（或剩餘全部）揭示完畢
+{ type: "REVEAL_ALL", ts, payload: { results: readonly ResultSlot[] } }
 
-// PLAYER_KICKED — 玩家被踢
+// PLAYER_KICKED — 玩家被踢（廣播給所有人）
 { type: "PLAYER_KICKED", ts, payload: { kickedPlayerId: string, reason: string } }
 
-// SESSION_REPLACED — 同一 playerId 從新裝置登入
+// SESSION_REPLACED — 同一 playerId 從新裝置登入，發給被替換的舊連線
 { type: "SESSION_REPLACED", ts, payload: { message: string } }
 
-// ERROR — 操作失敗（僅發給觸發方）
+// HOST_TRANSFERRED — 房主 60s 斷線後自動移交給下一位在線玩家
+{ type: "HOST_TRANSFERRED", ts, payload: HostTransferredPayload }
+
+// ERROR — 操作失敗（僅 unicast 給觸發方）
 { type: "ERROR", ts, payload: ErrorPayload }
 ```
 
@@ -467,7 +499,17 @@ Server Upgrade 階段驗證 token，失敗直接 403。
 ```typescript
 { type: "START_GAME", ts, payload: {} }
 { type: "BEGIN_REVEAL", ts, payload: {} }
-{ type: "REVEAL_NEXT", ts, payload: { index: number } }
+
+// REVEAL_NEXT — 手動模式逐一揭示；伺服器以 revealedCount 決定 index，payload 不含 index
+{ type: "REVEAL_NEXT", ts, payload: {} }
+
+// REVEAL_ALL_TRIGGER — 一鍵全揭；伺服器廣播 REVEAL_ALL 含所有剩餘路徑
+{ type: "REVEAL_ALL_TRIGGER", ts, payload: {} }
+
+// SET_REVEAL_MODE — 切換手動/自動揭示模式（揭示中可隨時切換）
+{ type: "SET_REVEAL_MODE", ts, payload: { mode: "manual" | "auto"; intervalSec?: number } }
+// intervalSec 必填當 mode=="auto"，範圍 1-30
+
 { type: "RESET_ROOM", ts, payload: {} }
 { type: "KICK_PLAYER", ts, payload: { targetPlayerId: string } }
 { type: "PING", ts, payload: {} }
@@ -491,14 +533,15 @@ interface PubSubMessage {
 
 | OWASP | 威脅 | 對應措施 |
 |-------|------|---------|
-| A01 Broken Access Control | 非 host 操作 | sessionToken HMAC-SHA256 驗證，包含 { playerId, roomCode, role, exp } |
-| A02 Cryptographic Failures | 弱加密 | Token HS256，Redis TLS，Nginx HTTPS + HSTS max-age=31536000 |
-| A03 Injection | 輸入注入 | Fastify JSON Schema AJV 驗證；nickname DOMPurify sanitize；roomCode 正則 `[A-HJ-NP-Z2-9]{6}` |
-| A05 Security Misconfiguration | 過度曝露 | 隱藏 Server header；CSP `default-src 'self' connect-src wss://domain`；k8s runAsNonRoot readOnlyRootFilesystem |
+| A01 Broken Access Control | 非 host 操作 | JWT HS256 驗證（`jose` 庫），payload: `{ playerId, roomCode, role, exp }`；非 host 發送 host-only 操作 → ERROR AUTH_NOT_HOST |
+| A02 Cryptographic Failures | 弱加密 | JWT HS256（標準 RFC 7519）；Redis TLS；Nginx HTTPS + HSTS max-age=31536000 |
+| A03 Injection | 輸入注入 | Fastify JSON Schema AJV 驗證；nickname AJV `pattern: "^[^\x00-\x1F\x7F]{1,20}$"`（禁 null/控制字元，非 DOMPurify）；roomCode 正則 `[A-HJ-NP-Z2-9]{6}` |
+| A04 Insecure Design | WS 訊息洪泛 | `ws` Server `maxPayload: 65536`（64KB，PRD NFR-05）；per-connection rate limit 60 msg/min，超限 WS close code 4029；host-only 操作雙重驗證（JWT role + Redis room.hostId 比對） |
+| A05 Security Misconfiguration | 過度曝露 | 隱藏 Server header；CSP `default-src 'self' connect-src wss://domain`；k8s runAsNonRoot readOnlyRootFilesystem；GET /rooms/:code 僅回傳 RoomSummaryPayload（不含 hostId/prizes） |
 | A06 Vulnerable Components | 舊依賴 | npm audit --audit-level=high 阻斷 PR；Dependabot 週更新；Distroless image 月重建 |
-| A07 Authentication Failures | 重複連線 | 同 playerId 新連線觸發 SESSION_REPLACED，舊連線強制關閉 |
+| A07 Authentication Failures | 重複連線/踢除者重連 | 同 playerId 新連線觸發 SESSION_REPLACED 舊連線強制關閉；kickedPlayerIds 在 WS Upgrade 階段攔截（close 4003） |
 | A08 Software Integrity | Supply chain | CI Docker image SHA256 digest 引用；npm ci lockfile；actions pinned SHA |
-| A09 Logging Failures | 無可觀測性 | pino 記錄所有 HTTP + WS 事件；fluent-bit DaemonSet 集中 log；5xx > 1% 觸發告警 |
+| A09 Logging Failures | 無可觀測性 | pino structured log（schema: `{ roomCode, playerId, wsSessionId, eventType, durationMs, errorCode }`）；fluent-bit DaemonSet 集中 log；HTTP 5xx > 1%/5min 觸發告警；WS ERROR > 0.1%/1min 告警；Redis 失敗 > 0/30s 告警 |
 | A10 SSRF | 外部 HTTP 請求 | 後端零 outbound HTTP；connect-src CSP 限制瀏覽器端 |
 
 ---
@@ -516,7 +559,9 @@ export function djb2(str: string): number {
   }
   return hash >>> 0; // unsigned 32-bit
 }
-// seed 來源: djb2(`${roomCode}:${timestamp}`)
+// seedSource: UUID v4 hex string generated with `crypto.randomUUID()` at START_GAME time
+// seed = djb2(seedSource) >>> 0
+// seedSource stored in LadderData for independent result auditability (PRD FR-03-1)
 ```
 
 ### 7.2 Mulberry32
@@ -552,7 +597,8 @@ export function fisherYatesShuffle<T>(arr: readonly T[], rng: () => number): T[]
 
 ```typescript
 // packages/shared/src/use-cases/GenerateLadder.ts
-export function generateLadder(seed: number, N: number): LadderData {
+export function generateLadder(seedSource: string, N: number): LadderData {
+  const seed = djb2(seedSource);
   const rng = createMulberry32(seed);
   const rowCount = Math.min(Math.max(N * 3, 20), 60);
   const colCount = N;
@@ -576,7 +622,7 @@ export function generateLadder(seed: number, N: number): LadderData {
       }
     }
   }
-  return { seed, rowCount, colCount, segments };
+  return { seed, seedSource, rowCount, colCount, segments };
 }
 ```
 
@@ -638,9 +684,14 @@ PRD AC → Gherkin Tag 對應表：
 | PRD AC | Tag | Feature File |
 |--------|-----|--------------|
 | AC-H01 建立房間 | @AC-ROOM-001 | room-lifecycle.feature |
+| AC-H03-2 W未設定 | @AC-GAME-002 | game-flow.feature |
 | AC-H03-4 N<2 | @AC-GAME-001 | game-flow.feature |
 | AC-H03-5 rowCount | @AC-GAME-003 | game-flow.feature |
+| AC-H05 自動揭示 | @AC-AUTO-001 | reveal-flow.feature |
+| AC-H06 一鍵全揭 | @AC-AUTO-002 | reveal-flow.feature |
+| AC-H07-3 狀態拒踢 | @AC-KICK-001 | host-actions.feature |
 | AC-H07-4/5 kickedPlayerIds | @AC-SECURITY-001 | host-actions.feature |
+| AC-H08-1/3 RESET_ROOM | @AC-RESET-001 | host-actions.feature |
 | AC-P04 揭示結果 | @AC-REVEAL-001 | reveal-flow.feature |
 | PRNG 一致性 | @AC-PRNG-001 | prng.feature |
 
@@ -682,15 +733,17 @@ PRD AC → Gherkin Tag 對應表：
 
 ## 10. SCALE 設計
 
-### 10.1 容量估算
+> **MVP 部署說明（PRD Out of Scope #9）：** MVP 以單一 Node.js 實例部署，不啟用 HPA 及多 Pod。Redis 以單節點模式運行（不啟用 Sentinel/Cluster）。下方容量設計以 PRD NFR-02 的「100 並發房間 × 50 人 = 5,000 WS 連線」為目標。多 Pod、Redis HA 設計預留於此文件供 Post-MVP 擴展使用。
 
-| 參數 | 數值 |
-|------|------|
-| 最大玩家/房間 | 50 |
-| 目標同時上線房間 | 200 |
-| 目標同時 WS 連線 | 10,000 |
-| 峰值 HTTP QPS | 500 |
-| 峰值 WS 訊息 QPS | 2,000 msg/s |
+### 10.1 容量估算（MVP 目標）
+
+| 參數 | MVP 目標 | Post-MVP 目標 |
+|------|----------|--------------|
+| 最大玩家/房間 | 50 | 50 |
+| 目標同時上線房間 | 100 | 200 |
+| 目標同時 WS 連線 | **5,000**（PRD NFR-02）| 10,000 |
+| 峰值 HTTP QPS | 250 | 500 |
+| 峰值 WS 訊息 QPS | 1,000 msg/s | 2,000 msg/s |
 
 ### 10.2 QPS 推算
 
@@ -745,6 +798,40 @@ System overhead: ~50 MB
 | HTTP 壓力 | 500 QPS join | P95 < 200ms，0 5xx |
 | 大房間廣播 | 1 房 50 人，50 次揭示 | 所有端 1000ms 內收到 REVEAL_ALL |
 | 記憶體洩漏 | 200 房，1h | 記憶體增長 < 50MB/h |
+
+### 10.6 可觀測性指標（Prometheus）
+
+```typescript
+// main.ts — prom-client 初始化
+import { register, Gauge, Counter, Histogram } from 'prom-client';
+
+// WS 連線數（HPA 擴展依據，Post-MVP）
+const wsActiveConnections = new Gauge({
+  name: 'ws_active_connections',
+  help: 'Number of active WebSocket connections',
+});
+
+// HTTP 請求
+const httpRequestDuration = new Histogram({
+  name: 'http_request_duration_ms',
+  help: 'HTTP request duration in milliseconds',
+  labelNames: ['method', 'route', 'status'],
+  buckets: [10, 50, 100, 200, 500, 1000],
+});
+
+// WS ERROR 廣播計數（告警觸發源）
+const wsErrorCount = new Counter({
+  name: 'ws_error_total',
+  help: 'Total WebSocket ERROR events sent',
+  labelNames: ['code'],
+});
+
+// /metrics 掛載於獨立 port（8080，不對外）
+fastify.get('/metrics', async (_, reply) => {
+  reply.header('Content-Type', register.contentType);
+  return register.metrics();
+});
+```
 
 ---
 
@@ -808,17 +895,19 @@ graph TD
 |--------|------|------|
 | `ROOM_NOT_FOUND` | 404 | 房間不存在或已過期 |
 | `ROOM_FULL` | 409 | 已達 50 人上限 |
-| `ROOM_NOT_ACCEPTING` | 410 | 房間狀態非 waiting |
+| `ROOM_NOT_ACCEPTING` | 409 | 房間狀態非 waiting（改用 409 而非 410，房間可能 reset 後重新接受） |
 | `NICKNAME_TAKEN` | 409 | nickname 重複 |
 | `PLAYER_NOT_FOUND` | 404 | 玩家不存在 |
 | `PLAYER_NOT_HOST` | 403 | 需要房主權限 |
-| `AUTH_INVALID_TOKEN` | 401 | Token 無效 |
-| `AUTH_TOKEN_EXPIRED` | 401 | Token 過期 |
-| `INSUFFICIENT_PLAYERS` | 400 | N < 2 |
+| `AUTH_INVALID_TOKEN` | 401 | JWT Token 無效 |
+| `AUTH_TOKEN_EXPIRED` | 401 | JWT Token 過期 |
+| `INSUFFICIENT_PLAYERS` | 400 | N < 2（開始遊戲時） |
+| `INSUFFICIENT_ONLINE_PLAYERS` | 400 | 再玩一局時在線玩家 < 2（AC-H08-3） |
+| `PRIZES_NOT_SET` | 400 | W 尚未設定（AC-H03-2，回傳訊息：「請先設定中獎名額」） |
 | `INVALID_PRIZES_COUNT` | 400 | W < 1 或 W >= N |
-| `WRONG_STATUS` | 409 | 操作不符合當前狀態 |
+| `INVALID_STATE` | 409 | 操作不符合當前狀態（統一用此碼，PRD FR-04-3/FR-09-3） |
 | `SYS_INTERNAL_ERROR` | 500 | 非預期錯誤 |
-| `RATE_LIMIT` | 429 | 超過限制 |
+| `RATE_LIMIT` | 429 | 超過速率限制 |
 
 ### 12.2 WebSocket 錯誤策略
 
@@ -827,19 +916,59 @@ Client → Server 錯誤：
   JSON parse 失敗     → ERROR { WS_INVALID_MSG }（保持連線）
   未知 type          → ERROR { WS_UNKNOWN_TYPE }
   權限不足           → ERROR { AUTH_NOT_HOST }
-  狀態不符           → ERROR { WRONG_STATUS }
+  狀態不符           → ERROR { INVALID_STATE }
+  REVEAL_NEXT 超出   → ERROR { INVALID_STATE }（server-side: reject if revealedCount >= totalCount）
+
+WS Upgrade 特殊拒絕：
+  kickedPlayerIds 命中 → close code 4003，發送 PLAYER_KICKED frame 後斷線（讓前端區分一般 403）
 
 Server 內部錯誤：
-  Redis 失敗         → log error + ERROR { SYS_REDIS_ERROR }（僅通知觸發方）
+  Redis 失敗（中途）  → 廣播最後一致 ROOM_STATE 給房間所有連線，再發 ERROR { SYS_REDIS_ERROR } 給觸發方
   Pub/Sub 失敗       → 3 次 retry（100ms/200ms/400ms），仍失敗 critical alert
 
 WS 斷線：
   close event        → player.isOnline = false，廣播 ROOM_STATE
-  60s grace period   → 若未重連，房主轉移下一個在線玩家
-  全部斷線 5 分鐘    → 房間 TTL 設為 5 分鐘後過期
+  60s grace period   → 若未重連，HOST_TRANSFERRED 廣播（新 host = 下一個 isOnline=true 玩家）
+  最後一位斷線 5 分鐘 → EXPIRE room:{code} 300（在最後一個 close 事件觸發時執行原子設定）
 ```
 
-### 12.3 前端錯誤策略
+### 12.3 RESET_ROOM 完整流程
+
+```
+1. 驗證 JWT role=host 且 room.hostId 比對
+2. 驗證 status === "finished"，否則 INVALID_STATE
+3. 計算 onlinePlayers = players.filter(p => p.isOnline)
+4. 若 onlinePlayers.length < 2 → INSUFFICIENT_ONLINE_PLAYERS
+5. 清除 kickedPlayerIds → []
+6. 若 winnerCount >= onlinePlayers.length → winnerCount = null，通知 host 重新設定
+7. 原子更新（MULTI/EXEC）：
+     room.players = onlinePlayers
+     room.status = "waiting"
+     room.ladder = null, room.results = null, room.revealedCount = 0
+     room.revealMode = "manual", room.autoRevealIntervalSec = null
+     room.kickedPlayerIds = []
+     room.winnerCount = 調整後的值
+8. 廣播 ROOM_STATE（status: waiting）
+```
+
+### 12.4 START_GAME 原子性
+
+```
+// 避免兩階段寫入：先生成 ladder，再整批提交
+const seedSource = crypto.randomUUID();
+const ladder = generateLadder(seedSource, N);          // pure, no I/O
+const results = computeResults(ladder, winnerCount);    // pure
+
+// 單一 MULTI/EXEC 原子寫入（ladder 與 status 同一 transaction）
+WATCH room:{code}
+MULTI
+  SET room:{code} {...room, status: "running", ladder, results}
+  DEL room:{code}:revealedCount   // 重置計數器（或於此 SET 0）
+EXEC
+// EXEC null 代表被 WATCH 修改，需重試一次（最多 3 次）
+```
+
+### 12.5 前端錯誤策略
 
 | 場景 | 行為 |
 |------|------|
@@ -852,6 +981,7 @@ WS 斷線：
 
 ---
 
-*EDD 版本：v1.0*
-*生成時間：2026-04-19*
+*EDD 版本：v1.1*
+*生成時間：2026-04-19（STEP-06 Review 修訂）*
+*修訂重點：prizes→winnerCount、WRONG_STATUS→INVALID_STATE、新增 US-H05/H06 WS 訊息、RESET_ROOM 完整流程、START_GAME 原子性、JWT 命名統一、OWASP A04、WS maxPayload、PRNG seedSource、LadderData/ResultSlot 型別強化、RoomSummaryPayload 安全隔離、可觀測性指標規格*
 *基於 PDD v2.1 + PRD v1.1（Ladder Room Online）*
