@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRD — Ladder Room Online</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="topbar">
+    <a href="index.html" class="topbar__title">Ladder Room Online</a>
+    <div class="topbar__controls">
+      <div class="search-wrap">
+        <input class="search-input" type="search" placeholder="搜尋文件...">
+        <div class="search-results"></div>
+      </div>
+      <button class="theme-toggle" aria-label="切換深淺色模式">🌙</button>
+    </div>
+  </header>
+
+  <nav class="sidebar" aria-label="文件導覽">
+    <div class="sidebar__section">
+      <div class="sidebar__label">文件</div>
+      <a class="sidebar__link" href="index.html">🏠 首頁</a>
+      <a class="sidebar__link" href="pdd.html">📋 產品設計文件 (PDD)</a>
+      <a class="sidebar__link" href="prd.html">📝 產品需求文件 (PRD)</a>
+      <a class="sidebar__link" href="edd.html">🏗️ 工程設計文件 (EDD)</a>
+      <a class="sidebar__link" href="arch.html">🧩 架構設計 (ARCH)</a>
+      <a class="sidebar__link" href="api.html">🔌 API 文件</a>
+      <a class="sidebar__link" href="schema.html">🗄️ Schema 文件</a>
+      <a class="sidebar__link" href="design.html">🎨 UI 設計規格</a>
+      <a class="sidebar__link" href="bdd.html">🧪 BDD Scenarios</a>
+    </div>
+  </nav>
+
+  <main class="content">
+    <h1>PRD — Ladder Room Online</h1>
+    <p><strong>版本</strong>：v1.3 &nbsp;|&nbsp; <strong>日期</strong>：2026-04-19 &nbsp;|&nbsp; <strong>基於 PDD</strong>：v2.2</p>
+    <p><strong>作者</strong>：AI PM Agent &nbsp;|&nbsp; <strong>狀態</strong>：Draft</p>
+    <p><strong>利害關係人</strong>：前端工程師、後端工程師、QA、設計師</p>
+
+    <hr>
+
+    <h2>執行摘要</h2>
+    <p>Ladder Room Online 是一款基於 HTML5 Canvas 的多人線上爬樓梯抽獎遊戲，支援最多 50 人同房間即時參與。主持人建立房間並掌控揭曉節奏，玩家透過 6 碼房間碼加入並即時觀看路徑動畫；Mulberry32 PRNG 算法確保每局結果在所有客戶端 100% 一致，消除舞弊疑慮，適用於團隊抽獎、課堂點名、活動互動等場景。</p>
+
+    <hr>
+
+    <h2>使用者故事</h2>
+
+    <h3>主持人（Host）</h3>
+
+    <h4>US-H01 — 建立房間</h4>
+    <p>作為主持人，我想要建立一個帶有唯一 6 碼房間碼的房間，以便玩家能快速找到並加入我的抽獎活動。</p>
+    <ul>
+      <li><strong>AC-H01-1</strong>：Given 主持人點擊「建立房間」，When 系統接受請求，Then 於 2 秒內回傳 6 碼 Room Code（由大寫 A-Z 排除 O/I、數字 2-9 組成，共 32 字元集）且在 Redis 中不重複。</li>
+      <li><strong>AC-H01-2</strong>：Given 房間建立成功，When 主持人進入房間，Then 頁面顯示 Room Code、目前玩家列表（空）、設定中獎名額的輸入框。</li>
+      <li><strong>AC-H01-3</strong>：Given 建立房間的請求因網路異常失敗，When 系統偵測到錯誤，Then 顯示「建立失敗，請重試」提示並保留輸入內容，不產生孤立房間。</li>
+      <li><strong>AC-H01-4</strong>：Given Room Code 生成時碰撞次數超過 10 次，Then 回傳 <code>ROOM_CODE_GENERATION_FAILED</code> 錯誤。</li>
+    </ul>
+
+    <h4>US-H02 — 設定中獎名額</h4>
+    <p>作為主持人，我想要設定中獎名額（W），以便控制本局有多少玩家會獲獎。</p>
+    <ul>
+      <li><strong>AC-H02-1</strong>：Given 房間狀態為 <code>waiting</code>，When 主持人填入 W（1 ≤ W ≤ N-1），Then 系統接受並廣播更新後的 <code>ROOM_STATE</code>。</li>
+      <li><strong>AC-H02-2</strong>：Given 主持人輸入 W ≤ 0 或 W ≥ N，Then 系統顯示「中獎名額須介於 1 到玩家數減 1 之間」錯誤。</li>
+      <li><strong>AC-H02-3</strong>：Given 再玩一局且剔除離線玩家後 W ≥ 新 N，Then 自動將 W 重設為 null 並通知主持人「中獎名額已重設，請重新設定」。</li>
+    </ul>
+
+    <h4>US-H03 — 開始遊戲</h4>
+    <p>作為主持人，我想要在所有玩家就緒後開始遊戲，以便正式進入揭曉流程。</p>
+    <ul>
+      <li><strong>AC-H03-1</strong>：Given 房間狀態為 <code>waiting</code> 且 N ≥ 2 且 W 已設定，When 主持人點擊「開始遊戲」，Then 狀態轉為 <code>running</code>，後端以原子操作同步完成 seed 生成、ladderMap 計算與 resultSlots 指派。<strong>seed 及完整樓梯資料在 status=finished 前禁止傳送給任何客戶端。</strong></li>
+      <li><strong>AC-H03-2</strong>：Given W 尚未設定，Then 拒絕並回傳錯誤「請先設定中獎名額」。</li>
+      <li><strong>AC-H03-3</strong>：Canvas 動畫 FPS 桌機 ≥ 30、手機（Moto G4 throttling）≥ 24。</li>
+      <li><strong>AC-H03-4</strong>：Given N &lt; 2，Then 回傳 <code>INSUFFICIENT_PLAYERS</code>，顯示「人數不足（至少需要 2 位玩家）」。</li>
+      <li><strong>AC-H03-5</strong>：<code>rowCount</code> 公式為 <code>clamp(N×3, 20, 60)</code>（最小 20，最大 60）。</li>
+    </ul>
+
+    <h4>US-H04 — 手動逐步揭曉</h4>
+    <p>作為主持人，我想要以手動逐步揭曉每條路徑，以便配合現場節奏製造懸念。</p>
+    <ul>
+      <li><strong>AC-H04-1</strong>：When 主持人點擊「開始揭曉」（<code>BEGIN_REVEAL</code>），Then 伺服器執行 <code>running → revealing</code> 並廣播，操作須在 1 秒內完成。</li>
+      <li><strong>AC-H04-2</strong>：When 主持人點擊「下一位」，Then 伺服器廣播 <code>REVEAL_INDEX</code>，所有客戶端同步播放該玩家的行走動畫。</li>
+      <li><strong>AC-H04-3</strong>：所有路徑已揭曉後，「下一位」按鈕 disabled，顯示「結束本局」按鈕。</li>
+      <li><strong>AC-H04-4</strong>：主持人點擊「結束本局」（<code>END_GAME</code>），狀態轉為 <code>finished</code>，廣播完整得獎名單及 seed。</li>
+    </ul>
+
+    <h4>US-H05 — 自動揭曉</h4>
+    <p>主持人設定間隔 T（1 ≤ T ≤ 30 秒，正整數），遊戲進入 <code>revealing</code> 後每隔 T 秒自動廣播下一個 <code>REVEAL_INDEX</code>。</p>
+
+    <h4>US-H06 — 一鍵全揭</h4>
+    <p>主持人觸發後廣播 <code>REVEAL_ALL</code>，所有客戶端 2 秒內完成全部動畫渲染。<code>REVEAL_ALL_TRIGGER</code> 自動完成揭曉並廣播 finished，無需主持人再次確認。</p>
+
+    <h4>US-H07 — 踢除玩家</h4>
+    <ul>
+      <li><strong>AC-H07-1</strong>：在 <code>waiting</code> 狀態，主持人可踢除指定玩家，被踢玩家收到 <code>PLAYER_KICKED</code> 後跳轉至「你已被移出房間」頁面。</li>
+      <li><strong>AC-H07-2</strong>：被踢玩家嘗試以相同 playerId 重連時，伺服器拒絕。</li>
+      <li><strong>AC-H07-3</strong>：<code>running</code> 或之後不可踢除，回傳 <code>INVALID_STATE</code>。</li>
+    </ul>
+
+    <h4>US-H08 — 再玩一局</h4>
+    <p>在 <code>finished</code> 狀態，主持人點擊「再玩一局」後，系統剔除 <code>isOnline=false</code> 的玩家，重置房間狀態為 <code>waiting</code>，並廣播新的 <code>ROOM_STATE</code>。</p>
+
+    <hr>
+
+    <h3>玩家（Player）</h3>
+
+    <h4>US-P01 — 加入房間</h4>
+    <p>玩家輸入有效暱稱（1～20 個 Unicode 字元）及正確 Room Code，從送出按鈕點擊起計 1.5 秒內進入等待畫面。暱稱比對區分大小寫，"Alice" 與 "alice" 視為不同暱稱。</p>
+
+    <h4>US-P02 — 即時玩家列表</h4>
+    <p>有新玩家加入或斷線時，伺服器廣播 <code>ROOM_STATE</code>，所有在線玩家的等待頁面在 2 秒內更新玩家列表。斷線玩家顯示「離線」標記，不立即移除。</p>
+
+    <h4>US-P03 — 觀看揭曉動畫</h4>
+    <p>輪到自己的路徑揭曉時，Canvas 高亮自己的路徑。其他玩家路徑以灰色或淡色呈現，已揭曉玩家的結果在動畫結束後持久顯示於底部結果槽。</p>
+
+    <h4>US-P04 — 確認中獎結果</h4>
+    <p>自己的路徑抵達底部結果槽後，畫面顯示「恭喜中獎！」或「未中獎」明確文字，且結果與伺服器端 <code>REVEAL_INDEX</code> payload 中 <code>result</code> 欄位一致。</p>
+
+    <h4>US-P05 — 斷線重連</h4>
+    <p>玩家斷線後重新開啟頁面且 localStorage 中存有 <code>playerId</code>，系統自動重連，伺服器回傳完整房間狀態；重連時間 &lt; 3 秒。重連時房間若已在 <code>revealing</code> 且部分路徑已揭曉，客戶端直接呈現已揭曉的靜態結果，不重播已完成動畫。</p>
+
+    <h4>US-P06 — 被踢除通知</h4>
+    <p>收到 <code>PLAYER_KICKED</code> 後立即顯示「你已被主持人移出房間」，WebSocket 連線關閉，頁面提供「回首頁」按鈕。</p>
+
+    <hr>
+
+    <h2>功能需求</h2>
+
+    <table>
+      <thead><tr><th>ID</th><th>需求</th><th>優先級</th></tr></thead>
+      <tbody>
+        <tr><td>FR-01</td><td>房間建立與管理：2 秒內生成唯一 6 碼 Room Code；TTL 4 小時；碰撞重試最多 10 次</td><td>P0</td></tr>
+        <tr><td>FR-02</td><td>玩家加入與身份管理：UUID v4 playerId；暱稱 1-20 字 Unicode；最多 50 名玩家</td><td>P0</td></tr>
+        <tr><td>FR-03</td><td>樓梯生成算法：Mulberry32 PRNG；djb2 hash seed；Fisher-Yates 洗牌；bijection 保證</td><td>P0</td></tr>
+        <tr><td>FR-04</td><td>房間狀態機：waiting → running → revealing → finished → waiting</td><td>P0</td></tr>
+        <tr><td>FR-05</td><td>揭曉控制：手動 / 自動（1-30s 間隔）/ 一鍵全揭</td><td>P0</td></tr>
+        <tr><td>FR-06</td><td>WebSocket 事件規格：JSON 格式，type + payload，1 秒內回應</td><td>P0</td></tr>
+        <tr><td>FR-07</td><td>斷線重連：playerId 帶回房間狀態快照，Ghost Player 情境處理</td><td>P1</td></tr>
+        <tr><td>FR-08</td><td>再玩一局：移除 isOnline=false 玩家，重置遊戲欄位</td><td>P1</td></tr>
+        <tr><td>FR-09</td><td>踢除玩家：僅在 waiting 狀態；kickedPlayerIds 持久化至 Redis</td><td>P1</td></tr>
+        <tr><td>FR-10</td><td>Canvas 動畫渲染：requestAnimationFrame 驅動，桌機 ≥ 30fps，手機 ≥ 24fps</td><td>P1</td></tr>
+        <tr><td>FR-11</td><td>房間碼輸入體驗：自動轉大寫；URL 參數預填</td><td>P2</td></tr>
+        <tr><td>FR-12</td><td>得獎名單展示：finished 後顯示完整得獎名單，依 startColumn 排序</td><td>P2</td></tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <h2>非功能需求</h2>
+
+    <table>
+      <thead><tr><th>ID</th><th>類別</th><th>目標</th></tr></thead>
+      <tbody>
+        <tr><td>NFR-01</td><td>效能</td><td>Canvas 桌機 ≥ 30fps；手機 ≥ 24fps；WS 廣播端對端延遲 &lt; 2 秒（P95）</td></tr>
+        <tr><td>NFR-02</td><td>並發與容量</td><td>單一伺服器支援 100 個並發房間 × 50 人 = 5,000 WS 連線</td></tr>
+        <tr><td>NFR-03</td><td>結果一致性</td><td>100% 的局次中所有客戶端顯示結果與伺服器計算結果一致（0 容忍差異）</td></tr>
+        <tr><td>NFR-04</td><td>可靠性</td><td>斷線後重連房間狀態恢復率 100%；重連完成時間 &lt; 3 秒（P95）</td></tr>
+        <tr><td>NFR-05</td><td>安全性</td><td>JWT 驗證；playerId UUID v4；seed 在 finished 前禁止傳送；WS 訊息上限 64KB</td></tr>
+        <tr><td>NFR-06</td><td>前端效能預算</td><td>首頁 JS &lt; 80KB gzip；遊戲頁 &lt; 150KB；FCP &lt; 1.5s；LCP &lt; 2.5s；CLS &lt; 0.1</td></tr>
+        <tr><td>NFR-07</td><td>測試覆蓋率</td><td>後端 ≥ 80%；前端 ≥ 70%；E2E 覆蓋所有 P0 User Story</td></tr>
+        <tr><td>NFR-08</td><td>瀏覽器相容性</td><td>Chrome 110+、Firefox 110+、Safari 15+；最小寬度 320px 正常操作</td></tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <h2>驗收標準總表</h2>
+
+    <table>
+      <thead><tr><th>US</th><th>Story</th><th>優先級</th><th>狀態</th></tr></thead>
+      <tbody>
+        <tr><td>US-H01</td><td>主持人建立房間並取得 6 碼 Room Code</td><td>P0</td><td>待開發</td></tr>
+        <tr><td>US-H02</td><td>主持人設定中獎名額 W</td><td>P0</td><td>待開發</td></tr>
+        <tr><td>US-H03</td><td>主持人開始遊戲</td><td>P0</td><td>待開發</td></tr>
+        <tr><td>US-H04</td><td>主持人手動逐步揭曉路徑</td><td>P0</td><td>待開發</td></tr>
+        <tr><td>US-H05</td><td>主持人設定自動揭曉間隔</td><td>P1</td><td>待開發</td></tr>
+        <tr><td>US-H06</td><td>主持人一鍵揭曉全部路徑</td><td>P0</td><td>待開發</td></tr>
+        <tr><td>US-H07</td><td>主持人踢除玩家</td><td>P1</td><td>待開發</td></tr>
+        <tr><td>US-H08</td><td>主持人發起再玩一局</td><td>P1</td><td>待開發</td></tr>
+        <tr><td>US-P01</td><td>玩家輸入暱稱並加入房間</td><td>P0</td><td>待開發</td></tr>
+        <tr><td>US-P02</td><td>玩家觀看即時玩家列表更新</td><td>P0</td><td>待開發</td></tr>
+        <tr><td>US-P03</td><td>玩家觀看自己路徑的揭曉動畫</td><td>P0</td><td>待開發</td></tr>
+        <tr><td>US-P04</td><td>玩家確認自己的中獎結果</td><td>P0</td><td>待開發</td></tr>
+        <tr><td>US-P05</td><td>玩家斷線後重連恢復狀態</td><td>P1</td><td>待開發</td></tr>
+        <tr><td>US-P06</td><td>玩家被踢除後收到明確通知</td><td>P1</td><td>待開發</td></tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <h2>不在範圍（Out of Scope）</h2>
+    <ol>
+      <li>使用者帳號系統（登入、註冊、歷史紀錄）</li>
+      <li>行動原生 App（iOS / Android）</li>
+      <li>觀眾模式（Spectator）</li>
+      <li>多房間管理後台</li>
+      <li>自訂獎品名稱或分組抽獎</li>
+      <li>動畫主題或皮膚自訂</li>
+      <li>抽獎結果匯出（PDF / CSV）</li>
+      <li>國際化（i18n）多語言支援（MVP 以繁體中文為唯一介面語言）</li>
+      <li>伺服器端水平擴展（Multi-node clustering）</li>
+      <li>聲音效果與背景音樂</li>
+    </ol>
+
+    <p><em>PRD 版本：v1.3 | 生成時間：2026-04-19 | 基於 PDD v2.2（Ladder Room Online）</em></p>
+  </main>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    const isDark = localStorage.getItem('theme') !== 'light';
+    mermaid.initialize({ startOnLoad: true, theme: isDark ? 'dark' : 'default' });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

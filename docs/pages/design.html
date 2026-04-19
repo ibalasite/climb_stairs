@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DESIGN — Ladder Room Online</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="topbar">
+    <a href="index.html" class="topbar__title">Ladder Room Online</a>
+    <div class="topbar__controls">
+      <div class="search-wrap">
+        <input class="search-input" type="search" placeholder="搜尋文件...">
+        <div class="search-results"></div>
+      </div>
+      <button class="theme-toggle" aria-label="切換深淺色模式">🌙</button>
+    </div>
+  </header>
+
+  <nav class="sidebar" aria-label="文件導覽">
+    <div class="sidebar__section">
+      <div class="sidebar__label">文件</div>
+      <a class="sidebar__link" href="index.html">🏠 首頁</a>
+      <a class="sidebar__link" href="pdd.html">📋 產品設計文件 (PDD)</a>
+      <a class="sidebar__link" href="prd.html">📝 產品需求文件 (PRD)</a>
+      <a class="sidebar__link" href="edd.html">🏗️ 工程設計文件 (EDD)</a>
+      <a class="sidebar__link" href="arch.html">🧩 架構設計 (ARCH)</a>
+      <a class="sidebar__link" href="api.html">🔌 API 文件</a>
+      <a class="sidebar__link" href="schema.html">🗄️ Schema 文件</a>
+      <a class="sidebar__link" href="design.html">🎨 UI 設計規格</a>
+      <a class="sidebar__link" href="bdd.html">🧪 BDD Scenarios</a>
+    </div>
+  </nav>
+
+  <main class="content">
+    <h1>DESIGN — Client UI Spec</h1>
+    <p><strong>版本</strong>：v1.1 &nbsp;|&nbsp; <strong>日期</strong>：2026-04-19 &nbsp;|&nbsp; 基於 PRD v1.3 · ARCH v1.2 · EDD v1.3 · API v1.1</p>
+    <p><strong>Tech</strong>: Vanilla TypeScript + Vite · HTML5 Canvas · No UI framework</p>
+
+    <hr>
+
+    <h2>1. 設計方向</h2>
+    <p><strong>輕量遊戲感 × 現代簡約</strong>：以明亮、歡樂的色調配合清晰的幾何感，讓玩家在手機上一眼看懂當前狀態。乾淨的白底/淺底、強調色做點睛、動態揭曉是核心視覺高潮。</p>
+
+    <h3>設計原則</h3>
+    <ol>
+      <li><strong>Mobile-first</strong>：320px 最小寬度，垂直滾動，單欄佈局優先</li>
+      <li><strong>狀態即畫面</strong>：每個房間狀態（waiting / running / revealing / finished）對應獨一無二的 UI 組合</li>
+      <li><strong>Canvas 為主角</strong>：揭曉動畫佔主要可視區域，控制元素靠邊退讓</li>
+      <li><strong>清晰的角色區分</strong>：主持人看到控制面板，玩家只看觀眾介面</li>
+    </ol>
+
+    <hr>
+
+    <h2>2. 設計 Token（CSS Custom Properties）</h2>
+
+    <pre><code class="language-css">:root {
+  /* Palette */
+  --color-bg:           oklch(98% 0 0);        /* 接近白色背景 */
+  --color-surface:      oklch(100% 0 0);        /* 卡片白 */
+  --color-border:       oklch(88% 0 0);         /* 淡灰邊框 */
+  --color-text:         oklch(18% 0 0);         /* 主文字深色 */
+  --color-text-sub:     oklch(52% 0 0);         /* 次要文字灰 */
+
+  --color-accent:       oklch(62% 0.22 250);    /* 主強調藍紫 */
+  --color-accent-light: oklch(94% 0.06 250);    /* 強調淡背景 */
+  --color-success:      oklch(60% 0.18 150);    /* 中獎綠 */
+  --color-success-light:oklch(94% 0.05 150);
+  --color-danger:       oklch(58% 0.20 25);     /* 警告紅 */
+  --color-host-badge:   oklch(70% 0.22 40);     /* 主持人徽章橘 */
+
+  /* Ladder player path colours (最多 50 人，循環) */
+  --color-path-self:   oklch(62% 0.22 250);    /* 自己的路徑：強調藍紫 */
+  --color-path-winner: oklch(60% 0.18 150);    /* 已揭曉中獎：綠 */
+  --color-path-loser:  oklch(58% 0.20 25);     /* 已揭曉未中獎：紅 */
+  --color-path-hidden: oklch(82% 0 0);         /* 未揭曉：淺灰虛線 */
+
+  /* Typography */
+  --font-base: 'Noto Sans TC', system-ui, sans-serif;
+  --text-xs:   clamp(0.75rem, 0.7rem + 0.2vw, 0.875rem);
+  --text-sm:   clamp(0.875rem, 0.82rem + 0.25vw, 1rem);
+  --text-base: clamp(1rem, 0.92rem + 0.4vw, 1.125rem);
+  --text-lg:   clamp(1.125rem, 1rem + 0.6vw, 1.375rem);
+  --text-xl:   clamp(1.375rem, 1.2rem + 0.9vw, 1.75rem);
+  --text-2xl:  clamp(1.75rem, 1.4rem + 1.5vw, 2.5rem);
+
+  /* Spacing */
+  --space-1: 0.25rem; --space-2: 0.5rem;
+  --space-3: 0.75rem; --space-4: 1rem;
+  --space-6: 1.5rem;  --space-8: 2rem;
+  --space-section: clamp(2rem, 1.5rem + 2.5vw, 4rem);
+
+  /* Motion */
+  --duration-fast:   150ms;
+  --duration-normal: 300ms;
+  --duration-slow:   600ms;
+  --ease-out-expo:   cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Radius */
+  --radius-sm: 6px; --radius-md: 12px;
+  --radius-lg: 20px; --radius-pill: 9999px;
+
+  /* Shadow */
+  --shadow-card:   0 1px 3px oklch(0% 0 0 / 0.08), 0 4px 12px oklch(0% 0 0 / 0.06);
+  --shadow-raised: 0 4px 16px oklch(0% 0 0 / 0.12);
+}</code></pre>
+
+    <hr>
+
+    <h2>3. 頁面清單</h2>
+
+    <table>
+      <thead><tr><th>頁面</th><th>URL Pattern</th><th>適用角色</th><th>房間狀態</th></tr></thead>
+      <tbody>
+        <tr><td>首頁 / 入口</td><td><code>/</code></td><td>所有人</td><td>—</td></tr>
+        <tr><td>建立房間</td><td><code>/</code> → Modal</td><td>主持人</td><td>—</td></tr>
+        <tr><td>加入房間</td><td><code>/?room=XXXXXX</code></td><td>玩家</td><td>—</td></tr>
+        <tr><td>等待大廳</td><td><code>/room/:code</code></td><td>主持人 + 玩家</td><td><code>waiting</code></td></tr>
+        <tr><td>遊戲主畫面（梯子）</td><td><code>/room/:code</code></td><td>主持人 + 玩家</td><td><code>running</code> / <code>revealing</code></td></tr>
+        <tr><td>結果頁面</td><td><code>/room/:code</code></td><td>主持人 + 玩家</td><td><code>finished</code></td></tr>
+        <tr><td>被踢出</td><td><code>/kicked</code></td><td>被踢玩家</td><td>—</td></tr>
+      </tbody>
+    </table>
+
+    <blockquote><p>頁面路由為 SPA，所有狀態切換在 <code>/room/:code</code> 內部依 WebSocket 事件動態渲染，不換 URL。</p></blockquote>
+
+    <hr>
+
+    <h2>4. 首頁 / 入口</h2>
+
+    <h3>版面</h3>
+    <pre><code>┌──────────────────────────────┐
+│  [Logo + 標題]               │
+│  爬樓梯抽獎                   │
+│                              │
+│  ┌─────────────────────────┐ │
+│  │  房間碼  [______]        │ │
+│  │  暱稱    [______]        │ │
+│  │  [加入房間]              │ │
+│  └─────────────────────────┘ │
+│                              │
+│  ─────  或  ─────            │
+│                              │
+│  [建立新房間]                 │
+└──────────────────────────────┘</code></pre>
+
+    <h3>核心 UI 元件</h3>
+    <ul>
+      <li><strong>RoomCodeInput</strong>：6 格獨立字元輸入（每格一個 <code>&lt;input maxlength="1"&gt;</code>）或單一輸入框自動分割；自動轉大寫；透過 URL param <code>?room=XXXXXX</code> 自動預填</li>
+      <li><strong>NicknameInput</strong>：單行 <code>&lt;input&gt;</code>，1-20 字 Unicode 限制；即時 character count 提示（x / 20）</li>
+      <li><strong>ActionButton（主要）</strong>：高度 48px（觸控最小目標）；全寬於 mobile；Loading spinner 狀態；Disabled 狀態</li>
+    </ul>
+
+    <hr>
+
+    <h2>5. 等待大廳（waiting）</h2>
+
+    <h3>主持人視角</h3>
+    <pre><code>┌──────────────────────────────┐
+│  [房間碼顯示]  [複製連結]      │
+│  ─────────────────────────  │
+│  [中獎名額設定] W: [__]      │
+│  ─────────────────────────  │
+│  玩家列表 (N/50)             │
+│  • Alice ⭐ Host (online)    │
+│  • Bob (online)              │
+│  • Carol (offline)           │
+│  ─────────────────────────  │
+│  [踢除按鈕]                  │
+│  ─────────────────────────  │
+│  [開始遊戲] (disabled N<2)   │
+└──────────────────────────────┘</code></pre>
+
+    <h3>玩家視角</h3>
+    <p>等待主持人開始，顯示房間碼、玩家列表（無控制面板），有離線/在線狀態指示。</p>
+
+    <hr>
+
+    <h2>6. 遊戲主畫面（revealing）</h2>
+
+    <h3>Canvas 佈局</h3>
+    <ul>
+      <li>頂部：玩家名稱標籤列（對應 N 條起始欄）</li>
+      <li>中部：樓梯 Canvas（主要可視區域，佔螢幕 60-70%）</li>
+      <li>底部：結果槽位（N 個格子，顯示中獎/未中獎符號）</li>
+    </ul>
+
+    <h3>Canvas 渲染規格</h3>
+
+    <table>
+      <thead><tr><th>元素</th><th>渲染方式</th><th>顏色規則</th></tr></thead>
+      <tbody>
+        <tr><td>垂直線（Vertical Lines）</td><td>strokeRect / beginPath</td><td>全體淡灰；自己的欄位強調色</td></tr>
+        <tr><td>橫槓（Rungs）</td><td>beginPath / moveTo / lineTo</td><td>與垂直線同色</td></tr>
+        <tr><td>行走動畫（Walking Animation）</td><td>requestAnimationFrame 逐格推進</td><td>路徑顏色：自己藍紫、中獎綠、未中獎紅、未揭曉灰虛線</td></tr>
+        <tr><td>結果槽（Result Slots）</td><td>fillRect + text</td><td>中獎槽綠底，未中獎槽紅底</td></tr>
+      </tbody>
+    </table>
+
+    <h3>主持人控制面板（revealing）</h3>
+    <ul>
+      <li><strong>手動模式</strong>：「下一位 →」按鈕（disabled 至全揭曉後）+ 「全部揭曉」按鈕</li>
+      <li><strong>自動模式</strong>：間隔設定（1-30s）+ 「停止」按鈕</li>
+      <li><strong>切換</strong>：手動 ↔ 自動模式切換按鈕</li>
+      <li><strong>結束</strong>：「結束本局」按鈕（所有路徑揭曉後才 enable）</li>
+    </ul>
+
+    <hr>
+
+    <h2>7. 結果頁面（finished）</h2>
+
+    <pre><code>┌──────────────────────────────┐
+│  🎊 本局結束 🎊               │
+│  ─────────────────────────  │
+│  得獎名單                    │
+│  🏆 Alice — 中獎！           │
+│  ❌ Bob — 未中獎             │
+│  ❌ Carol — 未中獎           │
+│  ─────────────────────────  │
+│  Seed: 2753483489           │
+│  Seed Source: a3f8c2e1-...  │
+│  ─────────────────────────  │
+│  [再玩一局] (Host only)      │
+└──────────────────────────────┘</code></pre>
+
+    <hr>
+
+    <h2>8. 動畫規格</h2>
+
+    <h3>行走動畫（Walking Animation）</h3>
+    <ul>
+      <li>驅動：<code>requestAnimationFrame</code></li>
+      <li>每個 step（row）動畫時長：~200ms（可隨 N 調整）</li>
+      <li>遇橫槓時：先向左或右移動（150ms），再繼續向下</li>
+      <li>目標 FPS：桌機 ≥ 30fps；手機 ≥ 24fps</li>
+    </ul>
+
+    <h3>已揭曉路徑呈現</h3>
+    <ul>
+      <li>動畫結束後路徑固定顯示，結果槽更新</li>
+      <li>其他未揭曉路徑以灰色虛線顯示</li>
+    </ul>
+
+    <h3>REVEAL_ALL 動畫</h3>
+    <ul>
+      <li>接收到 <code>REVEAL_ALL</code> 廣播時，壓縮動畫時長（2 秒內完成全部渲染）</li>
+      <li>若 2 秒內渲染未完成，直接跳至所有路徑的終止幀（final frame）</li>
+    </ul>
+
+    <hr>
+
+    <h2>9. 響應式設計</h2>
+
+    <table>
+      <thead><tr><th>斷點</th><th>佈局調整</th></tr></thead>
+      <tbody>
+        <tr><td>320px（最小）</td><td>單欄，Canvas 縮放至螢幕寬度，控制元素垂直堆疊</td></tr>
+        <tr><td>768px（tablet）</td><td>Canvas 可略大，控制面板可側邊顯示</td></tr>
+        <tr><td>1024px+（desktop）</td><td>Canvas 佔主區域，控制面板固定側欄</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Canvas 響應式縮放</h3>
+    <pre><code class="language-typescript">// 響應式 Canvas 縮放：依父容器寬度計算欄位寬度
+const colWidth = Math.floor(containerWidth / N);
+const canvasWidth = colWidth * N;
+const canvasHeight = Math.floor(canvasWidth * 1.5); // 高寬比 3:2
+
+canvas.width = canvasWidth;
+canvas.height = canvasHeight;
+canvas.style.width = '100%';</code></pre>
+
+    <hr>
+
+    <h2>10. 可及性（Accessibility）</h2>
+    <ul>
+      <li>所有互動元素有 <code>aria-label</code> 或 <code>aria-describedby</code></li>
+      <li>色彩對比度：主文字與背景 ≥ 4.5:1（WCAG AA）</li>
+      <li>Canvas 結果同時以文字清單輔助呈現（螢幕閱讀器可讀）</li>
+      <li>鍵盤可達：所有按鈕可透過 Tab 聚焦，Enter / Space 觸發</li>
+      <li><code>prefers-reduced-motion</code>：使用者偏好減少動畫時，跳過行走動畫，直接顯示最終結果</li>
+    </ul>
+  </main>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    const isDark = localStorage.getItem('theme') !== 'light';
+    mermaid.initialize({ startOnLoad: true, theme: isDark ? 'dark' : 'default' });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

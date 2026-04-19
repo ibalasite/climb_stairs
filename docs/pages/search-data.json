@@ -1,0 +1,47 @@
+{
+  "index.html": {
+    "url": "index.html",
+    "title": "首頁 — Ladder Room Online 文件中心",
+    "excerpt": "基於 LINE 爬樓梯玩法的 HTML5 線上多人互動抽獎遊戲。技術棧：Node.js 20 + TypeScript + Fastify + ws + Redis，Mulberry32 PRNG 確保 100% 一致。"
+  },
+  "pdd.html": {
+    "url": "pdd.html",
+    "title": "產品設計文件 (PDD) v2.2",
+    "excerpt": "Ladder Room Online 是一款基於 LINE 爬樓梯玩法的 HTML5 線上多人互動遊戲。玩家從不同地點使用瀏覽器進入同一 Room，主持人建立房間並掌控揭曉節奏。"
+  },
+  "prd.html": {
+    "url": "prd.html",
+    "title": "產品需求文件 (PRD) v1.3",
+    "excerpt": "User Stories（US-H01~US-H08, US-P01~US-P06）、驗收標準（AC）、功能需求（FR-01~FR-12）、非功能需求（NFR-01~NFR-08）。Canvas 動畫 ≥30fps。"
+  },
+  "edd.html": {
+    "url": "edd.html",
+    "title": "工程設計文件 (EDD) v1.3",
+    "excerpt": "Clean Architecture 分層設計：Domain → Use Cases → Application → Infrastructure → Presentation。Fastify + ws + Redis + Mulberry32 PRNG + Fisher-Yates。"
+  },
+  "arch.html": {
+    "url": "arch.html",
+    "title": "架構設計 (ARCH) v1.2",
+    "excerpt": "模組職責清單（RoomService, GameService, WsServer, RoomRepository 等）、主要設計決策（ws vs Socket.IO、Monorepo、Redis Pub/Sub、無 ORM、JWT HS256）。"
+  },
+  "api.html": {
+    "url": "api.html",
+    "title": "API 文件 v1.1",
+    "excerpt": "10 個 HTTP REST 端點（POST /api/rooms, GET /api/rooms/:code, POST players, DELETE player, game/start, reveal, end, play-again, /health, /ready）及 WebSocket 協議。"
+  },
+  "schema.html": {
+    "url": "schema.html",
+    "title": "Schema 文件 v1.1 — Redis Schema Design",
+    "excerpt": "Redis 是唯一持久層。Key Schema：room:{code}, room:{code}:ladder, room:{code}:revealedCount, room:{code}:kicked, room:{code}:sessions。TTL 策略 4h/1h/5min。"
+  },
+  "design.html": {
+    "url": "design.html",
+    "title": "UI 設計規格 (DESIGN) v1.1",
+    "excerpt": "輕量遊戲感 × 現代簡約設計風格。CSS Token（OKLCH 色彩系統）、頁面清單（SPA 路由）、Canvas 渲染規格（FPS 目標、行走動畫、REVEAL_ALL）、響應式設計 320px。"
+  },
+  "bdd.html": {
+    "url": "bdd.html",
+    "title": "BDD Scenarios — 11 個 Feature Files",
+    "excerpt": "room-lifecycle, game-flow, reveal-flow, player-management, host-actions, reconnect, prng, client-canvas, client-navigation, client-reconnect, client-error 共 11 個 Feature Files。"
+  }
+}
