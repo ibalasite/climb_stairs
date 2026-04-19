@@ -1,6 +1,6 @@
 # API Design Document — Ladder Room Online
 
-*Version: v1.0 | 2026-04-19 | Based on EDD v1.1 + PRD v1.1*
+*Version: v1.1 | 2026-04-19 | Based on EDD v1.3 + PRD v1.3*
 
 ---
 
@@ -71,9 +71,10 @@ Authorization: Bearer <token>
 | 4 | `DELETE` | `/api/rooms/:code/players/:playerId` | 踢出玩家 | 是（host） |
 | 5 | `POST` | `/api/rooms/:code/game/start` | 開始遊戲 | 是（host） |
 | 6 | `POST` | `/api/rooms/:code/game/reveal` | 揭示結果（next \| all） | 是（host） |
-| 7 | `POST` | `/api/rooms/:code/game/reset` | 再玩一局 | 是（host） |
-| 8 | `GET` | `/health` | 健康檢查（liveness） | 否 |
-| 9 | `GET` | `/ready` | 就緒檢查（readiness） | 否 |
+| 7 | `POST` | `/api/rooms/:code/game/end` | 結束本局 | 是（host） |
+| 8 | `POST` | `/api/rooms/:code/game/play-again` | 再玩一局 | 是（host） |
+| 9 | `GET` | `/health` | 健康檢查（liveness） | 否 |
+| 10 | `GET` | `/ready` | 就緒檢查（readiness） | 否 |
 
 ---
 
@@ -296,7 +297,7 @@ Content-Type: application/json
 
 ### 5. POST /api/rooms/:code/game/start — 開始遊戲
 
-房主觸發遊戲開始，後端執行梯子生成並回傳完整房間物件（含 `LadderData`）。
+房主觸發遊戲開始。後端生成 `seedSource`（UUID v4）並計算 `rowCount`，**不生成梯子結構**（梯子延遲至 BEGIN_REVEAL 時生成）。回傳房間物件（不含 `ladder`）。
 
 **Path Parameters**
 
@@ -315,7 +316,7 @@ Content-Type: application/json
 
 **Success Response — 200 OK**
 
-回傳完整房間物件（直接 JSON，含 ladder 欄位）：
+回傳房間物件（直接 JSON；`ladder` 欄位為 `null`，梯子尚未生成）：
 
 ```json
 {
@@ -324,17 +325,7 @@ Content-Type: application/json
   "hostId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "players": [],
   "winnerCount": 1,
-  "ladder": {
-    "seed": 1879452061,
-    "seedSource": "550e8400-e29b-41d4-a716-446655440000",
-    "rowCount": 20,
-    "colCount": 3,
-    "segments": [
-      { "row": 0, "col": 1 },
-      { "row": 2, "col": 0 },
-      { "row": 5, "col": 1 }
-    ]
-  },
+  "ladder": null,
   "revealedCount": 0,
   "revealMode": "manual",
   "autoRevealIntervalSec": null,
@@ -342,6 +333,8 @@ Content-Type: application/json
   "updatedAt": 1745050000000
 }
 ```
+
+> **注意**：`seed` 與 `seedSource` 在 `status=finished` 之前均不對客戶端公開（PRD AC-H03-1, NFR-05）。`rowCount` 透過 WS `ROOM_STATE` 廣播傳遞（含於 room 物件），但 `seed` 不公開。梯子結構（`LadderData`）在 BEGIN_REVEAL 時才生成並寫入 Redis。
 
 **Error Responses**
 
@@ -360,6 +353,7 @@ Content-Type: application/json
 ### 6. POST /api/rooms/:code/game/reveal — 揭示結果
 
 房主觸發結果揭示。`mode: "next"` 逐一揭示下一位玩家；`mode: "all"` 一次揭示全部剩餘。
+房間必須在 `revealing` 狀態。揭示完畢後需由房主另行發送 END_GAME 訊息（WS 或 HTTP）才轉入 `finished`。
 
 **Path Parameters**
 
@@ -403,9 +397,67 @@ interface RevealRequest {
 
 ---
 
-### 7. POST /api/rooms/:code/game/reset — 再玩一局
+### 7. POST /api/rooms/:code/game/end — 結束本局
 
-房主在遊戲結束後重置房間進行下一局。等同 WS `RESET_ROOM` 訊息。僅限 `finished` 狀態。離線玩家被移除，`kickedPlayerIds` 清空，`winnerCount` 若 >= 新玩家數則重置為 null。
+房主在所有路徑揭示完畢後，手動觸發本局結束。房間從 `revealing` 轉為 `finished`，並廣播包含 `seed` 的 `ROOM_STATE`。
+
+**重要**：`REVEAL_ALL_TRIGGER` 或最後一次 `REVEAL_NEXT` 本身不自動轉入 `finished`；必須由 Host 另外發送 END_GAME（WS 或此 HTTP 端點）才能完成狀態轉換（PRD AC-H04-4, AC-H06-2）。
+
+**Path Parameters**
+
+| 參數 | 格式 | 說明 |
+|------|------|------|
+| `code` | `[A-HJ-NP-Z2-9]{6}` | 6 碼房間代碼 |
+
+**Request Headers**
+
+```
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body:** `{}` 或空
+
+**Success Response — 200 OK**
+
+回傳已結束的房間物件（直接 JSON，含 `seed` 與完整 `results`）：
+
+```json
+{
+  "code": "AB3K7X",
+  "status": "finished",
+  "hostId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "players": [],
+  "winnerCount": 1,
+  "ladder": {
+    "seed": 1879452061,
+    "seedSource": "550e8400-e29b-41d4-a716-446655440000",
+    "rowCount": 20,
+    "colCount": 3,
+    "segments": []
+  },
+  "revealedCount": 3,
+  "revealMode": "manual",
+  "autoRevealIntervalSec": null,
+  "createdAt": 1745049600000,
+  "updatedAt": 1745051000000
+}
+```
+
+**Error Responses**
+
+| HTTP | 錯誤碼 | 說明 |
+|------|--------|------|
+| 403 | `PLAYER_NOT_HOST` | 操作者不是房主 |
+| 409 | `INVALID_STATE` | 房間狀態非 `revealing` 或尚未所有路徑揭示完畢（`revealedCount < totalCount`） |
+
+**Rate Limit:** 100 req/min/IP
+
+---
+
+### 8. POST /api/rooms/:code/game/play-again — 再玩一局
+
+房主在遊戲結束後重置房間進行下一局（取代舊版 `RESET_ROOM`）。僅限 `finished` 狀態。離線玩家被移除，`kickedPlayerIds` 清空，`winnerCount` 若 >= 新玩家數則重置為 null。
 
 **Path Parameters**
 
@@ -463,7 +515,7 @@ Content-Type: application/json
 
 ---
 
-### 8. GET /health 與 GET /ready — 健康 / 就緒檢查
+### 9. GET /health 與 GET /ready — 健康 / 就緒檢查
 
 回報後端服務、Redis 連線與 WebSocket 連線數狀態。供 Kubernetes liveness（`/health`）與 readiness（`/ready`）probe 使用。
 
@@ -540,7 +592,7 @@ interface ClientEnvelope<T = unknown> {
 伺服器每 **30 秒**發送 WebSocket Protocol-level `PING` frame，客戶端需回應 `PONG`。
 30 秒未收到 `PONG` → 伺服器主動關閉連線（close code 1001）。
 
-客戶端亦可發送 `{ type: "PING", ts, payload: {} }` 應用層心跳，伺服器不回應（靜默接受）。
+客戶端亦可發送應用層 `{ type: "PING", ts, payload: {} }` 心跳，伺服器回應 `PONG { ts: echo }` 供 RTT 量測使用（非傳輸層心跳主路徑）。
 
 ---
 
@@ -584,7 +636,7 @@ interface RoomStatePayload {
 }
 ```
 
-**觸發時機：** 玩家加入/斷線/重連/被踢、`winnerCount` 設定、遊戲狀態轉換、`RESET_ROOM`
+**觸發時機：** 玩家加入/斷線/重連/被踢、`winnerCount` 設定、遊戲狀態轉換、`PLAY_AGAIN`
 
 ---
 
@@ -592,11 +644,27 @@ interface RoomStatePayload {
 
 玩家 WebSocket 連線建立或重連時，**unicast** 給該連線（僅對該 session 發送）。包含完整 `ladder` 與 `results`，讓客戶端重建完整畫面。
 
+`ladder` 欄位依房間狀態而異：
+- `waiting` / `running`：`null`（梯子尚未生成）
+- `revealing`：`LadderDataPublic`（省略 `seed` 與 `seedSource`，PRD AC-H03-1, NFR-05）
+- `finished`：`LadderData`（含完整 `seed` + `seedSource` 供可審計性）
+
 ```typescript
 type WsEventType = "ROOM_STATE_FULL";
 
+/**
+ * LadderDataPublic — 在 revealing 狀態發送給客戶端（省略 seed/seedSource）。
+ * LadderData（含 seed）僅在 status=finished 時發送。
+ */
+interface LadderDataPublic {
+  rowCount: number;
+  colCount: number;
+  segments: readonly LadderSegment[];
+  // seed 與 seedSource 刻意省略 — status=finished 前不對客戶端公開
+}
+
 interface RoomStateFullPayload extends RoomStatePayload {
-  ladder: LadderData | null;
+  ladder: LadderDataPublic | LadderData | null;
   results: readonly ResultSlot[] | null;
   selfPlayerId: string;   // 對應此 session 的玩家 ID
 }
@@ -629,20 +697,22 @@ type WsEventType = "REVEAL_INDEX";
 
 interface RevealIndexPayload {
   playerIndex: number;    // Canvas 列索引（0-based）
-  result: {
-    playerIndex: number;
-    playerId: string;
-    startCol: number;
-    endCol: number;
-    isWinner: boolean;    // 僅 win/lose，無命名獎項
-    path: Array<{
-      row: number;
-      col: number;
-      direction: "down" | "left" | "right";
-    }>;
-  };
+  result: ResultSlot;     // 含完整 path（單一玩家，資料量小，安全在 64KB 內）
   revealedCount: number;  // 已揭示數量（含本次）
   totalCount: number;     // 總玩家數
+}
+
+interface ResultSlot {
+  playerIndex: number;
+  playerId: string;
+  startCol: number;
+  endCol: number;
+  isWinner: boolean;    // 僅 win/lose，無命名獎項
+  path: Array<{
+    row: number;
+    col: number;
+    direction: "down" | "left" | "right";
+  }>;
 }
 ```
 
@@ -676,13 +746,18 @@ interface RevealIndexPayload {
 
 #### REVEAL_ALL
 
-所有玩家路徑揭示完畢，或房主使用「一鍵全揭」時廣播。包含全部剩餘未揭示的路徑。
+房主使用「一鍵全揭」（`REVEAL_ALL_TRIGGER`）時廣播，包含全部剩餘未揭示的路徑結果。
+
+**重要**：REVEAL_ALL payload 使用 `ResultSlotPublic`（省略 `path` 欄位），以符合 WebSocket maxPayload 64KB 限制（N=50, rowCount=60 時完整 path 約 150KB，超出限制）。前端利用已收到的 `LadderDataPublic` 自行計算動畫路徑（PRD NFR-05, MVP Option A）。
 
 ```typescript
 type WsEventType = "REVEAL_ALL";
 
+/** ResultSlotPublic — REVEAL_ALL payload 專用；省略 path 以符合 64KB 限制 */
+type ResultSlotPublic = Omit<ResultSlot, "path">;
+
 interface RevealAllPayload {
-  results: readonly ResultSlot[];   // 全部玩家結果（含已揭示與本次揭示）
+  results: readonly ResultSlotPublic[];   // 所有剩餘未揭示玩家結果（不含 path）
 }
 ```
 
@@ -692,14 +767,15 @@ interface RevealAllPayload {
   "ts": 1745050300000,
   "payload": {
     "results": [
-      { "playerIndex": 0, "playerId": "f47ac10b-...", "startCol": 0, "endCol": 2, "isWinner": true, "path": [] },
-      { "playerIndex": 1, "playerId": "a3bb189e-...", "startCol": 1, "endCol": 0, "isWinner": false, "path": [] }
+      { "playerIndex": 0, "playerId": "f47ac10b-...", "startCol": 0, "endCol": 2, "isWinner": true },
+      { "playerIndex": 1, "playerId": "a3bb189e-...", "startCol": 1, "endCol": 0, "isWinner": false }
     ]
   }
 }
 ```
 
-**觸發時機：** 最後一次 `REVEAL_INDEX` 後 / `REVEAL_ALL_TRIGGER` 訊息 / 一鍵全揭
+**觸發時機：** `REVEAL_ALL_TRIGGER` WS 訊息 / 一鍵全揭
+**注意：** REVEAL_ALL 後房間仍維持 `revealing` 狀態，等待 Host 另行發送 `END_GAME` 才轉 `finished`
 
 ---
 
@@ -785,6 +861,32 @@ interface HostTransferredPayload {
 
 ---
 
+#### PONG
+
+回應客戶端應用層 PING 訊息，用於 RTT 量測。
+
+```typescript
+type WsEventType = "PONG";
+
+interface PongPayload {
+  ts: number;   // echo of client's PING ts，供計算往返延遲
+}
+```
+
+```json
+{
+  "type": "PONG",
+  "ts": 1745049900000,
+  "payload": {
+    "ts": 1745049899950
+  }
+}
+```
+
+**觸發時機：** 收到客戶端應用層 `PING` 訊息後立即 unicast 回傳
+
+---
+
 #### ERROR
 
 操作失敗時 **unicast** 給觸發操作的連線。連線保持開啟。
@@ -816,9 +918,11 @@ interface ErrorPayload {
 
 ### Client → Server 訊息
 
+> **注意**：遊戲控制操作（START_GAME、BEGIN_REVEAL、END_GAME、PLAY_AGAIN）同時支援 WS 訊息（即時）和 HTTP REST（向後相容）。前端主要使用 WS 路徑；HTTP 路徑供 CLI/工具使用或 WS 不可用時降級。
+
 #### START_GAME
 
-觸發遊戲開始。僅 host、`waiting` 狀態有效。
+觸發遊戲開始。僅 host、`waiting` 狀態有效。後端生成 `seedSource` 並計算 `rowCount`，但**不生成梯子**（延遲至 BEGIN_REVEAL）。
 
 ```typescript
 type WsMsgType = "START_GAME";
@@ -831,13 +935,13 @@ type WsMsgType = "START_GAME";
 
 **驗證：** JWT `role === "host"` + Redis `room.hostId` 比對；狀態必須為 `waiting`；N >= 2；1 <= W <= N-1
 
-**成功後：** 廣播 `ROOM_STATE`（`status: "running"`）；亦可透過 `POST /api/rooms/:code/game/start` 取得完整 `LadderData`
+**成功後：** 廣播 `ROOM_STATE`（`status: "running"`, `rowCount`）；`seed`/`ladder` 不廣播
 
 ---
 
 #### BEGIN_REVEAL
 
-開始揭示階段。房主在 `running` 狀態發送，房間轉移至 `revealing`。
+開始揭示階段。房主在 `running` 狀態發送，後端在此時原子生成梯子（`GenerateLadder` + `ComputeResults`），房間轉移至 `revealing`。
 
 ```typescript
 type WsMsgType = "BEGIN_REVEAL";
@@ -850,7 +954,7 @@ type WsMsgType = "BEGIN_REVEAL";
 
 **驗證：** host only；狀態必須為 `running`
 
-**成功後：** 廣播 `ROOM_STATE`（`status: "revealing"`）
+**成功後：** 廣播 `ROOM_STATE`（`status: "revealing"`）；ladder 在 Redis 已生成但 `seed` 不對客戶端公開
 
 ---
 
@@ -869,7 +973,7 @@ type WsMsgType = "REVEAL_NEXT";
 
 **驗證：** host only；狀態必須為 `revealing`；`revealedCount < totalCount`（否則回傳 ERROR `INVALID_STATE`）
 
-**成功後：** 廣播 `REVEAL_INDEX`；若 `revealedCount === totalCount` 接著廣播 `REVEAL_ALL` 並轉 `finished`
+**成功後：** 廣播 `REVEAL_INDEX`；**不自動轉入 `finished`**（需另行 END_GAME）
 
 ---
 
@@ -888,7 +992,45 @@ type WsMsgType = "REVEAL_ALL_TRIGGER";
 
 **驗證：** host only；狀態必須為 `revealing`
 
-**成功後：** 廣播 `REVEAL_ALL`（含全部剩餘路徑）；房間轉 `finished`；Redis TTL 延長至 1 小時
+**成功後：** 廣播 `REVEAL_ALL`（含所有剩餘路徑，使用 `ResultSlotPublic` 省略 path）；房間**仍維持 `revealing` 狀態**，等待 Host 另行發送 END_GAME
+
+---
+
+#### END_GAME
+
+Host 在所有路徑揭示完畢後手動觸發本局結束。房間從 `revealing` 轉為 `finished`。`seed` 在此時首次對客戶端公開。
+
+```typescript
+type WsMsgType = "END_GAME";
+// payload: {}
+```
+
+```json
+{ "type": "END_GAME", "ts": 1745050350000, "payload": {} }
+```
+
+**驗證：** host only；狀態必須為 `revealing`；`revealedCount === totalCount`（否則 `INVALID_STATE`）
+
+**成功後：** 廣播 `ROOM_STATE`（`status: "finished"`，含 `seed`、完整 `results[]`）；Redis TTL 延長至 1 小時
+
+---
+
+#### PLAY_AGAIN
+
+遊戲結束後重置房間。取代舊版 `RESET_ROOM`。離線玩家被移除，`kickedPlayerIds` 清空，`winnerCount` 若 >= 新玩家數則重置為 null。
+
+```typescript
+type WsMsgType = "PLAY_AGAIN";
+// payload: {}
+```
+
+```json
+{ "type": "PLAY_AGAIN", "ts": 1745050400000, "payload": {} }
+```
+
+**驗證：** host only；狀態必須為 `finished`；在線玩家 >= 2
+
+**成功後：** 廣播 `ROOM_STATE`（`status: "waiting"`）；`kickedPlayerIds` 清空（被踢者可用新 playerId 重新加入）
 
 ---
 
@@ -915,23 +1057,6 @@ interface SetRevealModePayload {
 
 ---
 
-#### RESET_ROOM
-
-遊戲結束後重置房間。等同呼叫 `POST /api/rooms/:code/game/reset`（WS 版本，方便前端統一使用 WS）。
-
-```typescript
-type WsMsgType = "RESET_ROOM";
-// payload: {}
-```
-
-```json
-{ "type": "RESET_ROOM", "ts": 1745050400000, "payload": {} }
-```
-
-**驗證：** host only；狀態必須為 `finished`；在線玩家 >= 2
-
----
-
 #### KICK_PLAYER
 
 踢出指定玩家。等同呼叫 `DELETE /api/rooms/:code/players/:playerId`。
@@ -954,7 +1079,7 @@ interface KickPlayerPayload {
 
 #### PING
 
-應用層心跳。伺服器靜默接受，不回應。
+應用層心跳，伺服器回應 `PONG { ts: echo }` 供 RTT 量測（傳輸層心跳由 ws 內建 30s ping/pong 處理）。
 
 ```typescript
 type WsMsgType = "PING";
@@ -964,6 +1089,48 @@ type WsMsgType = "PING";
 ```json
 { "type": "PING", "ts": 1745049600000, "payload": {} }
 ```
+
+---
+
+#### UPDATE_WINNER_COUNT
+
+更新中獎名額。Host only，`waiting` 狀態限定。
+
+```typescript
+type WsMsgType = "UPDATE_WINNER_COUNT";
+
+interface UpdateWinnerCountPayload {
+  winnerCount: number;  // 1 <= winnerCount <= playerCount-1
+}
+```
+
+```json
+{ "type": "UPDATE_WINNER_COUNT", "ts": 1745049620000, "payload": { "winnerCount": 2 } }
+```
+
+**驗證：** host only；`waiting` 狀態；1 <= winnerCount <= playerCount-1
+**成功後：** 廣播 `ROOM_STATE`（含更新後 winnerCount）
+
+---
+
+#### UPDATE_TITLE
+
+更新房間名稱。Host only，`waiting` 狀態限定。
+
+```typescript
+type WsMsgType = "UPDATE_TITLE";
+
+interface UpdateTitlePayload {
+  title: string;  // 0-50 字元（空字串代表清除）
+}
+```
+
+```json
+{ "type": "UPDATE_TITLE", "ts": 1745049625000, "payload": { "title": "Alice 的遊戲" } }
+```
+
+**驗證：** host only；`waiting` 狀態；0-50 字元
+**成功後：** 廣播 `ROOM_STATE`（含更新後 title）
 
 ---
 
@@ -986,6 +1153,9 @@ type WsMsgType = "PING";
 | `PRIZES_NOT_SET` | 400 | — | `winnerCount` 尚未設定 | 設定中獎名額後重試 |
 | `INVALID_PRIZES_COUNT` | 400 | — | `winnerCount < 1` 或 `>= N`（需 1 <= W <= N-1） | 修正數值後重試 |
 | `INVALID_STATE` | 409 | — | 操作不符合當前房間狀態 | 確認目前狀態後重試 |
+| `CANNOT_KICK_HOST` | 400 | — | 踢除操作目標為 Host 本身 | 不重試 |
+| `INVALID_NICKNAME` | 400 | — | 暱稱格式不合法（長度超限、含禁止字元） | 修正暱稱後重試 |
+| `INVALID_AUTO_REVEAL_INTERVAL` | 400 | — | SET_REVEAL_MODE intervalSec 不合法（非 1-30 整數） | 修正值後重試 |
 | `SYS_INTERNAL_ERROR` | 500 | — | 非預期的伺服器內部錯誤 | 可帶 `requestId` 重試一次；持續失敗請聯繫支援 |
 | `RATE_LIMIT` | 429 | 4029 | 超過速率限制（WS: 60 msg/min/conn） | 等待 `Retry-After` 秒數後重試 |
 
@@ -993,6 +1163,7 @@ type WsMsgType = "PING";
 > - `WS_INVALID_MSG`：JSON parse 失敗
 > - `WS_UNKNOWN_TYPE`：未知的 `type` 欄位
 > - `AUTH_NOT_HOST`：非 host 發送 host-only 訊息
+> - `KICK_NOT_ALLOWED_IN_STATE`：在非 waiting 狀態嘗試踢人（`KICK_PLAYER` 限 waiting）
 
 ---
 
@@ -1098,16 +1269,25 @@ curl -X POST https://api.ladder-room.online/api/rooms/AB3K7X/game/reveal \
   -d '{"mode":"next"}'
 ```
 
-### 7. 再玩一局（房主操作）
+### 7. 結束本局（房主操作）
 
 ```bash
-curl -X POST https://api.ladder-room.online/api/rooms/AB3K7X/game/reset \
+curl -X POST https://api.ladder-room.online/api/rooms/AB3K7X/game/end \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
   -H "Content-Type: application/json" \
   -d '{}'
 ```
 
-### 8. 健康檢查
+### 8. 再玩一局（房主操作）
+
+```bash
+curl -X POST https://api.ladder-room.online/api/rooms/AB3K7X/game/play-again \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### 9. 健康檢查
 
 ```bash
 curl https://api.ladder-room.online/health
@@ -1122,7 +1302,7 @@ wscat -c "wss://api.ladder-room.online/ws?room=AB3K7X&token=eyJhbGciOiJIUzI1NiIs
 # 連線後發送 START_GAME
 > {"type":"START_GAME","ts":1745050000000,"payload":{}}
 
-# 發送 BEGIN_REVEAL
+# 發送 BEGIN_REVEAL（此時後端才生成梯子）
 > {"type":"BEGIN_REVEAL","ts":1745050100000,"payload":{}}
 
 # 逐一揭示
@@ -1131,15 +1311,27 @@ wscat -c "wss://api.ladder-room.online/ws?room=AB3K7X&token=eyJhbGciOiJIUzI1NiIs
 # 切換自動揭示（每 2 秒）
 > {"type":"SET_REVEAL_MODE","ts":1745050210000,"payload":{"mode":"auto","intervalSec":2}}
 
-# 一鍵全揭
+# 一鍵全揭（房間仍維持 revealing，需再發 END_GAME）
 > {"type":"REVEAL_ALL_TRIGGER","ts":1745050250000,"payload":{}}
 
+# 結束本局（所有路徑揭曉後，seed 此時公開）
+> {"type":"END_GAME","ts":1745050350000,"payload":{}}
+
 # 再玩一局
-> {"type":"RESET_ROOM","ts":1745050400000,"payload":{}}
+> {"type":"PLAY_AGAIN","ts":1745050400000,"payload":{}}
 ```
 
 ---
 
-*API.md 版本：v1.0*
+*API.md 版本：v1.1*
 *生成時間：2026-04-19*
-*基於 EDD v1.1 + PRD v1.1（Ladder Room Online）*
+*修訂時間：2026-04-19（STEP-07 devsop-autodev 與 EDD v1.3 對齊）*
+*修訂重點（v1.1 vs v1.0）：*
+*1. 新增 POST /game/end 端點（END_GAME）、更名 /game/reset → /game/play-again*
+*2. START_GAME 回應修正：ladder=null（梯子延遲至 BEGIN_REVEAL 生成）*
+*3. REVEAL_ALL payload 改用 ResultSlotPublic（省略 path，符合 64KB 限制）*
+*4. ROOM_STATE_FULL 新增 LadderDataPublic 說明（revealing 時省略 seed/seedSource）*
+*5. WS RESET_ROOM 替換為 END_GAME + PLAY_AGAIN；新增 UPDATE_WINNER_COUNT / UPDATE_TITLE*
+*6. PING 說明修正：伺服器回應 PONG（RTT 量測）；新增 PONG 事件文件*
+*7. REVEAL_NEXT / REVEAL_ALL_TRIGGER 說明：不自動轉 finished，需另行 END_GAME*
+*基於 EDD v1.3 + PRD v1.3（Ladder Room Online）*
