@@ -331,7 +331,7 @@ interface Room {
   kickedPlayerIds: readonly string[];     // redundant mirror of room:{code}:kicked Set
   createdAt: number;       // Unix ms
   updatedAt: number;       // Unix ms
-  players: Player[];
+  readonly players: readonly Player[];   // immutable reference; modifications return new Room with updated players array
 }
 
 interface Player {
@@ -355,7 +355,21 @@ interface LadderData {
   readonly rowCount: number;      // clamp(N*3, 20, 60)
   readonly colCount: number;      // = N (all players incl. offline)
   readonly segments: readonly LadderSegment[];
-  readonly results: readonly ResultSlot[] | null;  // null until BEGIN_REVEAL; filled by computeResults()
+  readonly results: readonly ResultSlot[];  // always non-null: room:{code}:ladder 鍵僅在 BEGIN_REVEAL 時原子創建（含完整 results）
+  // 注意：在 BEGIN_REVEAL 前，room:{code}:ladder 鍵「不存在」於 Redis；不存在與 results=null 是不同的概念
+}
+
+/**
+ * LadderDataRaw — 應用層內部用型別，用於表示尚未計算 results 的中間狀態。
+ * 此型別不序列化至 Redis（Redis 中只存 LadderData，results 必然已填入）。
+ */
+interface LadderDataRaw {
+  readonly seed: number;
+  readonly seedSource: string;
+  readonly rowCount: number;
+  readonly colCount: number;
+  readonly segments: readonly LadderSegment[];
+  readonly results: null;  // 計算前的中間狀態，僅存在於應用層記憶體
 }
 
 /**
@@ -443,18 +457,21 @@ type ResultSlotPublic = Omit<ResultSlot, 'path'>;
 **需要原子性的原因**：並發請求可能生成相同的 6 位房間代碼，必須確保唯一性。
 
 ```redis
-# SETNX 確保只有一個請求成功建立房間
-SETNX room:ALPHA1 "{...roomJson with kickedPlayerIds:[], winnerCount:null, revealMode:'manual'...}"
+# SET NX EX 原子地設定鍵值與 TTL，確保唯一性且不遺漏 EXPIRE
+# 若回傳 nil（已存在），重新生成代碼並重試，最多重試 10 次
+# 使用 SET ... NX EX 取代 SETNX + 後續 EXPIRE（避免兩者之間程序崩潰導致房間無 TTL）
+SET room:ALPHA1 "{...roomJson with kickedPlayerIds:[], winnerCount:null, revealMode:'manual'...}" NX EX 86400
 
-# 若回傳 0（已存在），重新生成代碼並重試，最多重試 10 次
-# 若回傳 1（成功），設定計數器子鍵與 TTL
-SET room:ALPHA1:revealedCount "0"
+# 若上述 SET 返回 OK（成功），原子地初始化子鍵（使用 Lua 確保原子性）
+EVAL "
+  if redis.call('EXISTS', KEYS[1]) == 0 then return 0 end
+  redis.call('SET', KEYS[2], '0', 'EX', ARGV[1])
+  return 1
+" 2 room:ALPHA1 room:ALPHA1:revealedCount 86400
+
 # 注意：room:ALPHA1:kicked Set 不預先初始化
 # SISMEMBER 對不存在的鍵直接返回 0，行為正確，無需建立空 Set
 # （若 SADD 寫入空字串 "" 會汙染 Set，導致後續 SISMEMBER "" 誤判為被踢）
-EXPIRE room:ALPHA1 86400
-EXPIRE room:ALPHA1:revealedCount 86400
-# room:ALPHA1:kicked 鍵不存在，EXPIRE 對不存在的鍵是 no-op，不會報錯
 # room:ALPHA1:sessions 鍵在首個 WS 連線建立時由 HSET 創建並設 TTL
 ```
 

@@ -1,6 +1,6 @@
 # DESIGN — Ladder Room Online Client UI Spec
 
-> Version: v1.0
+> Version: v1.1
 > Date: 2026-04-19
 > Based on: PRD v1.3 · ARCH v1.2 · EDD v1.3 · API v1.1
 > Tech: Vanilla TypeScript + Vite · HTML5 Canvas · No UI framework
@@ -259,9 +259,11 @@
 | 高度 | `min(80dvh, 600px)`，響應式 |
 | 縱欄數 | = N（玩家人數，2–50） |
 | 橫列數 | `rowCount = clamp(N×3, 20, 60)` |
-| 縱線（柱） | 等寬分佈，每欄寬度 = `canvasWidth / N` |
+| 縱線（柱） | 等寬分佈，理想欄寬 = `canvasWidth / N`；**最小欄寬 = 14px**，N > 22 時（320px 容器）Canvas 實際寬度超出容器，採橫向捲動（見 Section 11） |
 | 橫槓 | `max(1, round(N/4))` 條 / 列，粗 2px |
 | 路徑動畫 | `requestAnimationFrame` 驅動，目標 24fps（手機）/ 30fps（桌機）|
+| 座標系 | 原點左上角；x 軸向右，y 軸向下；欄 i 的中心 x = `colWidth * i + colWidth / 2`；列 j 的 y = `rowHeight * j`（rowHeight = canvasHeight / rowCount） |
+| running 狀態（梯子尚未下發）| 繪製 N 條等寬灰色虛線（`--color-path-hidden`）佔位；無橫槓；等待 BEGIN_REVEAL 後以 ladderMap 重繪 |
 
 **路徑顏色語意**
 
@@ -419,12 +421,20 @@ requestAnimationFrame loop 開始
 
 **ToastStack** — 固定在畫面右上角（mobile: 全寬底部）
 
-| Type | 觸發事件 | 範例文字 |
-|------|---------|---------|
+| Type | 觸發事件 / 錯誤碼 | 範例文字 |
+|------|-----------------|---------|
 | info | 玩家加入 | 「Bob 加入了房間」 |
+| info | `PLAYER_KICKED`（他人被踢）| 「Carol 已被主持人移出」 |
 | warning | 玩家離線 | 「Carol 離線中」 |
-| error | 伺服器錯誤 | 「建立失敗，請重試」|
+| warning | `INVALID_STATE` | 「操作與目前房間狀態不符，請重試」 |
+| warning | `INVALID_AUTO_REVEAL_INTERVAL` | 「自動揭曉間隔需介於 1–30 秒之間」 |
+| warning | `INSUFFICIENT_ONLINE_PLAYERS`（再玩一局）| 「在線玩家不足 2 人，請等候玩家上線後重試」 |
+| warning | Room TTL 即將到期（前端倒數提示，剩 5 分鐘）| 「房間將在 5 分鐘內關閉」 |
+| error | 伺服器錯誤 / `SYS_REDIS_ERROR` | 「伺服器暫時不可用，請稍後再試」|
+| error | `ROOM_FULL`（加入時）| 「此房間已滿 50 人，無法加入」 |
+| error | `AUTH_TOKEN_EXPIRED`（玩家 token）| 「連線憑證已過期，請重新整理後加入」 |
 | success | 中獎名額更新 | 「中獎名額已更新」 |
+| success | 房間碼複製成功 | 「房間碼已複製至剪貼簿」 |
 
 - 堆疊最多顯示 3 條，新的從底部入場
 - 每條顯示 3 秒後自動消失（可手動點關閉）
@@ -447,11 +457,13 @@ requestAnimationFrame loop 開始
 
 ### 8.5 ErrorBoundary
 
-全域 WebSocket 錯誤顯示：
-- `ROOM_NOT_FOUND`：「找不到此房間，請確認房間碼」
-- `TOKEN_EXPIRED`：「主持人身份已過期，請重新整理頁面」
-- `SESSION_REPLACED`：「你的連線已在另一裝置開啟，請重新整理」
-- `SYS_REDIS_ERROR`：「伺服器暫時不可用，請稍後再試」
+全域 WebSocket 錯誤顯示（阻塞型，覆蓋當前畫面）：
+- `ROOM_NOT_FOUND`：「找不到此房間，請確認房間碼」→ [回首頁]
+- `AUTH_TOKEN_EXPIRED`（主持人）：「主持人身份已過期，請重新整理頁面」→ [重新整理]
+- `AUTH_TOKEN_EXPIRED`（玩家）：「連線憑證已過期，請重新整理後加入」→ [回首頁]
+- `SESSION_REPLACED`：「你的連線已在另一裝置開啟，請重新整理」→ [重新整理]
+- `SYS_REDIS_ERROR`：「伺服器暫時不可用，請稍後再試」→ [重試]（自動觸發斷線重連）
+- Room TTL 自然過期（WS 斷開，重連失敗 `ROOM_NOT_FOUND`）：顯示「此房間已結束或過期」→ [回首頁]
 
 ---
 
@@ -536,15 +548,17 @@ WebSocket 連線中斷
 | WS 事件 | payload 關鍵欄位 | UI 變化 |
 |---------|----------------|---------|
 | `ROOM_STATE` status=`waiting` | players[], winnerCount | 顯示等待大廳；更新玩家列表 |
-| `ROOM_STATE` status=`running` | rowCount | 顯示梯子（未揭曉態，全灰虛線）；主持人出現「開始揭曉」按鈕 |
-| `ROOM_STATE` status=`revealing` | ladderMap, resultSlots, revealedCount | 梯子更新；主持人出現揭曉控制；非主持人等待 |
+| `ROOM_STATE` status=`running` | rowCount | 顯示梯子佔位（全灰虛線 N 欄，梯子結構尚未下發）；主持人出現「開始揭曉」按鈕；此時 ladderMap 為 null |
+| `ROOM_STATE` status=`revealing` | ladderMap, resultSlots, revealedCount | 梯子以 ladderMap 渲染完整結構；主持人出現揭曉控制面板；非主持人靜待揭曉 |
 | `ROOM_STATE` status=`finished` | results, seed | 切換至結果頁面；顯示得獎名單 + seed |
-| `ROOM_STATE_FULL` | 完整 Room snapshot | 重連恢復：依 status 渲染對應頁面 |
+| `ROOM_STATE_FULL` | 完整 Room snapshot | 重連恢復：依 status 渲染對應頁面（revealing 直接跳 final frame，不重播動畫） |
 | `REVEAL_INDEX` | index, result | 播放對應玩家路徑動畫；更新揭曉進度計數 |
-| `REVEAL_ALL` | revealData[] | 同時播放所有剩餘路徑（壓縮時長）；2s 超時跳 final frame |
-| `PLAYER_KICKED` | playerId | 若 playerId === self：顯示 KickedScreen；否則更新玩家列表 |
+| `REVEAL_ALL` | revealData[] | 同時播放所有剩餘路徑（壓縮時長）；2s 超時跳 final frame；房間仍維持 `revealing`，等待主持人點擊「結束本局」才轉 `finished` |
+| `SET_REVEAL_MODE` ack（`ROOM_STATE`）| mode, intervalSec | 主持人控制面板切換手動 / 自動模式；自動模式顯示倒數秒數；intervalSec 不合法時顯示 error toast `INVALID_AUTO_REVEAL_INTERVAL` |
+| `UPDATE_TITLE` ack（`ROOM_STATE`）| title | StatusBar / 等待大廳標題即時更新；非主持人無感知（後端廣播 ROOM_STATE） |
+| `PLAYER_KICKED` | playerId | 若 playerId === self：顯示 KickedScreen；否則 Toast info「X 已被移出」+ 玩家列表更新 |
 | `SESSION_REPLACED` | — | 顯示「連線已被取代」提示，關閉舊連線 |
-| `ERROR` | code, message | Toast 顯示 message；依 code 決定是否阻塞操作 |
+| `ERROR` | code, message | Toast 顯示 message；依 code 決定是否阻塞操作（見 8.3 錯誤碼映射） |
 
 ---
 
@@ -563,9 +577,11 @@ WebSocket 連線中斷
 
 - **Canvas 高度**：`min(80dvh, 600px)` 以避免溢出視窗
 - **觸控目標**：所有互動元素高度 ≥ 48px
-- **玩家欄寬**：N > 10 時頂部名字標籤縮小字號或截斷
-- **主持人控制面板**：mobile 固定在畫面底部，避免遮擋 Canvas 主視覺
-- **房間碼輸入**：自動彈出數字/英文鍵盤（`inputmode="text"`，autocapitalize="characters"）
+- **玩家欄寬**：N > 10 時頂部名字標籤縮小字號（`--text-xs`）並截斷（`text-overflow: ellipsis`）
+- **Canvas 大玩家數橫向捲動**：N > 22 時（320px 容器下欄寬不足 14px），Canvas 實際寬度 = `N × 14px`；外層 wrapper 設定 `overflow-x: auto; -webkit-overflow-scrolling: touch`；頂部名字列與 Canvas 同步橫向捲動（共用同一捲動容器）
+- **觸控手勢（Canvas 區域）**：僅支援橫向滑動以捲動大玩家數梯子；不支援 pinch-zoom（防止意外縮放，`touch-action: pan-x`）；垂直滑動保留給頁面整體捲動（`touch-action: pan-y` 於頁面容器）
+- **主持人控制面板**：mobile 固定在畫面底部（`position: sticky; bottom: 0`），避免遮擋 Canvas 主視覺；面板高度固定 80px，Canvas 區域底部留 80px padding
+- **房間碼輸入**：自動彈出英文鍵盤（`inputmode="text"`，`autocapitalize="characters"`）；軟鍵盤彈出時 Canvas 區域以 `dvh` 自動縮短，不固定高度
 
 ---
 
@@ -595,6 +611,7 @@ WebSocket 連線中斷
 
 ---
 
-*DESIGN 版本：v1.0*
+*DESIGN 版本：v1.1*
 *生成時間：2026-04-19*
 *基於 PRD v1.3 · ARCH v1.2 · EDD v1.3 · API v1.1*
+*STEP-07c Round 1 Design Review：補全遺漏 WS 事件映射、Canvas 座標系與大人數橫捲規格、錯誤碼 Toast 映射、觸控手勢與 RoomTTL 失效流程*
