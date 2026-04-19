@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture — Ladder Room Online Docs</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1/themes/prism-tomorrow.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--sidebar-width:240px;--color-bg:#fafafa;--color-sidebar:#1a1a2e;--color-sidebar-text:#e0e0e0;--color-sidebar-active:oklch(68% 0.21 250);--color-text:#1a1a2e;--color-accent:oklch(68% 0.21 250);--color-code-bg:#f0f0f0;--color-border:#e0e0e0;--color-table-stripe:#f5f5f5;--font-body:'Inter',system-ui,sans-serif;--font-mono:'IBM Plex Mono','Fira Code',monospace}
+    [data-theme="dark"]{--color-bg:#12121e;--color-text:#e0e0e0;--color-code-bg:#1e1e2e;--color-border:#333;--color-table-stripe:#1e1e2e;--color-sidebar:#0d0d1a}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font-body);background:var(--color-bg);color:var(--color-text);display:flex;min-height:100vh;transition:background .2s,color .2s}
+    .sidebar{width:var(--sidebar-width);background:var(--color-sidebar);color:var(--color-sidebar-text);position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;display:flex;flex-direction:column;transition:transform .25s}
+    .sidebar-logo{padding:1.5rem 1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.08)}
+    .sidebar-logo a{color:var(--color-sidebar-active);text-decoration:none;font-family:var(--font-mono);font-weight:600;font-size:.85rem;letter-spacing:.05em}
+    .sidebar-logo p{font-size:.7rem;opacity:.5;margin-top:.25rem}
+    .sidebar nav{padding:1rem 0;flex:1}
+    .nav-section-title{font-size:.65rem;font-family:var(--font-mono);letter-spacing:.12em;text-transform:uppercase;opacity:.4;padding:.75rem 1.25rem .25rem}
+    .nav-link{display:block;padding:.45rem 1.25rem;color:var(--color-sidebar-text);text-decoration:none;font-size:.82rem;opacity:.75;transition:opacity .15s,color .15s,background .15s;border-left:2px solid transparent}
+    .nav-link:hover{opacity:1;background:rgba(255,255,255,.04)}
+    .nav-link.active{color:var(--color-sidebar-active);opacity:1;border-left-color:var(--color-sidebar-active);background:rgba(255,255,255,.04)}
+    .nav-sub-link{display:block;padding:.35rem 1.25rem .35rem 2rem;color:var(--color-sidebar-text);text-decoration:none;font-size:.75rem;opacity:.55;transition:opacity .15s}
+    .nav-sub-link:hover{opacity:.9}
+    .layout{margin-left:var(--sidebar-width);flex:1;display:flex;flex-direction:column;min-width:0}
+    .topbar{position:sticky;top:0;background:var(--color-bg);border-bottom:1px solid var(--color-border);padding:.65rem 2rem;display:flex;align-items:center;gap:1rem;z-index:90}
+    .hamburger{display:none;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--color-text)}
+    #search{flex:1;max-width:400px;padding:.4rem .75rem;border:1px solid var(--color-border);border-radius:4px;background:var(--color-code-bg);color:var(--color-text);font-family:var(--font-mono);font-size:.8rem}
+    #search:focus{outline:none;border-color:var(--color-accent)}
+    #theme-toggle{margin-left:auto;background:none;border:1px solid var(--color-border);border-radius:4px;padding:.4rem .65rem;cursor:pointer;color:var(--color-text);font-size:1rem}
+    #search-results{position:absolute;top:calc(100% + 4px);left:2rem;width:400px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;display:none;max-height:320px;overflow-y:auto}
+    .search-result-item{padding:.6rem 1rem;border-bottom:1px solid var(--color-border);cursor:pointer;font-size:.82rem}
+    .search-result-item:hover{background:var(--color-table-stripe)}
+    .content{padding:3rem 2.5rem 4rem;max-width:900px}
+    h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.5rem}
+    h2{font-size:1.3rem;font-weight:600;margin:2.5rem 0 1rem;padding-bottom:.4rem;border-bottom:1px solid var(--color-border)}
+    h3{font-size:1rem;font-weight:600;margin:1.75rem 0 .6rem}
+    p{line-height:1.7;margin-bottom:1rem;font-size:.95rem}
+    a{color:var(--color-accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+    ul,ol{margin:.5rem 0 1rem 1.5rem;line-height:1.7;font-size:.95rem}
+    li{margin-bottom:.25rem}
+    strong{font-weight:600}
+    code{font-family:var(--font-mono);font-size:.85em;background:var(--color-code-bg);border:1px solid var(--color-border);border-radius:3px;padding:.1em .35em}
+    pre{margin:1.25rem 0;border-radius:4px;overflow-x:auto;font-size:.82rem}
+    pre code{background:none;border:none;padding:0}
+    table{width:100%;border-collapse:collapse;margin:1.25rem 0;font-size:.88rem}
+    th{background:var(--color-sidebar);color:var(--color-sidebar-text);padding:.6rem .9rem;text-align:left;font-family:var(--font-mono);font-size:.78rem;letter-spacing:.04em}
+    td{padding:.55rem .9rem;border-bottom:1px solid var(--color-border)}
+    tr:nth-child(even) td{background:var(--color-table-stripe)}
+    .page-header{margin-bottom:2.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--color-border)}
+    .page-header .doc-type{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);margin-bottom:.5rem}
+    .page-header p{font-size:.9rem;opacity:.65;margin:0}
+    .mermaid-wrap{margin:1.5rem 0;padding:1.5rem;background:var(--color-code-bg);border-radius:4px;border:1px solid var(--color-border);overflow-x:auto;cursor:zoom-in}
+    .mermaid-wrap:hover{border-color:var(--color-accent)}
+    .rule-box{background:var(--color-code-bg);border:1px solid var(--color-accent);border-radius:4px;padding:1rem 1.25rem;margin:1rem 0;font-size:.88rem}
+    .rule-box strong{color:var(--color-accent)}
+    .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:none;align-items:center;justify-content:center}
+    .lightbox.open{display:flex}
+    #lightbox-close{position:absolute;top:1.5rem;right:1.5rem;background:none;border:1px solid rgba(255,255,255,.3);color:#fff;font-size:1.2rem;cursor:pointer;border-radius:4px;padding:.3rem .7rem}
+    #lightbox-content{background:var(--color-bg);border-radius:6px;padding:2rem;max-width:90vw;max-height:90vh;overflow:auto}
+    @media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.layout{margin-left:0}.hamburger{display:block}.content{padding:2rem 1.25rem 3rem}}
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <a href="index.html">LADDER ROOM</a>
+      <p>Documentation v1.0</p>
+    </div>
+    <nav>
+      <div class="nav-section-title">Overview</div>
+      <a href="index.html" class="nav-link">Home</a>
+      <div class="nav-section-title">Product</div>
+      <a href="pdd.html" class="nav-link">PDD — Product Design</a>
+      <a href="prd.html" class="nav-link">PRD — Requirements</a>
+      <div class="nav-section-title">Engineering</div>
+      <a href="edd.html" class="nav-link">EDD — Engineering Design</a>
+      <a href="arch.html" class="nav-link active">Architecture</a>
+      <a href="api.html" class="nav-link">API Reference</a>
+      <a href="schema.html" class="nav-link">DB / Redis Schema</a>
+      <div class="nav-section-title">Quality</div>
+      <a href="bdd.html" class="nav-link">BDD Scenarios</a>
+      <a href="diagrams.html" class="nav-link">Diagrams Gallery</a>
+      <div class="nav-section-title">On This Page</div>
+      <a href="#overview" class="nav-sub-link">1. 架構概覽</a>
+      <a href="#packages" class="nav-sub-link">2. 套件依賴關係</a>
+      <a href="#shared-exports" class="nav-sub-link">2.1 shared 輸出清單</a>
+      <a href="#deployment" class="nav-sub-link">3. 部署架構</a>
+      <a href="#networking" class="nav-sub-link">4. 網路設計</a>
+      <a href="#resilience" class="nav-sub-link">5. 韌性設計</a>
+    </nav>
+  </aside>
+
+  <div class="layout">
+    <header class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">&#9776;</button>
+      <input type="search" id="search" placeholder="Search docs..." aria-label="Search">
+      <div id="search-results" role="listbox"></div>
+      <button id="theme-toggle" aria-label="Toggle dark mode">&#9681;</button>
+    </header>
+
+    <main class="content" id="main-content">
+      <div class="page-header">
+        <div class="doc-type">ARCH — Architecture Design Document</div>
+        <h1>Architecture — Ladder Room Online</h1>
+        <p>Version v1.1 &mdash; 2026-04-19 &mdash; Based on EDD v1.1, PRD v1.1, PDD v2.1</p>
+      </div>
+
+      <h2 id="overview">1. 架構概覽</h2>
+      <p>Ladder Room Online 採用 <strong>Clean Architecture</strong> 分層設計，核心原則為依賴方向永遠指向內層 (Domain)，外層 (Infrastructure/Presentation) 依賴抽象介面而非具體實作。</p>
+
+      <div class="mermaid-wrap">
+        <pre class="mermaid">graph TD
+    subgraph shared["packages/shared (前後端共用)"]
+        D["Domain Layer\nRoom · Player · Ladder · DomainError\n純 Entity / Value Object"]
+        UC["Use Cases Layer\nGenerateLadder · ValidateGameStart · ComputeResults\n純函式，零 I/O"]
+        D --> UC
+    end
+
+    subgraph server["packages/server"]
+        APP["Application Layer\nRoomService · GameService\nWsMessageHandler · PubSubHandler"]
+        INF["Infrastructure Layer\nRedisClient · RoomRepository · PubSubBroker\nWsServer · WsSession"]
+        PRES["Presentation Layer\nFastify routes · AJV schemas\nHTTP 分派 / WS 升級驗證"]
+    end
+
+    UC --> APP
+    APP --> INF
+    APP --> PRES</pre>
+      </div>
+
+      <table>
+        <thead><tr><th>層級</th><th>所在套件</th><th>職責</th><th>外部依賴</th></tr></thead>
+        <tbody>
+          <tr><td>Domain</td><td>packages/shared</td><td>Entity、Value Object、純業務規則、DomainError</td><td>無</td></tr>
+          <tr><td>Use Cases</td><td>packages/shared</td><td>協調 Domain 物件完成業務流程，回傳純資料結構</td><td>僅依賴 Domain</td></tr>
+          <tr><td>Application</td><td>packages/server/src/application</td><td>呼叫 Use Cases、協調 Repository 介面、發布 WS 事件</td><td>Use Cases + 抽象 Interface</td></tr>
+          <tr><td>Infrastructure</td><td>packages/server/src/infrastructure</td><td>Redis 實作、WebSocket 封裝、ioredis / jose SDK</td><td>實作 Application Interface</td></tr>
+          <tr><td>Presentation</td><td>packages/server/src/presentation</td><td>HTTP Route、AJV Schema 驗證、WS 訊息分派</td><td>Application Service</td></tr>
+        </tbody>
+      </table>
+
+      <div class="rule-box">
+        <strong>黃金法則：</strong> 任何模組只能 <code>import</code> 同層或內層的模組；<code>packages/shared</code> 不得 <code>import</code> 任何 Node.js 內建 I/O 模組（fs、net、http 等）。
+      </div>
+
+      <h2 id="packages">2. 套件依賴關係</h2>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">graph LR
+    CLIENT["packages/client\nVanilla TS + Vite + Canvas"]
+    SHARED["packages/shared\nDomain + Use Cases + PRNG\nzero I/O"]
+    SERVER["packages/server\nFastify + ws + Redis"]
+
+    CLIENT -->|"import types,\nGenerateLadder,\nComputeResults,\nPRNG"| SHARED
+    SERVER -->|"import types,\nValidateGameStart,\nGenerateLadder,\nComputeResults"| SHARED</pre>
+      </div>
+
+      <h3 id="shared-exports">2.1 packages/shared — 輸出清單</h3>
+      <table>
+        <thead><tr><th>路徑</th><th>輸出內容</th><th>限制</th></tr></thead>
+        <tbody>
+          <tr><td><code>src/domain/entities/</code></td><td>Room, Player, Ladder, LadderSegment</td><td>純 TypeScript class/interface</td></tr>
+          <tr><td><code>src/domain/value-objects/</code></td><td>RoomCode, RoomStatus</td><td>純函式驗證</td></tr>
+          <tr><td><code>src/domain/errors/</code></td><td>DomainError 基類及子類</td><td>無外部依賴</td></tr>
+          <tr><td><code>src/use-cases/</code></td><td>GenerateLadder, ValidateGameStart, ComputeResults</td><td>純函式，可在瀏覽器執行</td></tr>
+          <tr><td><code>src/prng/</code></td><td>djb2, createMulberry32, fisherYatesShuffle</td><td>無 <code>Math.random()</code></td></tr>
+          <tr><td><code>src/types/index.ts</code></td><td>所有共用 TypeScript interface/type</td><td>不含 class 實作</td></tr>
+        </tbody>
+      </table>
+      <ul>
+        <li><code>packages/client</code> 可 import shared 的全部匯出</li>
+        <li><code>packages/server</code> 可 import shared 的全部匯出</li>
+        <li><code>packages/shared</code> 不得 import client 或 server 的任何模組</li>
+        <li>client 與 server 之間無直接 import（透過 WS/HTTP 通訊）</li>
+      </ul>
+
+      <h2 id="deployment">3. 部署架構</h2>
+      <p>MVP 部署於單一 VPS；Post-MVP 目標 Kubernetes 集群，支援 5,000 並發 WebSocket 連線。</p>
+
+      <div class="mermaid-wrap">
+        <pre class="mermaid">graph TD
+    Internet["Internet"]
+
+    subgraph CDN["GitHub Pages CDN"]
+        StaticAssets["Vanilla TS Client\nindex.html + JS bundle"]
+    end
+
+    subgraph K8s["Kubernetes Cluster (Post-MVP)"]
+        direction TB
+        Ingress["Nginx Ingress\nsticky session (ip_hash)"]
+
+        subgraph Pods["Fastify Pods (HPA: 2-10)"]
+            P1["Pod-1\nFastify+ws\n:3000"]
+            P2["Pod-2\nFastify+ws\n:3000"]
+            P3["Pod-N..."]
+        end
+
+        subgraph RedisSet["Redis StatefulSet"]
+            RM["Redis Master\n:6379"]
+            RR["Redis Replica\n(read)"]
+            RM --- RR
+        end
+
+        HPA["HPA\nws_connections custom metric"]
+        HPA -.->|scale| Pods
+        Ingress --> P1
+        Ingress --> P2
+        P1 & P2 & P3 --> RM
+    end
+
+    Internet -->|HTTPS static| CDN
+    Internet -->|HTTPS /api\nWSS /ws| Ingress</pre>
+      </div>
+
+      <h3>Kubernetes 資源清單</h3>
+      <table>
+        <thead><tr><th>Resource</th><th>Kind</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr><td>ladder-server</td><td>Deployment</td><td>Fastify + ws 後端，HPA 管理副本數</td></tr>
+          <tr><td>ladder-server-hpa</td><td>HorizontalPodAutoscaler</td><td>依 ws_connections custom metric 擴縮</td></tr>
+          <tr><td>redis</td><td>StatefulSet</td><td>持久化狀態，1 master + 1 replica</td></tr>
+          <tr><td>ladder-ingress</td><td>Ingress</td><td>Nginx，sticky session，TLS termination</td></tr>
+          <tr><td>ladder-server-svc</td><td>Service (ClusterIP)</td><td>內部服務發現</td></tr>
+          <tr><td>redis-svc</td><td>Service (ClusterIP)</td><td>Redis 服務</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="networking">4. 網路設計</h2>
+      <h3>端口與協議</h3>
+      <table>
+        <thead><tr><th>端口</th><th>協議</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td>80/443</td><td>HTTP/HTTPS</td><td>Nginx Ingress 入口</td></tr>
+          <tr><td>3000</td><td>HTTP + WS</td><td>Fastify 服務（容器內）</td></tr>
+          <tr><td>6379</td><td>Redis protocol</td><td>Redis 服務（集群內）</td></tr>
+        </tbody>
+      </table>
+      <h3>Sticky Session 策略</h3>
+      <p>Nginx Ingress 使用 <code>nginx.ingress.kubernetes.io/affinity: cookie</code> 或 <code>ip_hash</code>，確保同一房間的 WebSocket 連線路由至同一 Pod，避免跨 Pod 廣播的複雜性。跨 Pod 廣播透過 Redis Pub/Sub 處理。</p>
+
+      <h2 id="resilience">5. 韌性設計</h2>
+      <table>
+        <thead><tr><th>場景</th><th>對策</th><th>恢復機制</th></tr></thead>
+        <tbody>
+          <tr><td>Pod 意外重啟</td><td>房間狀態存於 Redis，不依賴 Pod 記憶體</td><td>客戶端自動重連，從 Redis 恢復 ROOM_STATE</td></tr>
+          <tr><td>客戶端斷線</td><td>isOnline=false 標記，60s 內重連可恢復</td><td>JWT token 重連，伺服器發送 ROOM_STATE_FULL</td></tr>
+          <tr><td>Redis 主節點故障</td><td>Redis Sentinel / Replica 自動 failover</td><td>Pod 重連至新主節點，最多 30s 中斷</td></tr>
+          <tr><td>所有玩家離線</td><td>最後 WS 關閉時 EXPIRE 5min</td><td>玩家 5 分鐘內重連可恢復房間</td></tr>
+          <tr><td>競態條件（狀態轉換）</td><td>Redis WATCH + MULTI/EXEC 樂觀鎖</td><td>失敗時返回錯誤，客戶端重試</td></tr>
+        </tbody>
+      </table>
+    </main>
+  </div>
+
+  <div id="lightbox" class="lightbox">
+    <button id="lightbox-close">&#x2715;</button>
+    <div id="lightbox-content"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7/dist/fuse.min.js"></script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, flowchart: { curve: 'basis' } });
+  </script>
+  <script>
+    const saved=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',saved);
+    document.getElementById('theme-toggle').addEventListener('click',()=>{const c=document.documentElement.getAttribute('data-theme');const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('theme',n);});
+    document.getElementById('hamburger').addEventListener('click',()=>{document.getElementById('sidebar').classList.toggle('open');});
+    const items=Array.from(document.querySelectorAll('h2,h3,p')).map(el=>({text:el.textContent.trim(),id:el.id||'',tag:el.tagName})).filter(i=>i.text.length>4);
+    const fuse=new Fuse(items,{keys:['text'],threshold:.35});
+    const searchEl=document.getElementById('search');const resultsEl=document.getElementById('search-results');
+    searchEl.addEventListener('input',()=>{const q=searchEl.value.trim();if(!q){resultsEl.style.display='none';return;}const hits=fuse.search(q).slice(0,8);if(!hits.length){resultsEl.style.display='none';return;}resultsEl.innerHTML=hits.map(h=>`<div class="search-result-item" data-id="${h.item.id}">${h.item.text.slice(0,80)}</div>`).join('');resultsEl.style.display='block';});
+    resultsEl.addEventListener('click',e=>{const id=e.target.dataset.id;if(id)document.getElementById(id)?.scrollIntoView({behavior:'smooth'});resultsEl.style.display='none';searchEl.value='';});
+    document.addEventListener('click',e=>{if(!searchEl.contains(e.target)&&!resultsEl.contains(e.target))resultsEl.style.display='none';});
+    document.addEventListener('click',e=>{
+      const svg=e.target.closest('.mermaid-wrap svg,.mermaid svg');
+      if(!svg)return;
+      const lb=document.getElementById('lightbox');
+      document.getElementById('lightbox-content').innerHTML='';
+      const clone=svg.cloneNode(true);clone.style.maxWidth='80vw';
+      document.getElementById('lightbox-content').appendChild(clone);
+      lb.classList.add('open');
+    });
+    document.getElementById('lightbox-close').addEventListener('click',()=>{document.getElementById('lightbox').classList.remove('open');});
+    document.getElementById('lightbox').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
+  </script>
+</body>
+</html>

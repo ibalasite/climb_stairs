@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Reference — Ladder Room Online Docs</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1/themes/prism-tomorrow.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--sidebar-width:240px;--color-bg:#fafafa;--color-sidebar:#1a1a2e;--color-sidebar-text:#e0e0e0;--color-sidebar-active:oklch(68% 0.21 250);--color-text:#1a1a2e;--color-accent:oklch(68% 0.21 250);--color-code-bg:#f0f0f0;--color-border:#e0e0e0;--color-table-stripe:#f5f5f5;--font-body:'Inter',system-ui,sans-serif;--font-mono:'IBM Plex Mono','Fira Code',monospace}
+    [data-theme="dark"]{--color-bg:#12121e;--color-text:#e0e0e0;--color-code-bg:#1e1e2e;--color-border:#333;--color-table-stripe:#1e1e2e;--color-sidebar:#0d0d1a}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font-body);background:var(--color-bg);color:var(--color-text);display:flex;min-height:100vh;transition:background .2s,color .2s}
+    .sidebar{width:var(--sidebar-width);background:var(--color-sidebar);color:var(--color-sidebar-text);position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;display:flex;flex-direction:column;transition:transform .25s}
+    .sidebar-logo{padding:1.5rem 1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.08)}
+    .sidebar-logo a{color:var(--color-sidebar-active);text-decoration:none;font-family:var(--font-mono);font-weight:600;font-size:.85rem;letter-spacing:.05em}
+    .sidebar-logo p{font-size:.7rem;opacity:.5;margin-top:.25rem}
+    .sidebar nav{padding:1rem 0;flex:1}
+    .nav-section-title{font-size:.65rem;font-family:var(--font-mono);letter-spacing:.12em;text-transform:uppercase;opacity:.4;padding:.75rem 1.25rem .25rem}
+    .nav-link{display:block;padding:.45rem 1.25rem;color:var(--color-sidebar-text);text-decoration:none;font-size:.82rem;opacity:.75;transition:opacity .15s,color .15s,background .15s;border-left:2px solid transparent}
+    .nav-link:hover{opacity:1;background:rgba(255,255,255,.04)}
+    .nav-link.active{color:var(--color-sidebar-active);opacity:1;border-left-color:var(--color-sidebar-active);background:rgba(255,255,255,.04)}
+    .nav-sub-link{display:block;padding:.35rem 1.25rem .35rem 2rem;color:var(--color-sidebar-text);text-decoration:none;font-size:.75rem;opacity:.55;transition:opacity .15s}
+    .nav-sub-link:hover{opacity:.9}
+    .layout{margin-left:var(--sidebar-width);flex:1;display:flex;flex-direction:column;min-width:0}
+    .topbar{position:sticky;top:0;background:var(--color-bg);border-bottom:1px solid var(--color-border);padding:.65rem 2rem;display:flex;align-items:center;gap:1rem;z-index:90}
+    .hamburger{display:none;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--color-text)}
+    #search{flex:1;max-width:400px;padding:.4rem .75rem;border:1px solid var(--color-border);border-radius:4px;background:var(--color-code-bg);color:var(--color-text);font-family:var(--font-mono);font-size:.8rem}
+    #search:focus{outline:none;border-color:var(--color-accent)}
+    #theme-toggle{margin-left:auto;background:none;border:1px solid var(--color-border);border-radius:4px;padding:.4rem .65rem;cursor:pointer;color:var(--color-text);font-size:1rem}
+    #search-results{position:absolute;top:calc(100% + 4px);left:2rem;width:400px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;display:none;max-height:320px;overflow-y:auto}
+    .search-result-item{padding:.6rem 1rem;border-bottom:1px solid var(--color-border);cursor:pointer;font-size:.82rem}
+    .search-result-item:hover{background:var(--color-table-stripe)}
+    .content{padding:3rem 2.5rem 4rem;max-width:900px}
+    h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.5rem}
+    h2{font-size:1.3rem;font-weight:600;margin:2.5rem 0 1rem;padding-bottom:.4rem;border-bottom:1px solid var(--color-border)}
+    h3{font-size:1rem;font-weight:600;margin:1.75rem 0 .6rem}
+    h4{font-size:.88rem;font-weight:600;margin:1.25rem 0 .4rem}
+    p{line-height:1.7;margin-bottom:1rem;font-size:.95rem}
+    a{color:var(--color-accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+    ul,ol{margin:.5rem 0 1rem 1.5rem;line-height:1.7;font-size:.95rem}
+    li{margin-bottom:.25rem}
+    strong{font-weight:600}
+    code{font-family:var(--font-mono);font-size:.85em;background:var(--color-code-bg);border:1px solid var(--color-border);border-radius:3px;padding:.1em .35em}
+    pre{margin:1.25rem 0;border-radius:4px;overflow-x:auto;font-size:.82rem}
+    pre code{background:none;border:none;padding:0}
+    table{width:100%;border-collapse:collapse;margin:1.25rem 0;font-size:.88rem}
+    th{background:var(--color-sidebar);color:var(--color-sidebar-text);padding:.6rem .9rem;text-align:left;font-family:var(--font-mono);font-size:.78rem;letter-spacing:.04em}
+    td{padding:.55rem .9rem;border-bottom:1px solid var(--color-border)}
+    tr:nth-child(even) td{background:var(--color-table-stripe)}
+    .page-header{margin-bottom:2.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--color-border)}
+    .page-header .doc-type{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);margin-bottom:.5rem}
+    .page-header p{font-size:.9rem;opacity:.65;margin:0}
+    .endpoint{border:1px solid var(--color-border);border-radius:4px;margin:1.5rem 0;overflow:hidden}
+    .endpoint-header{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;background:var(--color-code-bg);border-bottom:1px solid var(--color-border)}
+    .method{font-family:var(--font-mono);font-size:.75rem;font-weight:600;padding:.2rem .5rem;border-radius:3px;min-width:4rem;text-align:center}
+    .method-post{background:oklch(55% 0.15 145);color:#fff}
+    .method-get{background:oklch(55% 0.15 250);color:#fff}
+    .method-delete{background:oklch(55% 0.18 30);color:#fff}
+    .endpoint-path{font-family:var(--font-mono);font-size:.85rem;font-weight:600}
+    .endpoint-body{padding:1rem 1.25rem}
+    .auth-badge{margin-left:auto;font-family:var(--font-mono);font-size:.65rem;padding:.2rem .5rem;border-radius:3px;border:1px solid var(--color-accent);color:var(--color-accent)}
+    .ws-event{border-left:3px solid var(--color-accent);background:var(--color-code-bg);padding:.75rem 1rem;margin:.75rem 0;border-radius:0 4px 4px 0}
+    .ws-event-name{font-family:var(--font-mono);font-size:.85rem;font-weight:600;color:var(--color-accent);margin-bottom:.25rem}
+    .error-badge{display:inline-block;font-family:var(--font-mono);font-size:.72rem;padding:.15rem .4rem;background:oklch(55% 0.18 30);color:#fff;border-radius:3px;margin-right:.4rem}
+    .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:none;align-items:center;justify-content:center}
+    .lightbox.open{display:flex}
+    #lightbox-close{position:absolute;top:1.5rem;right:1.5rem;background:none;border:1px solid rgba(255,255,255,.3);color:#fff;font-size:1.2rem;cursor:pointer;border-radius:4px;padding:.3rem .7rem}
+    #lightbox-content{background:var(--color-bg);border-radius:6px;padding:2rem;max-width:90vw;max-height:90vh;overflow:auto}
+    @media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.layout{margin-left:0}.hamburger{display:block}.content{padding:2rem 1.25rem 3rem}}
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <a href="index.html">LADDER ROOM</a>
+      <p>Documentation v1.0</p>
+    </div>
+    <nav>
+      <div class="nav-section-title">Overview</div>
+      <a href="index.html" class="nav-link">Home</a>
+      <div class="nav-section-title">Product</div>
+      <a href="pdd.html" class="nav-link">PDD — Product Design</a>
+      <a href="prd.html" class="nav-link">PRD — Requirements</a>
+      <div class="nav-section-title">Engineering</div>
+      <a href="edd.html" class="nav-link">EDD — Engineering Design</a>
+      <a href="arch.html" class="nav-link">Architecture</a>
+      <a href="api.html" class="nav-link active">API Reference</a>
+      <a href="schema.html" class="nav-link">DB / Redis Schema</a>
+      <div class="nav-section-title">Quality</div>
+      <a href="bdd.html" class="nav-link">BDD Scenarios</a>
+      <a href="diagrams.html" class="nav-link">Diagrams Gallery</a>
+      <div class="nav-section-title">On This Page</div>
+      <a href="#overview" class="nav-sub-link">1. 概覽</a>
+      <a href="#endpoints" class="nav-sub-link">2. HTTP REST 端點</a>
+      <a href="#ws" class="nav-sub-link">3. WebSocket</a>
+      <a href="#ws-server-events" class="nav-sub-link">3.2 Server→Client Events</a>
+      <a href="#ws-client-msgs" class="nav-sub-link">3.3 Client→Server Messages</a>
+      <a href="#errors" class="nav-sub-link">4. Error Codes</a>
+    </nav>
+  </aside>
+
+  <div class="layout">
+    <header class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">&#9776;</button>
+      <input type="search" id="search" placeholder="Search docs..." aria-label="Search">
+      <div id="search-results" role="listbox"></div>
+      <button id="theme-toggle" aria-label="Toggle dark mode">&#9681;</button>
+    </header>
+
+    <main class="content" id="main-content">
+      <div class="page-header">
+        <div class="doc-type">API — API Reference Document</div>
+        <h1>API Reference — Ladder Room Online</h1>
+        <p>Version v1.0 &mdash; 2026-04-19 &mdash; Based on EDD v1.1 + PRD v1.1</p>
+      </div>
+
+      <h2 id="overview">1. 概覽</h2>
+      <h3>Base URL</h3>
+      <pre><code class="language-bash">Production:  https://api.ladder-room.online/api/v1
+Development: http://localhost:3000/api/v1
+WebSocket:   wss://api.ladder-room.online/ws</code></pre>
+      <ul>
+        <li>所有 HTTP REST 端點掛載於 <code>/api/v1/</code>。版本號嵌入路徑（Path Versioning）。</li>
+        <li>WebSocket 不含版本路徑；由 query param <code>token</code> 的 JWT <code>iat</code> 隱含版本邊界。</li>
+        <li>所有請求與回應均使用 <code>Content-Type: application/json; charset=utf-8</code>。</li>
+      </ul>
+
+      <h3>認證</h3>
+      <p>Host 專屬操作需在 <code>Authorization</code> Header 帶入 JWT：</p>
+      <pre><code class="language-bash">Authorization: Bearer &lt;sessionToken&gt;</code></pre>
+      <p><code>sessionToken</code> 由 <code>POST /api/v1/rooms</code>（建立房間）或 <code>POST /api/v1/rooms/:code/players</code>（加入房間）取得。</p>
+
+      <h3>統一回應 Envelope</h3>
+      <pre><code class="language-typescript">interface ApiResponse&lt;T&gt; {
+  success: boolean;
+  data: T | null;
+  error: { code: string; message: string } | null;
+}
+</code></pre>
+
+      <h2 id="endpoints">2. HTTP REST 端點總覽</h2>
+      <table>
+        <thead><tr><th>#</th><th>Method</th><th>Path</th><th>描述</th><th>Auth</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>POST</code></td><td><code>/api/v1/rooms</code></td><td>建立房間</td><td>否</td></tr>
+          <tr><td>2</td><td><code>GET</code></td><td><code>/api/v1/rooms/:code</code></td><td>查詢房間摘要</td><td>否</td></tr>
+          <tr><td>3</td><td><code>POST</code></td><td><code>/api/v1/rooms/:code/players</code></td><td>加入房間</td><td>否</td></tr>
+          <tr><td>4</td><td><code>DELETE</code></td><td><code>/api/v1/rooms/:code/players/:id</code></td><td>踢出玩家</td><td>是（host）</td></tr>
+          <tr><td>5</td><td><code>POST</code></td><td><code>/api/v1/rooms/:code/start</code></td><td>開始遊戲</td><td>是（host）</td></tr>
+          <tr><td>6</td><td><code>POST</code></td><td><code>/api/v1/rooms/:code/reset</code></td><td>再玩一局</td><td>是（host）</td></tr>
+          <tr><td>7</td><td><code>GET</code></td><td><code>/api/v1/health</code></td><td>健康檢查</td><td>否</td></tr>
+        </tbody>
+      </table>
+
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-post">POST</span>
+          <span class="endpoint-path">/api/v1/rooms</span>
+        </div>
+        <div class="endpoint-body">
+          <p>建立新房間。回傳 6 碼 Room Code 及 host sessionToken。</p>
+          <h4>Request Body</h4>
+          <pre><code class="language-typescript">{ hostNickname: string; winnerCount?: number }</code></pre>
+          <h4>Response 201</h4>
+          <pre><code class="language-json">{
+  "success": true,
+  "data": {
+    "roomCode": "AB3K7X",
+    "playerId": "uuid-host-001",
+    "sessionToken": "eyJ..."
+  },
+  "error": null
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/api/v1/rooms/:code</span>
+        </div>
+        <div class="endpoint-body">
+          <p>查詢房間摘要，包含狀態、玩家數、是否可加入。不返回 ladder 結構。</p>
+          <h4>Response 200</h4>
+          <pre><code class="language-json">{
+  "success": true,
+  "data": {
+    "code": "AB3K7X",
+    "status": "waiting",
+    "playerCount": 3,
+    "maxPlayers": 50,
+    "canJoin": true
+  },
+  "error": null
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-post">POST</span>
+          <span class="endpoint-path">/api/v1/rooms/:code/players</span>
+        </div>
+        <div class="endpoint-body">
+          <p>玩家加入房間。回傳 playerId 及 sessionToken（用於 WebSocket 連線）。</p>
+          <h4>Request Body</h4>
+          <pre><code class="language-typescript">{ nickname: string }</code></pre>
+          <h4>Response 201</h4>
+          <pre><code class="language-json">{
+  "success": true,
+  "data": {
+    "playerId": "uuid-player-002",
+    "sessionToken": "eyJ...",
+    "colorIndex": 2
+  },
+  "error": null
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-delete">DELETE</span>
+          <span class="endpoint-path">/api/v1/rooms/:code/players/:id</span>
+          <span class="auth-badge">Host JWT</span>
+        </div>
+        <div class="endpoint-body">
+          <p>主持人踢除指定玩家。只在 <code>waiting</code> 狀態下允許。</p>
+          <h4>Response 200</h4>
+          <pre><code class="language-json">{ "success": true, "data": { "kickedPlayerId": "uuid-player-002" }, "error": null }</code></pre>
+        </div>
+      </div>
+
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-post">POST</span>
+          <span class="endpoint-path">/api/v1/rooms/:code/start</span>
+          <span class="auth-badge">Host JWT</span>
+        </div>
+        <div class="endpoint-body">
+          <p>主持人開始遊戲。驗證 N≥2 且 W 已設定，生成 LadderData 並廣播 ROOM_STATE。</p>
+          <h4>Request Body</h4>
+          <pre><code class="language-typescript">{ winnerCount: number }</code></pre>
+          <h4>Response 200</h4>
+          <pre><code class="language-json">{
+  "success": true,
+  "data": {
+    "status": "running",
+    "ladder": { "seed": 3141592653, "rowCount": 30, "colCount": 10 }
+  },
+  "error": null
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-post">POST</span>
+          <span class="endpoint-path">/api/v1/rooms/:code/reset</span>
+          <span class="auth-badge">Host JWT</span>
+        </div>
+        <div class="endpoint-body">
+          <p>再玩一局。剔除離線玩家，清空 kickedPlayerIds，重置狀態為 <code>waiting</code>。</p>
+        </div>
+      </div>
+
+      <h2 id="ws">3. WebSocket</h2>
+      <h3>3.1 連線握手</h3>
+      <pre><code class="language-bash">wss://api.ladder-room.online/ws?token=&lt;sessionToken&gt;&amp;room=&lt;roomCode&gt;</code></pre>
+      <p>伺服器驗證 JWT HMAC-SHA256 簽章，失敗時關閉連線（code 4001）。成功後立即發送 <code>ROOM_STATE_FULL</code>。</p>
+
+      <h3 id="ws-server-events">3.2 Server → Client Events</h3>
+      <div class="ws-event">
+        <div class="ws-event-name">ROOM_STATE_FULL</div>
+        <p>完整房間狀態，連線後及任何重要狀態變更後發送。含 players、ladder（null 若未開始）。</p>
+      </div>
+      <div class="ws-event">
+        <div class="ws-event-name">ROOM_STATE</div>
+        <p>部分更新廣播（玩家加入/離線/W 變更等）。payload 僅含變更欄位。</p>
+      </div>
+      <div class="ws-event">
+        <div class="ws-event-name">REVEAL_INDEX</div>
+        <p>揭曉指定路徑。payload: <code>{ index: number, playerId: string }</code></p>
+      </div>
+      <div class="ws-event">
+        <div class="ws-event-name">REVEAL_ALL</div>
+        <p>一鍵揭曉所有剩餘路徑。payload: <code>{ results: ResultSlot[] }</code></p>
+      </div>
+      <div class="ws-event">
+        <div class="ws-event-name">PLAYER_KICKED</div>
+        <p>玩家被踢除。payload: <code>{ playerId: string }</code>。被踢者收到此訊息後應跳轉至錯誤頁面。</p>
+      </div>
+      <div class="ws-event">
+        <div class="ws-event-name">ERROR</div>
+        <p>業務邏輯錯誤。payload: <code>{ code: string, message: string }</code></p>
+      </div>
+
+      <h3 id="ws-client-msgs">3.3 Client → Server Messages</h3>
+      <table>
+        <thead><tr><th>Type</th><th>權限</th><th>Payload</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr><td><code>SET_WINNER_COUNT</code></td><td>Host</td><td><code>{ winnerCount: number }</code></td><td>設定中獎名額</td></tr>
+          <tr><td><code>START_GAME</code></td><td>Host</td><td><code>{}</code></td><td>開始遊戲（需先呼叫 /start HTTP）</td></tr>
+          <tr><td><code>BEGIN_REVEAL</code></td><td>Host</td><td><code>{ mode: 'manual' | 'auto', intervalSec?: number }</code></td><td>開始揭曉</td></tr>
+          <tr><td><code>REVEAL_NEXT</code></td><td>Host</td><td><code>{}</code></td><td>手動揭曉下一位</td></tr>
+          <tr><td><code>REVEAL_ALL</code></td><td>Host</td><td><code>{}</code></td><td>一鍵揭曉全部</td></tr>
+          <tr><td><code>PING</code></td><td>All</td><td><code>{}</code></td><td>心跳，伺服器回 PONG</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="errors">4. Error Codes</h2>
+      <table>
+        <thead><tr><th>Code</th><th>HTTP Status</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr><td><span class="error-badge">ROOM_NOT_FOUND</span></td><td>404</td><td>房間碼不存在或已過期</td></tr>
+          <tr><td><span class="error-badge">ROOM_FULL</span></td><td>409</td><td>房間已達 50 人上限</td></tr>
+          <tr><td><span class="error-badge">NICKNAME_TAKEN</span></td><td>409</td><td>暱稱與現有玩家重複</td></tr>
+          <tr><td><span class="error-badge">PLAYER_KICKED</span></td><td>403</td><td>玩家已被踢除，不允許重連</td></tr>
+          <tr><td><span class="error-badge">INVALID_STATE</span></td><td>409</td><td>當前狀態不允許此操作</td></tr>
+          <tr><td><span class="error-badge">INSUFFICIENT_PLAYERS</span></td><td>400</td><td>玩家數 &lt; 2，無法開始</td></tr>
+          <tr><td><span class="error-badge">PRIZES_NOT_SET</span></td><td>400</td><td>W 尚未設定，無法開始遊戲</td></tr>
+          <tr><td><span class="error-badge">INVALID_PRIZES_COUNT</span></td><td>400</td><td>W 超出範圍 (1 ≤ W ≤ N-1)</td></tr>
+          <tr><td><span class="error-badge">UNAUTHORIZED</span></td><td>401</td><td>JWT 缺失或驗證失敗</td></tr>
+          <tr><td><span class="error-badge">FORBIDDEN</span></td><td>403</td><td>非 host 嘗試 host 操作</td></tr>
+          <tr><td><span class="error-badge">RATE_LIMIT_EXCEEDED</span></td><td>429</td><td>訊息頻率超過 60 msg/min</td></tr>
+          <tr><td><span class="error-badge">INTERNAL_ERROR</span></td><td>500</td><td>伺服器內部錯誤</td></tr>
+        </tbody>
+      </table>
+    </main>
+  </div>
+
+  <div id="lightbox" class="lightbox">
+    <button id="lightbox-close">&#x2715;</button>
+    <div id="lightbox-content"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7/dist/fuse.min.js"></script>
+  <script>
+    const saved=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',saved);
+    document.getElementById('theme-toggle').addEventListener('click',()=>{const c=document.documentElement.getAttribute('data-theme');const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('theme',n);});
+    document.getElementById('hamburger').addEventListener('click',()=>{document.getElementById('sidebar').classList.toggle('open');});
+    const items=Array.from(document.querySelectorAll('h2,h3,p')).map(el=>({text:el.textContent.trim(),id:el.id||'',tag:el.tagName})).filter(i=>i.text.length>4);
+    const fuse=new Fuse(items,{keys:['text'],threshold:.35});
+    const searchEl=document.getElementById('search');const resultsEl=document.getElementById('search-results');
+    searchEl.addEventListener('input',()=>{const q=searchEl.value.trim();if(!q){resultsEl.style.display='none';return;}const hits=fuse.search(q).slice(0,8);if(!hits.length){resultsEl.style.display='none';return;}resultsEl.innerHTML=hits.map(h=>`<div class="search-result-item" data-id="${h.item.id}">${h.item.text.slice(0,80)}</div>`).join('');resultsEl.style.display='block';});
+    resultsEl.addEventListener('click',e=>{const id=e.target.dataset.id;if(id)document.getElementById(id)?.scrollIntoView({behavior:'smooth'});resultsEl.style.display='none';searchEl.value='';});
+    document.addEventListener('click',e=>{if(!searchEl.contains(e.target)&&!resultsEl.contains(e.target))resultsEl.style.display='none';});
+    document.getElementById('lightbox-close').addEventListener('click',()=>{document.getElementById('lightbox').classList.remove('open');});
+    document.getElementById('lightbox').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
+  </script>
+</body>
+</html>

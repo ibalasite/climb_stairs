@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ladder Room Online — Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sidebar-width: 240px;
+      --color-bg: #fafafa;
+      --color-sidebar: #1a1a2e;
+      --color-sidebar-text: #e0e0e0;
+      --color-sidebar-active: oklch(68% 0.21 250);
+      --color-text: #1a1a2e;
+      --color-accent: oklch(68% 0.21 250);
+      --color-code-bg: #f0f0f0;
+      --color-border: #e0e0e0;
+      --color-table-stripe: #f5f5f5;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --font-mono: 'IBM Plex Mono', 'Fira Code', monospace;
+    }
+    [data-theme="dark"] {
+      --color-bg: #12121e;
+      --color-text: #e0e0e0;
+      --color-code-bg: #1e1e2e;
+      --color-border: #333;
+      --color-table-stripe: #1e1e2e;
+      --color-sidebar: #0d0d1a;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body {
+      font-family: var(--font-body);
+      background: var(--color-bg);
+      color: var(--color-text);
+      display: flex;
+      min-height: 100vh;
+      transition: background 0.2s, color 0.2s;
+    }
+    /* SIDEBAR */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--color-sidebar);
+      color: var(--color-sidebar-text);
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      overflow-y: auto;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.25s;
+    }
+    .sidebar-logo {
+      padding: 1.5rem 1.25rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-logo a {
+      color: var(--color-sidebar-active);
+      text-decoration: none;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+    }
+    .sidebar-logo p {
+      font-size: 0.7rem;
+      opacity: 0.5;
+      margin-top: 0.25rem;
+    }
+    .sidebar nav { padding: 1rem 0; flex: 1; }
+    .nav-section { margin-bottom: 0.25rem; }
+    .nav-section-title {
+      font-size: 0.65rem;
+      font-family: var(--font-mono);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.4;
+      padding: 0.75rem 1.25rem 0.25rem;
+    }
+    .nav-link {
+      display: block;
+      padding: 0.45rem 1.25rem;
+      color: var(--color-sidebar-text);
+      text-decoration: none;
+      font-size: 0.82rem;
+      opacity: 0.75;
+      transition: opacity 0.15s, color 0.15s, background 0.15s;
+      border-left: 2px solid transparent;
+    }
+    .nav-link:hover { opacity: 1; background: rgba(255,255,255,0.04); }
+    .nav-link.active {
+      color: var(--color-sidebar-active);
+      opacity: 1;
+      border-left-color: var(--color-sidebar-active);
+      background: rgba(255,255,255,0.04);
+    }
+    .nav-sub-link {
+      display: block;
+      padding: 0.35rem 1.25rem 0.35rem 2rem;
+      color: var(--color-sidebar-text);
+      text-decoration: none;
+      font-size: 0.75rem;
+      opacity: 0.55;
+      transition: opacity 0.15s;
+    }
+    .nav-sub-link:hover { opacity: 0.9; }
+    /* LAYOUT */
+    .layout {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    /* TOPBAR */
+    .topbar {
+      position: sticky;
+      top: 0;
+      background: var(--color-bg);
+      border-bottom: 1px solid var(--color-border);
+      padding: 0.65rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      z-index: 90;
+    }
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--color-text);
+    }
+    #search {
+      flex: 1;
+      max-width: 400px;
+      padding: 0.4rem 0.75rem;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      background: var(--color-code-bg);
+      color: var(--color-text);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+    }
+    #search:focus { outline: none; border-color: var(--color-accent); }
+    #theme-toggle {
+      margin-left: auto;
+      background: none;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      padding: 0.4rem 0.65rem;
+      cursor: pointer;
+      color: var(--color-text);
+      font-size: 1rem;
+    }
+    /* SEARCH RESULTS */
+    #search-results {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 2rem;
+      width: 400px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      z-index: 200;
+      display: none;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .search-result-item {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--color-border);
+      cursor: pointer;
+      font-size: 0.82rem;
+    }
+    .search-result-item:hover { background: var(--color-table-stripe); }
+    .search-result-item:last-child { border-bottom: none; }
+    /* CONTENT */
+    .content { padding: 3rem 2.5rem 4rem; max-width: 860px; }
+    h1 { font-size: 2.2rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.35rem; font-weight: 600; margin: 2.5rem 0 1rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--color-border); }
+    h3 { font-size: 1.05rem; font-weight: 600; margin: 1.75rem 0 0.6rem; }
+    p { line-height: 1.7; margin-bottom: 1rem; font-size: 0.95rem; }
+    a { color: var(--color-accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    /* HERO */
+    .hero {
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .hero-tag {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      margin-bottom: 0.75rem;
+    }
+    .hero h1 { margin-bottom: 1rem; }
+    .hero p { font-size: 1.05rem; color: var(--color-text); opacity: 0.75; max-width: 600px; }
+    /* STATS GRID */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    .stat-card {
+      background: var(--color-code-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      padding: 1.25rem 1rem;
+      border-left: 3px solid var(--color-accent);
+    }
+    .stat-value {
+      font-family: var(--font-mono);
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--color-accent);
+    }
+    .stat-label { font-size: 0.75rem; opacity: 0.6; margin-top: 0.25rem; }
+    /* DOC GRID */
+    .doc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .doc-card {
+      display: block;
+      background: var(--color-code-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      padding: 1.25rem;
+      text-decoration: none;
+      color: var(--color-text);
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .doc-card:hover { border-color: var(--color-accent); transform: translateY(-2px); text-decoration: none; }
+    .doc-card-type {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      margin-bottom: 0.5rem;
+    }
+    .doc-card h3 { font-size: 0.9rem; margin: 0 0 0.4rem; }
+    .doc-card p { font-size: 0.78rem; opacity: 0.6; margin: 0; }
+    /* TECH STACK */
+    .stack-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+    .stack-tag {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      background: var(--color-code-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 3px;
+      padding: 0.2rem 0.6rem;
+      color: var(--color-text);
+    }
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .layout { margin-left: 0; }
+      .hamburger { display: block; }
+      .content { padding: 2rem 1.25rem 3rem; }
+      #search-results { left: 1.25rem; width: calc(100vw - 2.5rem); }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <a href="index.html">LADDER ROOM</a>
+      <p>Documentation v1.0</p>
+    </div>
+    <nav>
+      <div class="nav-section">
+        <div class="nav-section-title">Overview</div>
+        <a href="index.html" class="nav-link active">Home</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Product</div>
+        <a href="pdd.html" class="nav-link">PDD — Product Design</a>
+        <a href="prd.html" class="nav-link">PRD — Requirements</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Engineering</div>
+        <a href="edd.html" class="nav-link">EDD — Engineering Design</a>
+        <a href="arch.html" class="nav-link">Architecture</a>
+        <a href="api.html" class="nav-link">API Reference</a>
+        <a href="schema.html" class="nav-link">DB / Redis Schema</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Quality</div>
+        <a href="bdd.html" class="nav-link">BDD Scenarios</a>
+        <a href="diagrams.html" class="nav-link">Diagrams Gallery</a>
+      </div>
+    </nav>
+  </aside>
+
+  <div class="layout">
+    <header class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">&#9776;</button>
+      <input type="search" id="search" placeholder="Search docs..." aria-label="Search documentation">
+      <div id="search-results" role="listbox"></div>
+      <button id="theme-toggle" aria-label="Toggle dark mode">&#9681;</button>
+    </header>
+
+    <main class="content" id="main-content">
+      <section class="hero">
+        <p class="hero-tag">HTML5 Multi-Player Game — Documentation</p>
+        <h1>Ladder Room Online</h1>
+        <p>A real-time, room-based 爬樓梯 (ladder climbing) lottery game supporting up to 50 players. Built with Node.js, TypeScript, Fastify, WebSockets, and HTML5 Canvas — zero UI framework on the client.</p>
+      </section>
+
+      <section>
+        <h2 id="key-metrics">Key Metrics</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">50</div>
+            <div class="stat-label">Max players per room</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">5,000</div>
+            <div class="stat-label">Concurrent WS connections target</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">100%</div>
+            <div class="stat-label">Result consistency (PRNG deterministic)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">&lt;2s</div>
+            <div class="stat-label">Room sync latency (perceived)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">2–10</div>
+            <div class="stat-label">HPA pods (Post-MVP Kubernetes)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">0</div>
+            <div class="stat-label">UI framework dependencies (client)</div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 id="tech-stack">Technology Stack</h2>
+        <div class="stack-list">
+          <span class="stack-tag">Node.js 20</span>
+          <span class="stack-tag">TypeScript (strict)</span>
+          <span class="stack-tag">Fastify</span>
+          <span class="stack-tag">ws (WebSocket)</span>
+          <span class="stack-tag">Redis</span>
+          <span class="stack-tag">Vanilla TypeScript</span>
+          <span class="stack-tag">HTML5 Canvas</span>
+          <span class="stack-tag">Vite</span>
+          <span class="stack-tag">Clean Architecture</span>
+          <span class="stack-tag">Monorepo</span>
+          <span class="stack-tag">Kubernetes HPA</span>
+          <span class="stack-tag">GitHub Pages CDN</span>
+        </div>
+        <p>The monorepo contains three packages: <code>packages/shared</code> (zero-I/O domain logic shared by client and server), <code>packages/server</code> (Fastify + ws + Redis), and <code>packages/client</code> (Vanilla TS + Vite + Canvas). Clean Architecture ensures the PRNG algorithm is identical on both ends — no result discrepancy is possible.</p>
+      </section>
+
+      <section>
+        <h2 id="core-concepts">Core Concepts</h2>
+        <h3>Rooms &amp; Lifecycle</h3>
+        <p>A host creates a room and receives a unique 6-character code (A-Z excluding O/I, 2-9, 32-character set). Players join by entering the code or following a share link. The room state machine transitions: <code>waiting → running → revealing → finished</code>, with an optional <code>reset</code> back to <code>waiting</code>.</p>
+        <h3>Deterministic PRNG</h3>
+        <p>Ladder structure is generated using djb2 hashing for the seed, Mulberry32 as the PRNG, and Fisher-Yates shuffle. The same seed always produces the same ladder on every client — making results tamper-proof and verifiable.</p>
+        <h3>Real-Time Sync</h3>
+        <p>All state changes (player joins, game start, reveal steps) are broadcast via WebSocket. Redis Pub/Sub fans out messages across Kubernetes pods. Nginx Ingress uses sticky sessions to keep a room's players on the same pod.</p>
+      </section>
+
+      <section>
+        <h2 id="documents">Documentation Pages</h2>
+        <div class="doc-grid">
+          <a href="pdd.html" class="doc-card">
+            <div class="doc-card-type">PDD</div>
+            <h3>Product Design Document</h3>
+            <p>Vision, personas, success metrics, and product positioning</p>
+          </a>
+          <a href="prd.html" class="doc-card">
+            <div class="doc-card-type">PRD</div>
+            <h3>Product Requirements</h3>
+            <p>User stories and acceptance criteria for all features</p>
+          </a>
+          <a href="edd.html" class="doc-card">
+            <div class="doc-card-type">EDD</div>
+            <h3>Engineering Design</h3>
+            <p>System architecture, data models, security, and scale design</p>
+          </a>
+          <a href="arch.html" class="doc-card">
+            <div class="doc-card-type">ARCH</div>
+            <h3>Architecture</h3>
+            <p>Clean Architecture layers, package dependencies, Kubernetes setup</p>
+          </a>
+          <a href="api.html" class="doc-card">
+            <div class="doc-card-type">API</div>
+            <h3>API Reference</h3>
+            <p>REST endpoints, WebSocket events, error codes</p>
+          </a>
+          <a href="schema.html" class="doc-card">
+            <div class="doc-card-type">SCHEMA</div>
+            <h3>Redis Schema</h3>
+            <p>Key patterns, TTL strategy, data structures, ER diagram</p>
+          </a>
+          <a href="bdd.html" class="doc-card">
+            <div class="doc-card-type">BDD</div>
+            <h3>BDD Scenarios</h3>
+            <p>Gherkin feature files for all 7 feature areas</p>
+          </a>
+          <a href="diagrams.html" class="doc-card">
+            <div class="doc-card-type">DIAGRAMS</div>
+            <h3>Diagrams Gallery</h3>
+            <p>System context, architecture, data flow, state machine, ER, CI/CD</p>
+          </a>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="lightbox" class="lightbox" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:500; display:none; align-items:center; justify-content:center;">
+    <button id="lightbox-close" style="position:absolute; top:1.5rem; right:1.5rem; background:none; border:1px solid rgba(255,255,255,0.3); color:#fff; font-size:1.2rem; cursor:pointer; border-radius:4px; padding:0.3rem 0.7rem;">&#x2715;</button>
+    <div id="lightbox-content" style="background:var(--color-bg); border-radius:6px; padding:2rem; max-width:90vw; max-height:90vh; overflow:auto;"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7/dist/fuse.min.js"></script>
+  <script>
+    // Theme
+    const saved = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', saved);
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+    });
+
+    // Hamburger
+    document.getElementById('hamburger').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('open');
+    });
+
+    // Search
+    const items = Array.from(document.querySelectorAll('h2, h3, p')).map(el => ({
+      text: el.textContent.trim(),
+      id: el.id || '',
+      tag: el.tagName
+    })).filter(i => i.text.length > 4);
+    const fuse = new Fuse(items, { keys: ['text'], threshold: 0.35 });
+    const searchEl = document.getElementById('search');
+    const resultsEl = document.getElementById('search-results');
+    searchEl.addEventListener('input', () => {
+      const q = searchEl.value.trim();
+      if (!q) { resultsEl.style.display = 'none'; return; }
+      const hits = fuse.search(q).slice(0, 8);
+      if (!hits.length) { resultsEl.style.display = 'none'; return; }
+      resultsEl.innerHTML = hits.map(h =>
+        `<div class="search-result-item" data-id="${h.item.id}">${h.item.text.slice(0, 80)}</div>`
+      ).join('');
+      resultsEl.style.display = 'block';
+    });
+    resultsEl.addEventListener('click', e => {
+      const id = e.target.dataset.id;
+      if (id) { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }); }
+      resultsEl.style.display = 'none';
+      searchEl.value = '';
+    });
+    document.addEventListener('click', e => {
+      if (!searchEl.contains(e.target) && !resultsEl.contains(e.target)) resultsEl.style.display = 'none';
+    });
+
+    // Lightbox for mermaid diagrams
+    document.addEventListener('click', e => {
+      const svg = e.target.closest('.mermaid svg, .mermaid-wrap svg');
+      if (!svg) return;
+      const lb = document.getElementById('lightbox');
+      const lbc = document.getElementById('lightbox-content');
+      lbc.innerHTML = '';
+      lbc.appendChild(svg.cloneNode(true));
+      lb.style.display = 'flex';
+    });
+    document.getElementById('lightbox-close').addEventListener('click', () => {
+      document.getElementById('lightbox').style.display = 'none';
+    });
+    document.getElementById('lightbox').addEventListener('click', e => {
+      if (e.target === e.currentTarget) e.currentTarget.style.display = 'none';
+    });
+  </script>
+</body>
+</html>

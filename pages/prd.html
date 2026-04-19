@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRD — Ladder Room Online Docs</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1/themes/prism-tomorrow.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--sidebar-width:240px;--color-bg:#fafafa;--color-sidebar:#1a1a2e;--color-sidebar-text:#e0e0e0;--color-sidebar-active:oklch(68% 0.21 250);--color-text:#1a1a2e;--color-accent:oklch(68% 0.21 250);--color-code-bg:#f0f0f0;--color-border:#e0e0e0;--color-table-stripe:#f5f5f5;--font-body:'Inter',system-ui,sans-serif;--font-mono:'IBM Plex Mono','Fira Code',monospace}
+    [data-theme="dark"]{--color-bg:#12121e;--color-text:#e0e0e0;--color-code-bg:#1e1e2e;--color-border:#333;--color-table-stripe:#1e1e2e;--color-sidebar:#0d0d1a}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font-body);background:var(--color-bg);color:var(--color-text);display:flex;min-height:100vh;transition:background .2s,color .2s}
+    .sidebar{width:var(--sidebar-width);background:var(--color-sidebar);color:var(--color-sidebar-text);position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;display:flex;flex-direction:column;transition:transform .25s}
+    .sidebar-logo{padding:1.5rem 1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.08)}
+    .sidebar-logo a{color:var(--color-sidebar-active);text-decoration:none;font-family:var(--font-mono);font-weight:600;font-size:.85rem;letter-spacing:.05em}
+    .sidebar-logo p{font-size:.7rem;opacity:.5;margin-top:.25rem}
+    .sidebar nav{padding:1rem 0;flex:1}
+    .nav-section-title{font-size:.65rem;font-family:var(--font-mono);letter-spacing:.12em;text-transform:uppercase;opacity:.4;padding:.75rem 1.25rem .25rem}
+    .nav-link{display:block;padding:.45rem 1.25rem;color:var(--color-sidebar-text);text-decoration:none;font-size:.82rem;opacity:.75;transition:opacity .15s,color .15s,background .15s;border-left:2px solid transparent}
+    .nav-link:hover{opacity:1;background:rgba(255,255,255,.04)}
+    .nav-link.active{color:var(--color-sidebar-active);opacity:1;border-left-color:var(--color-sidebar-active);background:rgba(255,255,255,.04)}
+    .nav-sub-link{display:block;padding:.35rem 1.25rem .35rem 2rem;color:var(--color-sidebar-text);text-decoration:none;font-size:.75rem;opacity:.55;transition:opacity .15s}
+    .nav-sub-link:hover{opacity:.9}
+    .layout{margin-left:var(--sidebar-width);flex:1;display:flex;flex-direction:column;min-width:0}
+    .topbar{position:sticky;top:0;background:var(--color-bg);border-bottom:1px solid var(--color-border);padding:.65rem 2rem;display:flex;align-items:center;gap:1rem;z-index:90}
+    .hamburger{display:none;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--color-text)}
+    #search{flex:1;max-width:400px;padding:.4rem .75rem;border:1px solid var(--color-border);border-radius:4px;background:var(--color-code-bg);color:var(--color-text);font-family:var(--font-mono);font-size:.8rem}
+    #search:focus{outline:none;border-color:var(--color-accent)}
+    #theme-toggle{margin-left:auto;background:none;border:1px solid var(--color-border);border-radius:4px;padding:.4rem .65rem;cursor:pointer;color:var(--color-text);font-size:1rem}
+    #search-results{position:absolute;top:calc(100% + 4px);left:2rem;width:400px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;display:none;max-height:320px;overflow-y:auto}
+    .search-result-item{padding:.6rem 1rem;border-bottom:1px solid var(--color-border);cursor:pointer;font-size:.82rem}
+    .search-result-item:hover{background:var(--color-table-stripe)}
+    .content{padding:3rem 2.5rem 4rem;max-width:860px}
+    h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.5rem}
+    h2{font-size:1.3rem;font-weight:600;margin:2.5rem 0 1rem;padding-bottom:.4rem;border-bottom:1px solid var(--color-border)}
+    h3{font-size:1rem;font-weight:600;margin:1.75rem 0 .6rem}
+    p{line-height:1.7;margin-bottom:1rem;font-size:.95rem}
+    a{color:var(--color-accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+    ul,ol{margin:.5rem 0 1rem 1.5rem;line-height:1.7;font-size:.95rem}
+    li{margin-bottom:.25rem}
+    strong{font-weight:600}
+    code{font-family:var(--font-mono);font-size:.85em;background:var(--color-code-bg);border:1px solid var(--color-border);border-radius:3px;padding:.1em .35em}
+    pre{margin:1.25rem 0;border-radius:4px;overflow-x:auto;font-size:.83rem}
+    pre code{background:none;border:none;padding:0}
+    table{width:100%;border-collapse:collapse;margin:1.25rem 0;font-size:.88rem}
+    th{background:var(--color-sidebar);color:var(--color-sidebar-text);padding:.6rem .9rem;text-align:left;font-family:var(--font-mono);font-size:.78rem;letter-spacing:.04em}
+    td{padding:.55rem .9rem;border-bottom:1px solid var(--color-border)}
+    tr:nth-child(even) td{background:var(--color-table-stripe)}
+    .page-header{margin-bottom:2.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--color-border)}
+    .page-header .doc-type{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);margin-bottom:.5rem}
+    .page-header p{font-size:.9rem;opacity:.65;margin:0}
+    .us-card{border:1px solid var(--color-border);border-radius:4px;margin:1rem 0;overflow:hidden}
+    .us-card-header{padding:.65rem 1rem;background:var(--color-code-bg);font-family:var(--font-mono);font-size:.8rem;font-weight:600;border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:.5rem}
+    .us-id{color:var(--color-accent)}
+    .us-body{padding:1rem}
+    .ac-item{margin:.5rem 0;padding:.5rem .75rem;background:var(--color-table-stripe);border-radius:3px;border-left:2px solid var(--color-accent);font-size:.85rem;line-height:1.6}
+    .ac-id{font-family:var(--font-mono);font-size:.75rem;opacity:.6}
+    .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:none;align-items:center;justify-content:center}
+    .lightbox.open{display:flex}
+    #lightbox-close{position:absolute;top:1.5rem;right:1.5rem;background:none;border:1px solid rgba(255,255,255,.3);color:#fff;font-size:1.2rem;cursor:pointer;border-radius:4px;padding:.3rem .7rem}
+    #lightbox-content{background:var(--color-bg);border-radius:6px;padding:2rem;max-width:90vw;max-height:90vh;overflow:auto}
+    @media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.layout{margin-left:0}.hamburger{display:block}.content{padding:2rem 1.25rem 3rem}}
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <a href="index.html">LADDER ROOM</a>
+      <p>Documentation v1.0</p>
+    </div>
+    <nav>
+      <div class="nav-section-title">Overview</div>
+      <a href="index.html" class="nav-link">Home</a>
+      <div class="nav-section-title">Product</div>
+      <a href="pdd.html" class="nav-link">PDD — Product Design</a>
+      <a href="prd.html" class="nav-link active">PRD — Requirements</a>
+      <div class="nav-section-title">Engineering</div>
+      <a href="edd.html" class="nav-link">EDD — Engineering Design</a>
+      <a href="arch.html" class="nav-link">Architecture</a>
+      <a href="api.html" class="nav-link">API Reference</a>
+      <a href="schema.html" class="nav-link">DB / Redis Schema</a>
+      <div class="nav-section-title">Quality</div>
+      <a href="bdd.html" class="nav-link">BDD Scenarios</a>
+      <a href="diagrams.html" class="nav-link">Diagrams Gallery</a>
+      <div class="nav-section-title">On This Page</div>
+      <a href="#summary" class="nav-sub-link">執行摘要</a>
+      <a href="#host-stories" class="nav-sub-link">主持人 User Stories</a>
+      <a href="#player-stories" class="nav-sub-link">玩家 User Stories</a>
+      <a href="#non-functional" class="nav-sub-link">Non-Functional Req.</a>
+    </nav>
+  </aside>
+
+  <div class="layout">
+    <header class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">&#9776;</button>
+      <input type="search" id="search" placeholder="Search docs..." aria-label="Search">
+      <div id="search-results" role="listbox"></div>
+      <button id="theme-toggle" aria-label="Toggle dark mode">&#9681;</button>
+    </header>
+
+    <main class="content" id="main-content">
+      <div class="page-header">
+        <div class="doc-type">PRD — Product Requirements Document</div>
+        <h1>PRD — Ladder Room Online</h1>
+        <p>Version v1.1 &mdash; 2026-04-19 &mdash; Based on PDD v2.1</p>
+      </div>
+
+      <h2 id="summary">執行摘要</h2>
+      <p>Ladder Room Online 是一款基於 HTML5 Canvas 的多人線上爬樓梯抽獎遊戲，支援最多 50 人同房間即時參與。主持人建立房間並掌控揭曉節奏，玩家透過 6 碼房間碼加入並即時觀看路徑動畫；<strong>Mulberry32 PRNG 算法</strong>確保每局結果在所有客戶端 100% 一致，消除舞弊疑慮，適用於團隊抽獎、課堂點名、活動互動等場景。</p>
+
+      <h2 id="host-stories">主持人（Host）User Stories</h2>
+
+      <div class="us-card">
+        <div class="us-card-header"><span class="us-id">US-H01</span> 建立帶有唯一 6 碼房間碼的房間</div>
+        <div class="us-body">
+          <p>作為主持人，我想要建立一個帶有唯一 6 碼房間碼的房間，以便玩家能快速找到並加入我的抽獎活動。</p>
+          <div class="ac-item"><span class="ac-id">AC-H01-1</span> Given 主持人點擊「建立房間」，When 系統接受請求，Then 於 2 秒內回傳 6 碼 Room Code（字元集 [A-HJ-NP-Z2-9]，長度固定 6 碼）且在 Redis 中不重複。</div>
+          <div class="ac-item"><span class="ac-id">AC-H01-2</span> Given 房間建立成功，When 主持人進入房間，Then 頁面顯示 Room Code、目前玩家列表（空）、設定中獎名額的輸入框，狀態為 <code>waiting</code>。</div>
+          <div class="ac-item"><span class="ac-id">AC-H01-3</span> Given 建立房間的請求因網路異常失敗，When 系統偵測到錯誤，Then 顯示「建立失敗，請重試」提示，不產生孤立房間。</div>
+        </div>
+      </div>
+
+      <div class="us-card">
+        <div class="us-card-header"><span class="us-id">US-H02</span> 設定中獎名額</div>
+        <div class="us-body">
+          <p>作為主持人，我想要設定中獎名額（W），以便控制本局有多少玩家會獲獎。</p>
+          <div class="ac-item"><span class="ac-id">AC-H02-1</span> Given 房間狀態為 <code>waiting</code>，When 主持人填入 W（1 ≤ W ≤ N-1），Then 系統接受並廣播更新後的 <code>ROOM_STATE</code>。</div>
+          <div class="ac-item"><span class="ac-id">AC-H02-2</span> Given 主持人輸入 W ≤ 0 或 W ≥ N，When 送出，Then 系統顯示「中獎名額須介於 1 到玩家數減 1 之間」錯誤。</div>
+          <div class="ac-item"><span class="ac-id">AC-H02-3</span> Given 再玩一局後 W ≥ 新 N，When 系統偵測到越界，Then 自動將 W 重設為 null 並通知主持人。</div>
+        </div>
+      </div>
+
+      <div class="us-card">
+        <div class="us-card-header"><span class="us-id">US-H03</span> 開始遊戲</div>
+        <div class="us-body">
+          <p>作為主持人，我想要在所有玩家就緒後開始遊戲，以便正式進入揭曉流程。</p>
+          <div class="ac-item"><span class="ac-id">AC-H03-1</span> Given N ≥ 2 且 W 已設定，When 主持人點擊「開始遊戲」，Then 狀態轉為 <code>running</code>，後端生成樓梯並廣播 <code>ROOM_STATE</code>。</div>
+          <div class="ac-item"><span class="ac-id">AC-H03-2</span> Given W 尚未設定，When 主持人點擊開始，Then 拒絕並回傳「請先設定中獎名額」。</div>
+          <div class="ac-item"><span class="ac-id">AC-H03-4</span> Given N &lt; 2，When 主持人點擊開始，Then 系統回傳 <code>INSUFFICIENT_PLAYERS</code>，顯示「人數不足（至少需要 2 位玩家）」。</div>
+          <div class="ac-item"><span class="ac-id">AC-H03-5</span> rowCount = clamp(N×3, 20, 60)。範例：N=3→20；N=10→30；N=21→60。</div>
+        </div>
+      </div>
+
+      <div class="us-card">
+        <div class="us-card-header"><span class="us-id">US-H04 / H05 / H06</span> 揭曉控制</div>
+        <div class="us-body">
+          <p><strong>手動逐步</strong>：主持人每次點擊「下一位」廣播 <code>REVEAL_INDEX</code>，所有端同步播放動畫。</p>
+          <p><strong>自動揭曉</strong>：主持人設定 1-30 秒間隔，伺服器自動廣播，可隨時切回手動。</p>
+          <p><strong>一鍵全部</strong>：廣播 <code>REVEAL_ALL</code>，所有路徑壓縮播放，2 秒內完成渲染，狀態自動轉 <code>finished</code>。</p>
+        </div>
+      </div>
+
+      <div class="us-card">
+        <div class="us-card-header"><span class="us-id">US-H07</span> 踢除玩家</div>
+        <div class="us-body">
+          <div class="ac-item"><span class="ac-id">AC-H07-1</span> waiting 狀態下踢除 → 廣播 <code>PLAYER_KICKED</code>，被踢玩家跳轉至「你已被移出房間」頁面。</div>
+          <div class="ac-item"><span class="ac-id">AC-H07-2</span> 被踢玩家以相同 playerId 重連 → 伺服器拒絕，回傳 <code>PLAYER_KICKED</code>。</div>
+          <div class="ac-item"><span class="ac-id">AC-H07-3</span> running 或之後狀態踢除 → 拒絕，回傳 <code>INVALID_STATE</code>。</div>
+          <div class="ac-item"><span class="ac-id">AC-H07-5</span> 再玩一局後 kickedPlayerIds 清空，前一局被踢者可用新暱稱加入新局。</div>
+        </div>
+      </div>
+
+      <div class="us-card">
+        <div class="us-card-header"><span class="us-id">US-H08</span> 再玩一局</div>
+        <div class="us-body">
+          <div class="ac-item"><span class="ac-id">AC-H08-1</span> finished 狀態下，主持人點擊「再玩一局」→ 剔除 isOnline=false 玩家，重置為 waiting，廣播新 ROOM_STATE。</div>
+          <div class="ac-item"><span class="ac-id">AC-H08-3</span> 在線玩家數 &lt; 2 時，系統拒絕並提示「在線玩家不足，無法開始新局」。</div>
+        </div>
+      </div>
+
+      <h2 id="player-stories">玩家（Player）User Stories</h2>
+
+      <div class="us-card">
+        <div class="us-card-header"><span class="us-id">US-P01</span> 加入房間</div>
+        <div class="us-body">
+          <div class="ac-item"><span class="ac-id">AC-P01-1</span> 玩家輸入有效暱稱（1-20 Unicode 字元）及正確 Room Code → 1.5 秒內進入等待畫面。</div>
+          <div class="ac-item"><span class="ac-id">AC-P01-2</span> 暱稱重複 → 回傳 <code>NICKNAME_TAKEN</code>，提示「此暱稱已被使用，請換一個」。</div>
+          <div class="ac-item"><span class="ac-id">AC-P01-4</span> 房間已達 50 人 → 回傳 <code>ROOM_FULL</code>，顯示「房間已滿，無法加入」。</div>
+        </div>
+      </div>
+
+      <div class="us-card">
+        <div class="us-card-header"><span class="us-id">US-P02 / P03 / P04</span> 遊戲體驗</div>
+        <div class="us-body">
+          <p><strong>即時玩家列表</strong>：新玩家加入或離線時，所有端 2 秒內更新。離線玩家顯示「離線」標記，不立即移除。</p>
+          <p><strong>路徑動畫</strong>：輪到自己的路徑高亮播放；其他玩家路徑以淡色呈現。桌機 ≥ 30fps，手機 ≥ 24fps。</p>
+          <p><strong>結果顯示</strong>：自己的路徑抵達底部時，顯示「恭喜中獎！」或「未中獎」，結果與伺服器端一致。</p>
+        </div>
+      </div>
+
+      <h2 id="non-functional">Non-Functional Requirements</h2>
+      <table>
+        <thead><tr><th>類別</th><th>需求</th><th>目標值</th></tr></thead>
+        <tbody>
+          <tr><td>效能</td><td>WebSocket 連線數</td><td>5,000 並發（Post-MVP）</td></tr>
+          <tr><td>效能</td><td>Canvas FPS（桌機）</td><td>≥ 30fps</td></tr>
+          <tr><td>效能</td><td>Canvas FPS（手機）</td><td>≥ 24fps</td></tr>
+          <tr><td>可用性</td><td>房間建立成功率</td><td>&gt; 99.5%</td></tr>
+          <tr><td>一致性</td><td>各端結果一致率</td><td>100%</td></tr>
+          <tr><td>安全</td><td>Rate Limit</td><td>60 msg/min per client</td></tr>
+          <tr><td>安全</td><td>Max payload</td><td>65,536 bytes</td></tr>
+          <tr><td>可擴展</td><td>Kubernetes HPA</td><td>2–10 pods，ws_connections metric</td></tr>
+          <tr><td>TTL</td><td>waiting/running/revealing</td><td>24h</td></tr>
+          <tr><td>TTL</td><td>finished</td><td>1h</td></tr>
+        </tbody>
+      </table>
+    </main>
+  </div>
+
+  <div id="lightbox" class="lightbox">
+    <button id="lightbox-close">&#x2715;</button>
+    <div id="lightbox-content"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7/dist/fuse.min.js"></script>
+  <script>
+    const saved=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',saved);
+    document.getElementById('theme-toggle').addEventListener('click',()=>{const c=document.documentElement.getAttribute('data-theme');const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('theme',n);});
+    document.getElementById('hamburger').addEventListener('click',()=>{document.getElementById('sidebar').classList.toggle('open');});
+    const items=Array.from(document.querySelectorAll('h2,h3,p')).map(el=>({text:el.textContent.trim(),id:el.id||'',tag:el.tagName})).filter(i=>i.text.length>4);
+    const fuse=new Fuse(items,{keys:['text'],threshold:.35});
+    const searchEl=document.getElementById('search');const resultsEl=document.getElementById('search-results');
+    searchEl.addEventListener('input',()=>{const q=searchEl.value.trim();if(!q){resultsEl.style.display='none';return;}const hits=fuse.search(q).slice(0,8);if(!hits.length){resultsEl.style.display='none';return;}resultsEl.innerHTML=hits.map(h=>`<div class="search-result-item" data-id="${h.item.id}">${h.item.text.slice(0,80)}</div>`).join('');resultsEl.style.display='block';});
+    resultsEl.addEventListener('click',e=>{const id=e.target.dataset.id;if(id)document.getElementById(id)?.scrollIntoView({behavior:'smooth'});resultsEl.style.display='none';searchEl.value='';});
+    document.addEventListener('click',e=>{if(!searchEl.contains(e.target)&&!resultsEl.contains(e.target))resultsEl.style.display='none';});
+    document.getElementById('lightbox-close').addEventListener('click',()=>{document.getElementById('lightbox').classList.remove('open');});
+    document.getElementById('lightbox').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
+  </script>
+</body>
+</html>

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schema — Ladder Room Online Docs</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1/themes/prism-tomorrow.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--sidebar-width:240px;--color-bg:#fafafa;--color-sidebar:#1a1a2e;--color-sidebar-text:#e0e0e0;--color-sidebar-active:oklch(68% 0.21 250);--color-text:#1a1a2e;--color-accent:oklch(68% 0.21 250);--color-code-bg:#f0f0f0;--color-border:#e0e0e0;--color-table-stripe:#f5f5f5;--font-body:'Inter',system-ui,sans-serif;--font-mono:'IBM Plex Mono','Fira Code',monospace}
+    [data-theme="dark"]{--color-bg:#12121e;--color-text:#e0e0e0;--color-code-bg:#1e1e2e;--color-border:#333;--color-table-stripe:#1e1e2e;--color-sidebar:#0d0d1a}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font-body);background:var(--color-bg);color:var(--color-text);display:flex;min-height:100vh;transition:background .2s,color .2s}
+    .sidebar{width:var(--sidebar-width);background:var(--color-sidebar);color:var(--color-sidebar-text);position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;display:flex;flex-direction:column;transition:transform .25s}
+    .sidebar-logo{padding:1.5rem 1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.08)}
+    .sidebar-logo a{color:var(--color-sidebar-active);text-decoration:none;font-family:var(--font-mono);font-weight:600;font-size:.85rem;letter-spacing:.05em}
+    .sidebar-logo p{font-size:.7rem;opacity:.5;margin-top:.25rem}
+    .sidebar nav{padding:1rem 0;flex:1}
+    .nav-section-title{font-size:.65rem;font-family:var(--font-mono);letter-spacing:.12em;text-transform:uppercase;opacity:.4;padding:.75rem 1.25rem .25rem}
+    .nav-link{display:block;padding:.45rem 1.25rem;color:var(--color-sidebar-text);text-decoration:none;font-size:.82rem;opacity:.75;transition:opacity .15s,color .15s,background .15s;border-left:2px solid transparent}
+    .nav-link:hover{opacity:1;background:rgba(255,255,255,.04)}
+    .nav-link.active{color:var(--color-sidebar-active);opacity:1;border-left-color:var(--color-sidebar-active);background:rgba(255,255,255,.04)}
+    .nav-sub-link{display:block;padding:.35rem 1.25rem .35rem 2rem;color:var(--color-sidebar-text);text-decoration:none;font-size:.75rem;opacity:.55;transition:opacity .15s}
+    .nav-sub-link:hover{opacity:.9}
+    .layout{margin-left:var(--sidebar-width);flex:1;display:flex;flex-direction:column;min-width:0}
+    .topbar{position:sticky;top:0;background:var(--color-bg);border-bottom:1px solid var(--color-border);padding:.65rem 2rem;display:flex;align-items:center;gap:1rem;z-index:90}
+    .hamburger{display:none;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--color-text)}
+    #search{flex:1;max-width:400px;padding:.4rem .75rem;border:1px solid var(--color-border);border-radius:4px;background:var(--color-code-bg);color:var(--color-text);font-family:var(--font-mono);font-size:.8rem}
+    #search:focus{outline:none;border-color:var(--color-accent)}
+    #theme-toggle{margin-left:auto;background:none;border:1px solid var(--color-border);border-radius:4px;padding:.4rem .65rem;cursor:pointer;color:var(--color-text);font-size:1rem}
+    #search-results{position:absolute;top:calc(100% + 4px);left:2rem;width:400px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;display:none;max-height:320px;overflow-y:auto}
+    .search-result-item{padding:.6rem 1rem;border-bottom:1px solid var(--color-border);cursor:pointer;font-size:.82rem}
+    .search-result-item:hover{background:var(--color-table-stripe)}
+    .content{padding:3rem 2.5rem 4rem;max-width:900px}
+    h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.5rem}
+    h2{font-size:1.3rem;font-weight:600;margin:2.5rem 0 1rem;padding-bottom:.4rem;border-bottom:1px solid var(--color-border)}
+    h3{font-size:1rem;font-weight:600;margin:1.75rem 0 .6rem}
+    p{line-height:1.7;margin-bottom:1rem;font-size:.95rem}
+    a{color:var(--color-accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+    ul,ol{margin:.5rem 0 1rem 1.5rem;line-height:1.7;font-size:.95rem}
+    li{margin-bottom:.25rem}
+    strong{font-weight:600}
+    code{font-family:var(--font-mono);font-size:.85em;background:var(--color-code-bg);border:1px solid var(--color-border);border-radius:3px;padding:.1em .35em}
+    pre{margin:1.25rem 0;border-radius:4px;overflow-x:auto;font-size:.82rem}
+    pre code{background:none;border:none;padding:0}
+    table{width:100%;border-collapse:collapse;margin:1.25rem 0;font-size:.88rem}
+    th{background:var(--color-sidebar);color:var(--color-sidebar-text);padding:.6rem .9rem;text-align:left;font-family:var(--font-mono);font-size:.78rem;letter-spacing:.04em}
+    td{padding:.55rem .9rem;border-bottom:1px solid var(--color-border)}
+    tr:nth-child(even) td{background:var(--color-table-stripe)}
+    .page-header{margin-bottom:2.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--color-border)}
+    .page-header .doc-type{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);margin-bottom:.5rem}
+    .page-header p{font-size:.9rem;opacity:.65;margin:0}
+    .mermaid-wrap{margin:1.5rem 0;padding:1.5rem;background:var(--color-code-bg);border-radius:4px;border:1px solid var(--color-border);overflow-x:auto;cursor:zoom-in}
+    .mermaid-wrap:hover{border-color:var(--color-accent)}
+    .key-badge{display:inline-block;font-family:var(--font-mono);font-size:.78rem;background:var(--color-sidebar);color:var(--color-sidebar-active);border-radius:3px;padding:.15rem .45rem;margin-right:.35rem}
+    .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:none;align-items:center;justify-content:center}
+    .lightbox.open{display:flex}
+    #lightbox-close{position:absolute;top:1.5rem;right:1.5rem;background:none;border:1px solid rgba(255,255,255,.3);color:#fff;font-size:1.2rem;cursor:pointer;border-radius:4px;padding:.3rem .7rem}
+    #lightbox-content{background:var(--color-bg);border-radius:6px;padding:2rem;max-width:90vw;max-height:90vh;overflow:auto}
+    @media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.layout{margin-left:0}.hamburger{display:block}.content{padding:2rem 1.25rem 3rem}}
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <a href="index.html">LADDER ROOM</a>
+      <p>Documentation v1.0</p>
+    </div>
+    <nav>
+      <div class="nav-section-title">Overview</div>
+      <a href="index.html" class="nav-link">Home</a>
+      <div class="nav-section-title">Product</div>
+      <a href="pdd.html" class="nav-link">PDD — Product Design</a>
+      <a href="prd.html" class="nav-link">PRD — Requirements</a>
+      <div class="nav-section-title">Engineering</div>
+      <a href="edd.html" class="nav-link">EDD — Engineering Design</a>
+      <a href="arch.html" class="nav-link">Architecture</a>
+      <a href="api.html" class="nav-link">API Reference</a>
+      <a href="schema.html" class="nav-link active">DB / Redis Schema</a>
+      <div class="nav-section-title">Quality</div>
+      <a href="bdd.html" class="nav-link">BDD Scenarios</a>
+      <a href="diagrams.html" class="nav-link">Diagrams Gallery</a>
+      <div class="nav-section-title">On This Page</div>
+      <a href="#overview" class="nav-sub-link">1. 資料儲存概覽</a>
+      <a href="#key-schema" class="nav-sub-link">2. Redis Key Schema</a>
+      <a href="#room-json" class="nav-sub-link">3. Room JSON 結構</a>
+      <a href="#ladder-json" class="nav-sub-link">4. Ladder JSON 結構</a>
+      <a href="#ttl" class="nav-sub-link">5. TTL 策略</a>
+      <a href="#er-diagram" class="nav-sub-link">6. ER Diagram</a>
+    </nav>
+  </aside>
+
+  <div class="layout">
+    <header class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">&#9776;</button>
+      <input type="search" id="search" placeholder="Search docs..." aria-label="Search">
+      <div id="search-results" role="listbox"></div>
+      <button id="theme-toggle" aria-label="Toggle dark mode">&#9681;</button>
+    </header>
+
+    <main class="content" id="main-content">
+      <div class="page-header">
+        <div class="doc-type">SCHEMA — Redis Schema Design Document</div>
+        <h1>Redis Schema — Ladder Room Online</h1>
+        <p>Redis is the sole persistence layer. There is no SQL database. All state lives in Redis key-value structures with explicit TTLs.</p>
+      </div>
+
+      <h2 id="overview">1. 資料儲存概覽</h2>
+      <p>Ladder Room Online 使用 <strong>Redis 作為唯一的持久層</strong>。選擇原因：</p>
+      <ul>
+        <li>房間生命週期短（數分鐘到數小時），天然適合 TTL 驅動的資料管理</li>
+        <li>WebSocket 廣播需要低延遲讀寫，Redis 的亞毫秒響應完全符合</li>
+        <li>原子操作（INCR、SETNX、MULTI/EXEC、WATCH）消除競態條件</li>
+        <li>記憶體用量可預測（每房間 ~88 KB，100 房間僅 ~8.8 MB）</li>
+      </ul>
+      <table>
+        <thead><tr><th>類別</th><th>儲存內容</th><th>Redis 型別</th></tr></thead>
+        <tbody>
+          <tr><td>房間狀態</td><td>status、hostId、winnerCount、revealMode、players[]</td><td>String (JSON)</td></tr>
+          <tr><td>梯子資料</td><td>seed、seedSource、rowCount、segments[]、results[]</td><td>String (JSON)</td></tr>
+          <tr><td>揭示計數</td><td>revealedCount 原子計數器</td><td>String (integer)</td></tr>
+          <tr><td>踢除名單</td><td>kickedPlayerIds Set</td><td>Set</td></tr>
+          <tr><td>Session 對應</td><td>playerId → sessionId Hash</td><td>Hash</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="key-schema">2. Redis Key Schema</h2>
+      <table>
+        <thead><tr><th>Key 模式</th><th>Type</th><th>Value</th><th>TTL</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td><span class="key-badge">room:{code}</span></td><td>String (JSON)</td><td>序列化的 Room 物件（含 players 陣列）</td><td>24h</td><td>房間主狀態</td></tr>
+          <tr><td><span class="key-badge">room:{code}:ladder</span></td><td>String (JSON)</td><td>LadderData JSON（seed、segments、results）</td><td>與主鍵同步</td><td>梯子結構與結果</td></tr>
+          <tr><td><span class="key-badge">room:{code}:revealedCount</span></td><td>String (counter)</td><td>整數字串，如 <code>"0"</code> 到 <code>"N"</code></td><td>與主鍵同步</td><td>揭示進度原子計數器</td></tr>
+          <tr><td><span class="key-badge">room:{code}:kicked</span></td><td>Set</td><td><code>{ playerId1, playerId2, ... }</code></td><td>與主鍵同步</td><td>踢除玩家 ID 集合</td></tr>
+          <tr><td><span class="key-badge">room:{code}:sessions</span></td><td>Hash</td><td><code>{ playerId: sessionId }</code></td><td>與主鍵同步</td><td>追蹤活躍 WebSocket Session</td></tr>
+        </tbody>
+      </table>
+      <p>範例鍵（房間碼 ALPHA1）：</p>
+      <pre><code class="language-bash">room:ALPHA1
+room:ALPHA1:ladder
+room:ALPHA1:revealedCount
+room:ALPHA1:kicked
+room:ALPHA1:sessions</code></pre>
+
+      <h2 id="room-json">3. Room JSON 結構</h2>
+      <h3>waiting 狀態（剛建立）</h3>
+      <pre><code class="language-json">{
+  "code": "ALPHA1",
+  "status": "waiting",
+  "hostId": "player-uuid-001",
+  "winnerCount": null,
+  "revealMode": "manual",
+  "autoRevealIntervalSec": null,
+  "kickedPlayerIds": [],
+  "createdAt": 1745049600000,
+  "updatedAt": 1745049600000,
+  "players": [
+    {
+      "id": "player-uuid-001",
+      "nickname": "Alice",
+      "colorIndex": 0,
+      "isHost": true,
+      "isOnline": true
+    },
+    {
+      "id": "player-uuid-002",
+      "nickname": "Bob",
+      "colorIndex": 1,
+      "isHost": false,
+      "isOnline": true
+    }
+  ]
+}</code></pre>
+
+      <h3>running 狀態（遊戲開始後）</h3>
+      <pre><code class="language-json">{
+  "code": "ALPHA1",
+  "status": "running",
+  "hostId": "player-uuid-001",
+  "winnerCount": 1,
+  "revealMode": "manual",
+  "autoRevealIntervalSec": null,
+  "kickedPlayerIds": [],
+  "createdAt": 1745049600000,
+  "updatedAt": 1745049700000,
+  "players": [ ... ]
+}</code></pre>
+
+      <h2 id="ladder-json">4. Ladder JSON 結構 (<code>room:{code}:ladder</code>)</h2>
+      <pre><code class="language-json">{
+  "seedSource": "a1b2c3d4e5f6...",
+  "seed": 3141592653,
+  "rowCount": 20,
+  "colCount": 2,
+  "segments": [
+    { "row": 3, "leftCol": 0 },
+    { "row": 7, "leftCol": 0 },
+    { "row": 12, "leftCol": 0 }
+  ],
+  "results": [
+    { "playerId": "player-uuid-001", "startCol": 0, "endCol": 1, "isWinner": true },
+    { "playerId": "player-uuid-002", "startCol": 1, "endCol": 0, "isWinner": false }
+  ]
+}</code></pre>
+
+      <h2 id="ttl">5. TTL 策略</h2>
+      <table>
+        <thead><tr><th>房間狀態</th><th>TTL</th><th>觸發條件</th></tr></thead>
+        <tbody>
+          <tr><td><code>waiting / running / revealing</code></td><td>24h (86400s)</td><td>建立或任何狀態變更時重設</td></tr>
+          <tr><td><code>finished</code></td><td>1h (3600s)</td><td>轉換至 finished 狀態時設定</td></tr>
+          <tr><td>所有玩家離線</td><td>5min (300s)</td><td>最後一個 WS 連線關閉時 EXPIRE</td></tr>
+          <tr><td>Pod 重啟</td><td>維持現有 TTL</td><td>無連線的房間不重設，自然過期</td></tr>
+        </tbody>
+      </table>
+      <p>所有 <code>room:{code}:*</code> 子鍵與主鍵使用相同的 TTL，並在主鍵更新時使用 <code>MULTI/EXEC</code> 批次重設所有子鍵的 EXPIRE。</p>
+
+      <h2 id="er-diagram">6. ER Diagram <small style="opacity:.5;font-size:.8rem">click to enlarge</small></h2>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">erDiagram
+    ROOM {
+        string code PK
+        string hostId FK
+        string status
+        int winnerCount
+        string revealMode
+        int autoRevealIntervalSec
+        array kickedPlayerIds
+        int createdAt
+        int updatedAt
+    }
+    PLAYER {
+        string playerId PK
+        string roomCode FK
+        string nickname
+        bool isOnline
+        int colorIndex
+        bool isHost
+    }
+    LADDER_DATA {
+        string roomCode PK
+        string seedSource
+        int seed
+        int rowCount
+        int colCount
+        array segments
+    }
+    RESULT_SLOT {
+        string roomCode FK
+        string playerId FK
+        int startCol
+        int endCol
+        bool isWinner
+    }
+    ROOM ||--o{ PLAYER : "has"
+    ROOM ||--o| LADDER_DATA : "has"
+    ROOM ||--o{ RESULT_SLOT : "has"</pre>
+      </div>
+    </main>
+  </div>
+
+  <div id="lightbox" class="lightbox">
+    <button id="lightbox-close">&#x2715;</button>
+    <div id="lightbox-content"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7/dist/fuse.min.js"></script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, er: { layoutDirection: 'TD' } });
+  </script>
+  <script>
+    const saved=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',saved);
+    document.getElementById('theme-toggle').addEventListener('click',()=>{const c=document.documentElement.getAttribute('data-theme');const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('theme',n);});
+    document.getElementById('hamburger').addEventListener('click',()=>{document.getElementById('sidebar').classList.toggle('open');});
+    const items=Array.from(document.querySelectorAll('h2,h3,p')).map(el=>({text:el.textContent.trim(),id:el.id||'',tag:el.tagName})).filter(i=>i.text.length>4);
+    const fuse=new Fuse(items,{keys:['text'],threshold:.35});
+    const searchEl=document.getElementById('search');const resultsEl=document.getElementById('search-results');
+    searchEl.addEventListener('input',()=>{const q=searchEl.value.trim();if(!q){resultsEl.style.display='none';return;}const hits=fuse.search(q).slice(0,8);if(!hits.length){resultsEl.style.display='none';return;}resultsEl.innerHTML=hits.map(h=>`<div class="search-result-item" data-id="${h.item.id}">${h.item.text.slice(0,80)}</div>`).join('');resultsEl.style.display='block';});
+    resultsEl.addEventListener('click',e=>{const id=e.target.dataset.id;if(id)document.getElementById(id)?.scrollIntoView({behavior:'smooth'});resultsEl.style.display='none';searchEl.value='';});
+    document.addEventListener('click',e=>{if(!searchEl.contains(e.target)&&!resultsEl.contains(e.target))resultsEl.style.display='none';});
+    document.addEventListener('click',e=>{
+      const svg=e.target.closest('.mermaid-wrap svg,.mermaid svg');
+      if(!svg)return;
+      const lb=document.getElementById('lightbox');
+      document.getElementById('lightbox-content').innerHTML='';
+      const clone=svg.cloneNode(true);clone.style.maxWidth='80vw';
+      document.getElementById('lightbox-content').appendChild(clone);
+      lb.classList.add('open');
+    });
+    document.getElementById('lightbox-close').addEventListener('click',()=>{document.getElementById('lightbox').classList.remove('open');});
+    document.getElementById('lightbox').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
+  </script>
+</body>
+</html>

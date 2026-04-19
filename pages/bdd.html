@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BDD Scenarios — Ladder Room Online Docs</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1/themes/prism-tomorrow.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--sidebar-width:240px;--color-bg:#fafafa;--color-sidebar:#1a1a2e;--color-sidebar-text:#e0e0e0;--color-sidebar-active:oklch(68% 0.21 250);--color-text:#1a1a2e;--color-accent:oklch(68% 0.21 250);--color-code-bg:#f0f0f0;--color-border:#e0e0e0;--color-table-stripe:#f5f5f5;--font-body:'Inter',system-ui,sans-serif;--font-mono:'IBM Plex Mono','Fira Code',monospace;
+      --given-color:oklch(45% 0.13 145);--when-color:oklch(45% 0.15 250);--then-color:oklch(45% 0.18 310);--and-color:oklch(50% 0 0)}
+    [data-theme="dark"]{--color-bg:#12121e;--color-text:#e0e0e0;--color-code-bg:#1e1e2e;--color-border:#333;--color-table-stripe:#1e1e2e;--color-sidebar:#0d0d1a;
+      --given-color:oklch(65% 0.13 145);--when-color:oklch(65% 0.15 250);--then-color:oklch(65% 0.18 310);--and-color:oklch(70% 0 0)}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font-body);background:var(--color-bg);color:var(--color-text);display:flex;min-height:100vh;transition:background .2s,color .2s}
+    .sidebar{width:var(--sidebar-width);background:var(--color-sidebar);color:var(--color-sidebar-text);position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;display:flex;flex-direction:column;transition:transform .25s}
+    .sidebar-logo{padding:1.5rem 1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.08)}
+    .sidebar-logo a{color:var(--color-sidebar-active);text-decoration:none;font-family:var(--font-mono);font-weight:600;font-size:.85rem;letter-spacing:.05em}
+    .sidebar-logo p{font-size:.7rem;opacity:.5;margin-top:.25rem}
+    .sidebar nav{padding:1rem 0;flex:1}
+    .nav-section-title{font-size:.65rem;font-family:var(--font-mono);letter-spacing:.12em;text-transform:uppercase;opacity:.4;padding:.75rem 1.25rem .25rem}
+    .nav-link{display:block;padding:.45rem 1.25rem;color:var(--color-sidebar-text);text-decoration:none;font-size:.82rem;opacity:.75;transition:opacity .15s,color .15s,background .15s;border-left:2px solid transparent}
+    .nav-link:hover{opacity:1;background:rgba(255,255,255,.04)}
+    .nav-link.active{color:var(--color-sidebar-active);opacity:1;border-left-color:var(--color-sidebar-active);background:rgba(255,255,255,.04)}
+    .nav-sub-link{display:block;padding:.35rem 1.25rem .35rem 2rem;color:var(--color-sidebar-text);text-decoration:none;font-size:.75rem;opacity:.55;transition:opacity .15s}
+    .nav-sub-link:hover{opacity:.9}
+    .layout{margin-left:var(--sidebar-width);flex:1;display:flex;flex-direction:column;min-width:0}
+    .topbar{position:sticky;top:0;background:var(--color-bg);border-bottom:1px solid var(--color-border);padding:.65rem 2rem;display:flex;align-items:center;gap:1rem;z-index:90}
+    .hamburger{display:none;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--color-text)}
+    #search{flex:1;max-width:400px;padding:.4rem .75rem;border:1px solid var(--color-border);border-radius:4px;background:var(--color-code-bg);color:var(--color-text);font-family:var(--font-mono);font-size:.8rem}
+    #search:focus{outline:none;border-color:var(--color-accent)}
+    #theme-toggle{margin-left:auto;background:none;border:1px solid var(--color-border);border-radius:4px;padding:.4rem .65rem;cursor:pointer;color:var(--color-text);font-size:1rem}
+    #search-results{position:absolute;top:calc(100% + 4px);left:2rem;width:400px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;display:none;max-height:320px;overflow-y:auto}
+    .search-result-item{padding:.6rem 1rem;border-bottom:1px solid var(--color-border);cursor:pointer;font-size:.82rem}
+    .search-result-item:hover{background:var(--color-table-stripe)}
+    .content{padding:3rem 2.5rem 4rem;max-width:900px}
+    h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.5rem}
+    h2{font-size:1.3rem;font-weight:600;margin:2.5rem 0 1rem;padding-bottom:.4rem;border-bottom:1px solid var(--color-border)}
+    h3{font-size:.95rem;font-weight:600;margin:1.5rem 0 .5rem;color:var(--color-accent)}
+    p{line-height:1.7;margin-bottom:.75rem;font-size:.92rem}
+    a{color:var(--color-accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+    strong{font-weight:600}
+    code{font-family:var(--font-mono);font-size:.85em;background:var(--color-code-bg);border:1px solid var(--color-border);border-radius:3px;padding:.1em .35em}
+    .page-header{margin-bottom:2.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--color-border)}
+    .page-header .doc-type{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);margin-bottom:.5rem}
+    .page-header p{font-size:.9rem;opacity:.65;margin:0}
+    /* Feature block */
+    .feature-block{margin:2.5rem 0;border:1px solid var(--color-border);border-radius:5px;overflow:hidden}
+    .feature-header{padding:1rem 1.25rem;background:var(--color-sidebar);color:var(--color-sidebar-text);display:flex;align-items:flex-start;gap:.75rem}
+    .feature-tag{font-family:var(--font-mono);font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;opacity:.5;margin-bottom:.2rem}
+    .feature-title{font-size:1rem;font-weight:600;color:var(--color-sidebar-text)}
+    .feature-persona{font-size:.78rem;opacity:.6;margin-top:.25rem}
+    /* Scenario card */
+    .scenario-card{border-bottom:1px solid var(--color-border);overflow:hidden}
+    .scenario-card:last-child{border-bottom:none}
+    .scenario-toggle{width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:.75rem 1.25rem;display:flex;align-items:center;gap:.75rem;color:var(--color-text)}
+    .scenario-toggle:hover{background:var(--color-table-stripe)}
+    .scenario-tags{display:flex;gap:.35rem}
+    .tag{font-family:var(--font-mono);font-size:.65rem;padding:.1rem .35rem;border-radius:2px;border:1px solid var(--color-border);opacity:.7}
+    .tag-p0{border-color:var(--color-accent);color:var(--color-accent);opacity:1}
+    .scenario-name{font-size:.88rem;font-weight:500;flex:1;text-align:left}
+    .scenario-chevron{opacity:.4;transition:transform .2s;font-size:.75rem}
+    .scenario-card.open .scenario-chevron{transform:rotate(90deg)}
+    .scenario-body{display:none;padding:.75rem 1.25rem 1rem;background:var(--color-code-bg);border-top:1px solid var(--color-border)}
+    .scenario-card.open .scenario-body{display:block}
+    /* Step colors */
+    .step-line{font-family:var(--font-mono);font-size:.82rem;line-height:1.75;white-space:pre-wrap;word-break:break-word}
+    .kw-given{color:var(--given-color);font-weight:600}
+    .kw-when{color:var(--when-color);font-weight:600}
+    .kw-then{color:var(--then-color);font-weight:600}
+    .kw-and{color:var(--and-color);font-weight:600}
+    /* Legend */
+    .legend{display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap}
+    .legend-item{display:flex;align-items:center;gap:.4rem;font-size:.78rem;font-family:var(--font-mono)}
+    .legend-dot{width:10px;height:10px;border-radius:50%}
+    .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:none;align-items:center;justify-content:center}
+    .lightbox.open{display:flex}
+    #lightbox-close{position:absolute;top:1.5rem;right:1.5rem;background:none;border:1px solid rgba(255,255,255,.3);color:#fff;font-size:1.2rem;cursor:pointer;border-radius:4px;padding:.3rem .7rem}
+    #lightbox-content{background:var(--color-bg);border-radius:6px;padding:2rem;max-width:90vw;max-height:90vh;overflow:auto}
+    @media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.layout{margin-left:0}.hamburger{display:block}.content{padding:2rem 1.25rem 3rem}}
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <a href="index.html">LADDER ROOM</a>
+      <p>Documentation v1.0</p>
+    </div>
+    <nav>
+      <div class="nav-section-title">Overview</div>
+      <a href="index.html" class="nav-link">Home</a>
+      <div class="nav-section-title">Product</div>
+      <a href="pdd.html" class="nav-link">PDD — Product Design</a>
+      <a href="prd.html" class="nav-link">PRD — Requirements</a>
+      <div class="nav-section-title">Engineering</div>
+      <a href="edd.html" class="nav-link">EDD — Engineering Design</a>
+      <a href="arch.html" class="nav-link">Architecture</a>
+      <a href="api.html" class="nav-link">API Reference</a>
+      <a href="schema.html" class="nav-link">DB / Redis Schema</a>
+      <div class="nav-section-title">Quality</div>
+      <a href="bdd.html" class="nav-link active">BDD Scenarios</a>
+      <a href="diagrams.html" class="nav-link">Diagrams Gallery</a>
+      <div class="nav-section-title">Features</div>
+      <a href="#room-lifecycle" class="nav-sub-link">room-lifecycle</a>
+      <a href="#player-management" class="nav-sub-link">player-management</a>
+      <a href="#game-flow" class="nav-sub-link">game-flow</a>
+      <a href="#reveal-flow" class="nav-sub-link">reveal-flow</a>
+      <a href="#host-actions" class="nav-sub-link">host-actions</a>
+      <a href="#reconnect" class="nav-sub-link">reconnect</a>
+      <a href="#prng" class="nav-sub-link">prng</a>
+    </nav>
+  </aside>
+
+  <div class="layout">
+    <header class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">&#9776;</button>
+      <input type="search" id="search" placeholder="Search scenarios..." aria-label="Search">
+      <div id="search-results" role="listbox"></div>
+      <button id="theme-toggle" aria-label="Toggle dark mode">&#9681;</button>
+    </header>
+
+    <main class="content" id="main-content">
+      <div class="page-header">
+        <div class="doc-type">BDD — Behavior Driven Development</div>
+        <h1>BDD Feature Scenarios</h1>
+        <p>7 feature files, Gherkin syntax. Click a scenario to expand steps.</p>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--given-color)"></div> Given</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--when-color)"></div> When</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--then-color)"></div> Then</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--and-color)"></div> And</div>
+      </div>
+
+      <!-- ROOM LIFECYCLE -->
+      <div class="feature-block" id="room-lifecycle">
+        <div class="feature-header">
+          <div>
+            <div class="feature-tag">room-lifecycle.feature</div>
+            <div class="feature-title">房間生命週期</div>
+            <div class="feature-persona">As a 主持人 — 建立並管理帶有唯一房間碼的房間，讓玩家快速加入</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-ROOM-001</span></span>
+            <span class="scenario-name">成功建立房間並取得合法 6 碼 Room Code</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> 主持人送出 POST /api/v1/rooms 請求（含 hostNickname 及 winnerCount）</div>
+            <div class="step-line"><span class="kw-when">When</span> 系統處理請求成功</div>
+            <div class="step-line"><span class="kw-then">Then</span> HTTP 回應狀態碼為 201</div>
+            <div class="step-line"><span class="kw-and">And</span> 回應包含 6 碼 roomCode，字元集為大寫英數字（排除 O、0、I、1），符合正規表達式 [A-HJ-NP-Z2-9]{6}</div>
+            <div class="step-line"><span class="kw-and">And</span> Redis 中存在以 "room:{roomCode}" 為 key 的資料</div>
+            <div class="step-line"><span class="kw-and">And</span> 回應時間在 2 秒以內</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-ROOM-002</span></span>
+            <span class="scenario-name">主持人建立房間後進入等待畫面</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> 主持人已成功建立房間，取得 roomCode 及 hostToken</div>
+            <div class="step-line"><span class="kw-when">When</span> 主持人透過 WebSocket 連線至房間</div>
+            <div class="step-line"><span class="kw-then">Then</span> 主持人收到 ROOM_STATE_FULL 事件</div>
+            <div class="step-line"><span class="kw-and">And</span> 事件 payload 中 status 為 "waiting"</div>
+            <div class="step-line"><span class="kw-and">And</span> 玩家列表為空（不含主持人以外的玩家）</div>
+            <div class="step-line"><span class="kw-and">And</span> 頁面包含設定中獎名額的輸入框</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-ROOM-003</span></span>
+            <span class="scenario-name">建立房間因網路異常失敗時不產生孤立房間</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> 後端模擬回應 HTTP 500 網路異常</div>
+            <div class="step-line"><span class="kw-when">When</span> 主持人送出 POST /api/v1/rooms 請求</div>
+            <div class="step-line"><span class="kw-then">Then</span> HTTP 回應狀態碼為 5xx</div>
+            <div class="step-line"><span class="kw-and">And</span> Redis 中不存在任何對應此請求的 "room:{*}" 孤立 key</div>
+            <div class="step-line"><span class="kw-and">And</span> 前端顯示「建立失敗，請重試」提示</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-ROOM-004</span></span>
+            <span class="scenario-name">Room Code 在 Redis 中設有 TTL 且碰撞時最多重試 10 次</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> 系統正常運作中</div>
+            <div class="step-line"><span class="kw-when">When</span> 主持人成功建立房間</div>
+            <div class="step-line"><span class="kw-then">Then</span> Redis 中 "room:{roomCode}" 的 TTL 大於 0 且不超過 14400 秒（4 小時）</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PLAYER MANAGEMENT -->
+      <div class="feature-block" id="player-management">
+        <div class="feature-header">
+          <div>
+            <div class="feature-tag">player-management.feature</div>
+            <div class="feature-title">玩家加入與管理</div>
+            <div class="feature-persona">As a 玩家 — 輸入暱稱並透過 6 碼房間碼加入房間，即時看到玩家列表更新</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-PLAYER-001</span></span>
+            <span class="scenario-name">玩家以有效暱稱成功加入房間</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> 玩家輸入有效暱稱 "Alice"（長度 1～20 Unicode 字元）</div>
+            <div class="step-line"><span class="kw-when">When</span> 玩家送出 POST /api/v1/rooms/ALPHA2/players 並 WebSocket 握手成功</div>
+            <div class="step-line"><span class="kw-then">Then</span> HTTP 回應狀態碼為 201</div>
+            <div class="step-line"><span class="kw-and">And</span> 回應包含 playerId（UUID v4 格式）及 sessionToken</div>
+            <div class="step-line"><span class="kw-and">And</span> WebSocket 連線於 1.5 秒內建立完成</div>
+            <div class="step-line"><span class="kw-and">And</span> 主持人及所有在線玩家收到更新後的 ROOM_STATE（玩家列表含 "Alice"）</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-PLAYER-002</span></span>
+            <span class="scenario-name">玩家輸入重複暱稱時收到 NICKNAME_TAKEN 錯誤</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> 房間內已有暱稱為 "Bob" 的玩家</div>
+            <div class="step-line"><span class="kw-when">When</span> 新玩家嘗試以暱稱 "Bob" 加入同一房間</div>
+            <div class="step-line"><span class="kw-then">Then</span> HTTP 回應狀態碼為 409</div>
+            <div class="step-line"><span class="kw-and">And</span> 回應錯誤碼為 "NICKNAME_TAKEN"</div>
+            <div class="step-line"><span class="kw-and">And</span> 錯誤訊息包含「此暱稱已被使用，請換一個」</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-PLAYER-004</span></span>
+            <span class="scenario-name">房間已達 50 人上限時新玩家收到 ROOM_FULL 錯誤</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> 房間已有 50 名玩家（含主持人）</div>
+            <div class="step-line"><span class="kw-when">When</span> 第 51 名玩家嘗試加入房間</div>
+            <div class="step-line"><span class="kw-then">Then</span> HTTP 回應狀態碼為 409</div>
+            <div class="step-line"><span class="kw-and">And</span> 回應錯誤碼為 "ROOM_FULL"</div>
+            <div class="step-line"><span class="kw-and">And</span> 玩家看到「房間已滿，無法加入」提示</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GAME FLOW -->
+      <div class="feature-block" id="game-flow">
+        <div class="feature-header">
+          <div>
+            <div class="feature-tag">game-flow.feature</div>
+            <div class="feature-title">遊戲流程控制</div>
+            <div class="feature-persona">As a 主持人 — 設定中獎名額並在玩家就緒後開始遊戲，伺服器生成確定性樓梯</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-GAME-START-001</span></span>
+            <span class="scenario-name">主持人滿足條件後成功開始遊戲</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> 房間有 3 名玩家（N=3）且 winnerCount=1 已設定</div>
+            <div class="step-line"><span class="kw-when">When</span> 主持人點擊「開始遊戲」</div>
+            <div class="step-line"><span class="kw-then">Then</span> HTTP 回應狀態碼為 200</div>
+            <div class="step-line"><span class="kw-and">And</span> 回應包含 LadderData（含 seed、seedSource、rowCount、segments）</div>
+            <div class="step-line"><span class="kw-and">And</span> 伺服器廣播 ROOM_STATE，status 為 "running"</div>
+            <div class="step-line"><span class="kw-and">And</span> 所有客戶端收到完全一致的 ladderMap</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-GAME-START-003</span></span>
+            <span class="scenario-name">房間只有主持人一人時開始遊戲被拒絕</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> 房間只有主持人一人（N=1）</div>
+            <div class="step-line"><span class="kw-when">When</span> 主持人點擊「開始遊戲」</div>
+            <div class="step-line"><span class="kw-then">Then</span> 伺服器回傳錯誤碼 "INSUFFICIENT_PLAYERS"</div>
+            <div class="step-line"><span class="kw-and">And</span> 前端顯示「人數不足（至少需要 2 位玩家）」</div>
+            <div class="step-line"><span class="kw-and">And</span> 房間狀態維持 "waiting"</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-GAME-START-004</span></span>
+            <span class="scenario-name">遊戲開始後 rowCount 符合 clamp(N*3, 20, 60) 公式 [Outline]</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <p style="font-size:.82rem;opacity:.6;margin-bottom:.5rem">Scenario Outline — examples: N=2→20, N=3→20, N=10→30, N=20→60, N=21→60, N=50→60</p>
+            <div class="step-line"><span class="kw-given">Given</span> 房間有 &lt;N&gt; 名玩家且 winnerCount 已合法設定</div>
+            <div class="step-line"><span class="kw-when">When</span> 主持人成功開始遊戲</div>
+            <div class="step-line"><span class="kw-then">Then</span> 伺服器廣播的 ROOM_STATE 中 ladder.rowCount 為 &lt;expected_rowCount&gt;</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REVEAL FLOW -->
+      <div class="feature-block" id="reveal-flow">
+        <div class="feature-header">
+          <div>
+            <div class="feature-tag">reveal-flow.feature</div>
+            <div class="feature-title">路徑揭曉流程</div>
+            <div class="feature-persona">As a 主持人 — 手動逐步、自動定時或一鍵揭曉路徑，配合現場節奏製造懸念</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-REVEAL-001</span></span>
+            <span class="scenario-name">主持人點擊「下一位」後所有客戶端同步播放揭曉動畫</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> 目前已揭曉 0 條路徑（revealedCount=0）</div>
+            <div class="step-line"><span class="kw-when">When</span> 主持人送出 WS 訊息 REVEAL_NEXT</div>
+            <div class="step-line"><span class="kw-then">Then</span> 伺服器廣播 REVEAL_INDEX 事件給房間內所有連線客戶端</div>
+            <div class="step-line"><span class="kw-and">And</span> REVEAL_INDEX payload 包含 playerIndex、result 及 revealedCount=1</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-REVEAL-005</span></span>
+            <span class="scenario-name">主持人點擊「全部揭曉」後伺服器廣播 REVEAL_ALL</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> 目前已揭曉 1 條路徑，剩餘 3 條未揭曉</div>
+            <div class="step-line"><span class="kw-when">When</span> 主持人送出 WS 訊息 REVEAL_ALL_TRIGGER</div>
+            <div class="step-line"><span class="kw-then">Then</span> 伺服器廣播 REVEAL_ALL 事件給所有客戶端</div>
+            <div class="step-line"><span class="kw-and">And</span> REVEAL_ALL payload 包含所有剩餘 3 條路徑的完整 ResultSlot 資料</div>
+            <div class="step-line"><span class="kw-and">And</span> 所有客戶端於 2 秒內完成剩餘路徑動畫渲染</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-REVEAL-006</span></span>
+            <span class="scenario-name">REVEAL_ALL 廣播後房間狀態自動轉為 finished</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> 主持人已觸發 REVEAL_ALL_TRIGGER</div>
+            <div class="step-line"><span class="kw-and">And</span> 伺服器已廣播 REVEAL_ALL</div>
+            <div class="step-line"><span class="kw-when">When</span> 所有客戶端完成動畫播放</div>
+            <div class="step-line"><span class="kw-then">Then</span> 伺服器廣播 ROOM_STATE，status 為 "finished"</div>
+            <div class="step-line"><span class="kw-and">And</span> 所有客戶端顯示完整得獎名單</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HOST ACTIONS -->
+      <div class="feature-block" id="host-actions">
+        <div class="feature-header">
+          <div>
+            <div class="feature-tag">host-actions.feature</div>
+            <div class="feature-title">主持人管理操作</div>
+            <div class="feature-persona">As a 主持人 — 踢除特定玩家並在一局結束後發起再玩一局</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag">@P1</span><span class="tag">@AC-HOST-KICK-001</span></span>
+            <span class="scenario-name">主持人在 waiting 狀態踢除玩家後廣播 PLAYER_KICKED</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> 房間碼 "DELTA5" 存在且狀態為 "waiting"</div>
+            <div class="step-line"><span class="kw-and">And</span> 房間內有玩家 "Tom"（playerId="player-tom-uuid"）</div>
+            <div class="step-line"><span class="kw-when">When</span> 主持人送出 KICK_PLAYER（targetPlayerId="player-tom-uuid"）</div>
+            <div class="step-line"><span class="kw-then">Then</span> 伺服器廣播 PLAYER_KICKED 事件給所有連線客戶端</div>
+            <div class="step-line"><span class="kw-and">And</span> "Tom" 的客戶端收到後跳轉至「你已被主持人移出房間」頁面</div>
+            <div class="step-line"><span class="kw-and">And</span> 玩家列表即時更新，不再顯示 "Tom"</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag">@P1</span><span class="tag">@AC-HOST-RESET-001</span></span>
+            <span class="scenario-name">主持人發起再玩一局後系統剔除離線玩家並重置房間</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> 房間碼 "DELTA5" 狀態為 "finished"</div>
+            <div class="step-line"><span class="kw-and">And</span> 房間有 5 名玩家，其中 "Offline-User"（isOnline=false）</div>
+            <div class="step-line"><span class="kw-when">When</span> 主持人送出 RESET_ROOM</div>
+            <div class="step-line"><span class="kw-then">Then</span> 系統從玩家列表移除 isOnline=false 的 "Offline-User"</div>
+            <div class="step-line"><span class="kw-and">And</span> 伺服器廣播 ROOM_STATE（status="waiting"，含剩餘 4 名在線玩家）</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECONNECT -->
+      <div class="feature-block" id="reconnect">
+        <div class="feature-header">
+          <div>
+            <div class="feature-tag">reconnect.feature</div>
+            <div class="feature-title">斷線與重連行為</div>
+            <div class="feature-persona">As a 玩家 — 斷線後能重新連上房間並恢復完整狀態，不因網路波動遺失參與資格</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag">@P1</span><span class="tag">@AC-RECONNECT-001</span></span>
+            <span class="scenario-name">玩家斷線後以 localStorage 中的 playerId 重連並取得完整房間狀態</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> 玩家 "Alice" 的 localStorage 中存有 playerId="player-alice-uuid"</div>
+            <div class="step-line"><span class="kw-and">And</span> 房間碼 "EPS6" 狀態為 "waiting"</div>
+            <div class="step-line"><span class="kw-when">When</span> "Alice" 重新訪問房間連結並以 playerId="player-alice-uuid" 建立 WebSocket 連線</div>
+            <div class="step-line"><span class="kw-then">Then</span> 伺服器驗證 playerId 後發送 ROOM_STATE_FULL 給 "Alice"</div>
+            <div class="step-line"><span class="kw-and">And</span> ROOM_STATE_FULL payload 包含完整房間狀態（status、players、ladder、results、selfPlayerId）</div>
+            <div class="step-line"><span class="kw-and">And</span> 重連完成時間在 3 秒以內</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag">@P1</span><span class="tag">@AC-RECONNECT-005</span></span>
+            <span class="scenario-name">同一 playerId 在新裝置登入時舊 session 收到 SESSION_REPLACED</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> 玩家 "Dave" 已在裝置 A 建立 WebSocket 連線（session-A）</div>
+            <div class="step-line"><span class="kw-and">And</span> 房間碼 "EPS6" 狀態為 "waiting"</div>
+            <div class="step-line"><span class="kw-when">When</span> "Dave" 在裝置 B 以相同 playerId 建立新的 WebSocket 連線</div>
+            <div class="step-line"><span class="kw-then">Then</span> 裝置 A 的 session-A 收到 SESSION_REPLACED 事件</div>
+            <div class="step-line"><span class="kw-and">And</span> 裝置 A 的 WebSocket 連線被關閉</div>
+            <div class="step-line"><span class="kw-and">And</span> 裝置 B 收到 ROOM_STATE_FULL 事件（含完整房間狀態及 selfPlayerId）</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRNG -->
+      <div class="feature-block" id="prng">
+        <div class="feature-header">
+          <div>
+            <div class="feature-tag">prng.feature</div>
+            <div class="feature-title">PRNG 確定性與正確性</div>
+            <div class="feature-persona">As a 系統 — 以 Mulberry32+djb2 確定性算法生成樓梯，相同輸入恆得相同輸出</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-PRNG-001</span></span>
+            <span class="scenario-name">相同 seed 和 N 生成完全相同的樓梯結構（快照測試）</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> seedSource 為固定字串 "550e8400-e29b-41d4-a716-446655440000"</div>
+            <div class="step-line"><span class="kw-and">And</span> N=5（玩家數）</div>
+            <div class="step-line"><span class="kw-when">When</span> 以相同 seedSource 和 N 兩次呼叫 generateLadder</div>
+            <div class="step-line"><span class="kw-then">Then</span> 第一次和第二次呼叫的 LadderData.segments 完全相等（深度比較）</div>
+            <div class="step-line"><span class="kw-and">And</span> 兩次呼叫的 rowCount 相同</div>
+            <div class="step-line"><span class="kw-and">And</span> 兩次呼叫的 colCount 相同</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-PRNG-005</span></span>
+            <span class="scenario-name">結果雙射：N 個玩家對應 N 個唯一 endCol 值</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> seedSource 為 "550e8400-e29b-41d4-a716-446655440000"，N=8，winnerCount=3</div>
+            <div class="step-line"><span class="kw-when">When</span> 呼叫 generateLadder 後再呼叫 computeResults 生成 ResultSlot[]</div>
+            <div class="step-line"><span class="kw-then">Then</span> ResultSlot 陣列長度恰好為 8</div>
+            <div class="step-line"><span class="kw-and">And</span> 所有 ResultSlot 的 endCol 值兩兩不相同（無重複，完整覆蓋 0～7）</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-PRNG-006</span></span>
+            <span class="scenario-name">isWinner=true 的數量恰好等於 winnerCount</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <div class="step-line"><span class="kw-given">Given</span> seedSource 為 "550e8400-e29b-41d4-a716-446655440000"，N=8，winnerCount=3</div>
+            <div class="step-line"><span class="kw-when">When</span> 呼叫 generateLadder 後再呼叫 computeResults 生成 ResultSlot[]</div>
+            <div class="step-line"><span class="kw-then">Then</span> ResultSlot 中 isWinner=true 的數量恰好為 3</div>
+            <div class="step-line"><span class="kw-and">And</span> ResultSlot 中 isWinner=false 的數量恰好為 5</div>
+          </div>
+        </div>
+        <div class="scenario-card">
+          <button class="scenario-toggle" onclick="toggleScenario(this)">
+            <span class="scenario-tags"><span class="tag tag-p0">@P0</span><span class="tag">@AC-PRNG-004</span></span>
+            <span class="scenario-name">rowCount 精確符合 clamp(N*3, 20, 60) 公式 [Outline]</span>
+            <span class="scenario-chevron">&#9654;</span>
+          </button>
+          <div class="scenario-body">
+            <p style="font-size:.82rem;opacity:.6;margin-bottom:.5rem">Scenario Outline — N=2→20, N=3→20, N=10→30, N=20→60, N=21→60, N=50→60</p>
+            <div class="step-line"><span class="kw-given">Given</span> seedSource 為任意有效字串，N=&lt;N&gt;</div>
+            <div class="step-line"><span class="kw-when">When</span> 呼叫 generateLadder 生成 LadderData</div>
+            <div class="step-line"><span class="kw-then">Then</span> LadderData.rowCount 恰好等於 &lt;expected_rowCount&gt;</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="lightbox" class="lightbox">
+    <button id="lightbox-close">&#x2715;</button>
+    <div id="lightbox-content"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7/dist/fuse.min.js"></script>
+  <script>
+    function toggleScenario(btn) {
+      btn.closest('.scenario-card').classList.toggle('open');
+    }
+    const saved=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',saved);
+    document.getElementById('theme-toggle').addEventListener('click',()=>{const c=document.documentElement.getAttribute('data-theme');const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('theme',n);});
+    document.getElementById('hamburger').addEventListener('click',()=>{document.getElementById('sidebar').classList.toggle('open');});
+    const items=Array.from(document.querySelectorAll('.scenario-name,.feature-title,p')).map(el=>({text:el.textContent.trim(),id:el.id||'',tag:el.tagName})).filter(i=>i.text.length>4);
+    const fuse=new Fuse(items,{keys:['text'],threshold:.35});
+    const searchEl=document.getElementById('search');const resultsEl=document.getElementById('search-results');
+    searchEl.addEventListener('input',()=>{const q=searchEl.value.trim();if(!q){resultsEl.style.display='none';return;}const hits=fuse.search(q).slice(0,8);if(!hits.length){resultsEl.style.display='none';return;}resultsEl.innerHTML=hits.map(h=>`<div class="search-result-item">${h.item.text.slice(0,80)}</div>`).join('');resultsEl.style.display='block';});
+    document.addEventListener('click',e=>{if(!searchEl.contains(e.target)&&!resultsEl.contains(e.target))resultsEl.style.display='none';});
+    document.getElementById('lightbox-close').addEventListener('click',()=>{document.getElementById('lightbox').classList.remove('open');});
+    document.getElementById('lightbox').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
+  </script>
+</body>
+</html>

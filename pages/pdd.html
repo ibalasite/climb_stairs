@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDD — Ladder Room Online Docs</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1/themes/prism-tomorrow.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--sidebar-width:240px;--color-bg:#fafafa;--color-sidebar:#1a1a2e;--color-sidebar-text:#e0e0e0;--color-sidebar-active:oklch(68% 0.21 250);--color-text:#1a1a2e;--color-accent:oklch(68% 0.21 250);--color-code-bg:#f0f0f0;--color-border:#e0e0e0;--color-table-stripe:#f5f5f5;--font-body:'Inter',system-ui,sans-serif;--font-mono:'IBM Plex Mono','Fira Code',monospace}
+    [data-theme="dark"]{--color-bg:#12121e;--color-text:#e0e0e0;--color-code-bg:#1e1e2e;--color-border:#333;--color-table-stripe:#1e1e2e;--color-sidebar:#0d0d1a}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font-body);background:var(--color-bg);color:var(--color-text);display:flex;min-height:100vh;transition:background .2s,color .2s}
+    .sidebar{width:var(--sidebar-width);background:var(--color-sidebar);color:var(--color-sidebar-text);position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;display:flex;flex-direction:column;transition:transform .25s}
+    .sidebar-logo{padding:1.5rem 1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.08)}
+    .sidebar-logo a{color:var(--color-sidebar-active);text-decoration:none;font-family:var(--font-mono);font-weight:600;font-size:.85rem;letter-spacing:.05em}
+    .sidebar-logo p{font-size:.7rem;opacity:.5;margin-top:.25rem}
+    .sidebar nav{padding:1rem 0;flex:1}
+    .nav-section-title{font-size:.65rem;font-family:var(--font-mono);letter-spacing:.12em;text-transform:uppercase;opacity:.4;padding:.75rem 1.25rem .25rem}
+    .nav-link{display:block;padding:.45rem 1.25rem;color:var(--color-sidebar-text);text-decoration:none;font-size:.82rem;opacity:.75;transition:opacity .15s,color .15s,background .15s;border-left:2px solid transparent}
+    .nav-link:hover{opacity:1;background:rgba(255,255,255,.04)}
+    .nav-link.active{color:var(--color-sidebar-active);opacity:1;border-left-color:var(--color-sidebar-active);background:rgba(255,255,255,.04)}
+    .nav-sub-link{display:block;padding:.35rem 1.25rem .35rem 2rem;color:var(--color-sidebar-text);text-decoration:none;font-size:.75rem;opacity:.55;transition:opacity .15s}
+    .nav-sub-link:hover{opacity:.9}
+    .layout{margin-left:var(--sidebar-width);flex:1;display:flex;flex-direction:column;min-width:0}
+    .topbar{position:sticky;top:0;background:var(--color-bg);border-bottom:1px solid var(--color-border);padding:.65rem 2rem;display:flex;align-items:center;gap:1rem;z-index:90}
+    .hamburger{display:none;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--color-text)}
+    #search{flex:1;max-width:400px;padding:.4rem .75rem;border:1px solid var(--color-border);border-radius:4px;background:var(--color-code-bg);color:var(--color-text);font-family:var(--font-mono);font-size:.8rem}
+    #search:focus{outline:none;border-color:var(--color-accent)}
+    #theme-toggle{margin-left:auto;background:none;border:1px solid var(--color-border);border-radius:4px;padding:.4rem .65rem;cursor:pointer;color:var(--color-text);font-size:1rem}
+    #search-results{position:absolute;top:calc(100% + 4px);left:2rem;width:400px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;display:none;max-height:320px;overflow-y:auto}
+    .search-result-item{padding:.6rem 1rem;border-bottom:1px solid var(--color-border);cursor:pointer;font-size:.82rem}
+    .search-result-item:hover{background:var(--color-table-stripe)}
+    .content{padding:3rem 2.5rem 4rem;max-width:860px}
+    h1{font-size:2rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.5rem}
+    h2{font-size:1.3rem;font-weight:600;margin:2.5rem 0 1rem;padding-bottom:.4rem;border-bottom:1px solid var(--color-border)}
+    h3{font-size:1rem;font-weight:600;margin:1.75rem 0 .6rem}
+    p{line-height:1.7;margin-bottom:1rem;font-size:.95rem}
+    a{color:var(--color-accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+    ul,ol{margin:.5rem 0 1rem 1.5rem;line-height:1.7;font-size:.95rem}
+    li{margin-bottom:.25rem}
+    strong{font-weight:600}
+    em{font-style:italic}
+    code{font-family:var(--font-mono);font-size:.85em;background:var(--color-code-bg);border:1px solid var(--color-border);border-radius:3px;padding:.1em .35em}
+    pre{margin:1.25rem 0;border-radius:4px;overflow-x:auto;font-size:.83rem}
+    pre code{background:none;border:none;padding:0}
+    table{width:100%;border-collapse:collapse;margin:1.25rem 0;font-size:.88rem}
+    th{background:var(--color-sidebar);color:var(--color-sidebar-text);padding:.6rem .9rem;text-align:left;font-family:var(--font-mono);font-size:.78rem;letter-spacing:.04em}
+    td{padding:.55rem .9rem;border-bottom:1px solid var(--color-border)}
+    tr:nth-child(even) td{background:var(--color-table-stripe)}
+    .page-header{margin-bottom:2.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--color-border)}
+    .page-header .doc-type{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent);margin-bottom:.5rem}
+    .page-header p{font-size:.9rem;opacity:.65;margin:0}
+    .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:none;align-items:center;justify-content:center}
+    .lightbox.open{display:flex}
+    #lightbox-close{position:absolute;top:1.5rem;right:1.5rem;background:none;border:1px solid rgba(255,255,255,.3);color:#fff;font-size:1.2rem;cursor:pointer;border-radius:4px;padding:.3rem .7rem}
+    #lightbox-content{background:var(--color-bg);border-radius:6px;padding:2rem;max-width:90vw;max-height:90vh;overflow:auto}
+    @media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.layout{margin-left:0}.hamburger{display:block}.content{padding:2rem 1.25rem 3rem}#search-results{left:1.25rem;width:calc(100vw - 2.5rem)}}
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <a href="index.html">LADDER ROOM</a>
+      <p>Documentation v1.0</p>
+    </div>
+    <nav>
+      <div class="nav-section-title">Overview</div>
+      <a href="index.html" class="nav-link">Home</a>
+      <div class="nav-section-title">Product</div>
+      <a href="pdd.html" class="nav-link active">PDD — Product Design</a>
+      <a href="prd.html" class="nav-link">PRD — Requirements</a>
+      <div class="nav-section-title">Engineering</div>
+      <a href="edd.html" class="nav-link">EDD — Engineering Design</a>
+      <a href="arch.html" class="nav-link">Architecture</a>
+      <a href="api.html" class="nav-link">API Reference</a>
+      <a href="schema.html" class="nav-link">DB / Redis Schema</a>
+      <div class="nav-section-title">Quality</div>
+      <a href="bdd.html" class="nav-link">BDD Scenarios</a>
+      <a href="diagrams.html" class="nav-link">Diagrams Gallery</a>
+      <div class="nav-section-title">On This Page</div>
+      <a href="#overview" class="nav-sub-link">1. 產品概述</a>
+      <a href="#background" class="nav-sub-link">2. 產品背景</a>
+      <a href="#goals" class="nav-sub-link">3. 產品目標</a>
+      <a href="#positioning" class="nav-sub-link">4. 產品定位</a>
+      <a href="#personas" class="nav-sub-link">5. 角色定義</a>
+      <a href="#core-flow" class="nav-sub-link">6. 核心流程</a>
+      <a href="#features" class="nav-sub-link">7. 功能範圍</a>
+      <a href="#ux" class="nav-sub-link">8. UX 設計原則</a>
+    </nav>
+  </aside>
+
+  <div class="layout">
+    <header class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">&#9776;</button>
+      <input type="search" id="search" placeholder="Search docs..." aria-label="Search">
+      <div id="search-results" role="listbox"></div>
+      <button id="theme-toggle" aria-label="Toggle dark mode">&#9681;</button>
+    </header>
+
+    <main class="content" id="main-content">
+      <div class="page-header">
+        <div class="doc-type">PDD — Product Design Document</div>
+        <h1>HTML5 線上多人爬樓梯遊戲 PDD</h1>
+        <p>Version v2.0 &mdash; Draft &mdash; Ladder Room Online MVP v1</p>
+      </div>
+
+      <h2 id="overview">1. 產品概述</h2>
+      <p>Ladder Room Online 是一款基於 LINE 爬樓梯玩法的 <strong>HTML5 線上多人互動遊戲</strong>。玩家可從不同地點使用瀏覽器進入同一個 Room，等待主持人開始。主持人設定中獎名額後，系統隨機生成樓梯，所有玩家沿各自起點向下走，最終對應到底部的中獎或未中獎結果。</p>
+      <p><strong>一句話定義</strong>：一款以 LINE 爬樓梯規則為基礎，支援異地玩家加入同一 Room，由主持人控制開局與揭曉的 HTML5 線上多人抽獎遊戲。</p>
+
+      <h2 id="background">2. 產品背景</h2>
+      <h3>2.1 現有問題</h3>
+      <p>LINE 爬樓梯遊戲是常見的抽獎互動形式，但原生版本存在以下限制：</p>
+      <table>
+        <thead><tr><th>問題</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr><td>人數限制</td><td>超過一定人數後只顯示結果，不顯示完整走線過程</td></tr>
+          <tr><td>視覺不完整</td><td>人數多時畫面顯示不完整</td></tr>
+          <tr><td>規則僵化</td><td>難以自訂房間機制與獎項規則</td></tr>
+          <tr><td>無法獨立部署</td><td>不適合作為獨立品牌活動頁或大型線上互動玩法</td></tr>
+        </tbody>
+      </table>
+      <h3>2.2 為何現在做</h3>
+      <p>線上活動、尾牙、直播互動需求日增，需要一個可獨立部署、支援異地多人的解決方案。</p>
+
+      <h2 id="goals">3. 產品目標</h2>
+      <h3>3.1 核心目標</h3>
+      <ul>
+        <li>玩家可透過 Room Code / 連結加入房間</li>
+        <li>主持人可建立房間並控制開局</li>
+        <li>主持人可設定中獎名額</li>
+        <li>開始後產生唯一且固定的樓梯地圖</li>
+        <li>所有玩家共享同一組樓梯結構與結果邏輯</li>
+        <li>每位玩家可看到自己的走線與最終結果</li>
+      </ul>
+      <h3>3.2 成功指標</h3>
+      <table>
+        <thead><tr><th>指標</th><th>目標</th><th>量測方式</th></tr></thead>
+        <tbody>
+          <tr><td>建立房間成功率</td><td>&gt; 99.5%</td><td>Server 端請求成功率</td></tr>
+          <tr><td>玩家加入成功率</td><td>&gt; 99%</td><td>玩家加入請求成功率</td></tr>
+          <tr><td>同房間設計上限人數</td><td>50 人</td><td>壓力測試（50 並發連線）</td></tr>
+          <tr><td>開局後結果一致性</td><td>100%</td><td>多客戶端結果比對</td></tr>
+          <tr><td>揭曉動畫流暢度</td><td>桌機 ≥ 30fps；手機 ≥ 24fps</td><td>Chrome DevTools FPS 量測</td></tr>
+          <tr><td>房間同步延遲</td><td>體感 &lt; 2 秒</td><td>訊息從寫入到所有端接收時間差</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="positioning">4. 產品定位</h2>
+      <p><strong>定位</strong>：線上房間制互動抽獎遊戲，屬於「活動遊戲工具」而非競技遊戲。</p>
+      <p><strong>定位關鍵字</strong>：Party Game、Lottery Game、Event Interaction Tool、Room-based Mini Game</p>
+      <table>
+        <thead><tr><th>維度</th><th>Ladder Room Online</th><th>LINE 爬樓梯</th></tr></thead>
+        <tbody>
+          <tr><td>人數上限</td><td>50 人</td><td>~10 人以內完整動畫</td></tr>
+          <tr><td>異地多人</td><td>完整支援</td><td>僅限同裝置群組</td></tr>
+          <tr><td>結果可驗證</td><td>PRNG seed 公開</td><td>不透明</td></tr>
+          <tr><td>自訂中獎名額</td><td>完整支援</td><td>固定格式</td></tr>
+          <tr><td>獨立部署</td><td>自建或 SaaS</td><td>無法</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="personas">5. 角色定義</h2>
+      <h3>Host（主持人）</h3>
+      <p>負責建立房間、設定中獎名額、啟動遊戲、控制揭曉節奏、踢除玩家。通常是活動主辦人、老師、或直播主。技術能力中等，主要透過 UI 操作。</p>
+      <h3>Player（玩家）</h3>
+      <p>掃描 QR Code 或輸入 Room Code 加入房間。輸入暱稱後等待主持人開局。希望看到自己的路徑動畫與最終結果。技術能力不要求。</p>
+      <h3>Spectator（旁觀者）</h3>
+      <p>（Post-MVP）不參與抽獎，僅觀看遊戲進行。適合直播場景。</p>
+
+      <h2 id="core-flow">6. 核心流程</h2>
+      <ol>
+        <li><strong>建立房間</strong>：主持人點擊「建立房間」→ 取得 6 碼 Room Code</li>
+        <li><strong>玩家加入</strong>：玩家輸入 Room Code + 暱稱 → 進入等待畫面</li>
+        <li><strong>設定中獎名額</strong>：主持人設定 W（1 ≤ W ≤ N-1）</li>
+        <li><strong>開始遊戲</strong>：主持人點擊「開始」→ 系統生成樓梯，狀態變 <code>running</code></li>
+        <li><strong>揭曉</strong>：逐步（手動/自動）或一鍵揭曉所有路徑</li>
+        <li><strong>結果顯示</strong>：所有玩家看到最終結果，狀態變 <code>finished</code></li>
+        <li><strong>再玩一局</strong>：主持人可 reset 房間，重複流程</li>
+      </ol>
+
+      <h2 id="features">7. 功能範圍 (MVP)</h2>
+      <table>
+        <thead><tr><th>功能</th><th>優先級</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr><td>建立房間</td><td>P0</td><td>6 碼 Room Code，TTL 24h</td></tr>
+          <tr><td>加入房間</td><td>P0</td><td>暱稱 + Code，最多 50 人</td></tr>
+          <tr><td>設定中獎名額</td><td>P0</td><td>1 ≤ W ≤ N-1</td></tr>
+          <tr><td>開始遊戲</td><td>P0</td><td>樓梯生成，狀態同步</td></tr>
+          <tr><td>逐步揭曉</td><td>P0</td><td>手動/自動 1-30s 間隔</td></tr>
+          <tr><td>一鍵揭曉</td><td>P0</td><td>全部同時揭曉</td></tr>
+          <tr><td>踢除玩家</td><td>P1</td><td>waiting 狀態下移除玩家</td></tr>
+          <tr><td>再玩一局</td><td>P1</td><td>finished 狀態重置房間</td></tr>
+          <tr><td>斷線重連</td><td>P1</td><td>JWT token 重連，恢復狀態</td></tr>
+          <tr><td>旁觀者模式</td><td>Post-MVP</td><td>不參與抽獎僅觀看</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="ux">8. UX 設計原則</h2>
+      <ul>
+        <li><strong>低門檻</strong>：玩家加入只需輸入暱稱和房間碼，無需帳號</li>
+        <li><strong>即時回饋</strong>：所有狀態變更立即同步至所有端點</li>
+        <li><strong>懸念感</strong>：逐步揭曉動畫製造緊張氛圍</li>
+        <li><strong>公平透明</strong>：PRNG seed 可公開驗證，結果不可篡改</li>
+        <li><strong>跨裝置</strong>：桌機與手機均可流暢使用，Canvas FPS 達標</li>
+      </ul>
+    </main>
+  </div>
+
+  <div id="lightbox" class="lightbox">
+    <button id="lightbox-close">&#x2715;</button>
+    <div id="lightbox-content"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7/dist/fuse.min.js"></script>
+  <script>
+    const saved=localStorage.getItem('theme')||'light';
+    document.documentElement.setAttribute('data-theme',saved);
+    document.getElementById('theme-toggle').addEventListener('click',()=>{
+      const c=document.documentElement.getAttribute('data-theme');
+      const n=c==='dark'?'light':'dark';
+      document.documentElement.setAttribute('data-theme',n);
+      localStorage.setItem('theme',n);
+    });
+    document.getElementById('hamburger').addEventListener('click',()=>{
+      document.getElementById('sidebar').classList.toggle('open');
+    });
+    const items=Array.from(document.querySelectorAll('h2,h3,p')).map(el=>({text:el.textContent.trim(),id:el.id||'',tag:el.tagName})).filter(i=>i.text.length>4);
+    const fuse=new Fuse(items,{keys:['text'],threshold:.35});
+    const searchEl=document.getElementById('search');
+    const resultsEl=document.getElementById('search-results');
+    searchEl.addEventListener('input',()=>{
+      const q=searchEl.value.trim();
+      if(!q){resultsEl.style.display='none';return;}
+      const hits=fuse.search(q).slice(0,8);
+      if(!hits.length){resultsEl.style.display='none';return;}
+      resultsEl.innerHTML=hits.map(h=>`<div class="search-result-item" data-id="${h.item.id}">${h.item.text.slice(0,80)}</div>`).join('');
+      resultsEl.style.display='block';
+    });
+    resultsEl.addEventListener('click',e=>{
+      const id=e.target.dataset.id;
+      if(id)document.getElementById(id)?.scrollIntoView({behavior:'smooth'});
+      resultsEl.style.display='none';searchEl.value='';
+    });
+    document.addEventListener('click',e=>{
+      if(!searchEl.contains(e.target)&&!resultsEl.contains(e.target))resultsEl.style.display='none';
+    });
+    document.addEventListener('click',e=>{
+      const svg=e.target.closest('.mermaid svg');
+      if(!svg)return;
+      const lb=document.getElementById('lightbox');
+      document.getElementById('lightbox-content').innerHTML='';
+      document.getElementById('lightbox-content').appendChild(svg.cloneNode(true));
+      lb.classList.add('open');
+    });
+    document.getElementById('lightbox-close').addEventListener('click',()=>{
+      document.getElementById('lightbox').classList.remove('open');
+    });
+    document.getElementById('lightbox').addEventListener('click',e=>{
+      if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');
+    });
+  </script>
+</body>
+</html>
