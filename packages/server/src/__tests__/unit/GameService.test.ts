@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { Room, Player, LadderData, ResultSlot } from '@ladder-room/shared';
+import { describe, it, expect, vi } from 'vitest';
+import type { Room, Player, ResultSlot } from '@ladder-room/shared';
 import type { IRoomRepository } from '../../infrastructure/redis/IRoomRepository.js';
 import { GameService } from '../../application/services/GameService.js';
 import { DomainError } from '../../domain/errors/DomainError.js';
@@ -201,6 +201,29 @@ describe('GameService', () => {
       );
     });
 
+    it('throws NO_RESULTS when results is null', async () => {
+      const repo = makeMockRepo({ status: 'revealing', results: null });
+      const svc = new GameService(repo);
+
+      await expect(svc.revealNext('ABCD12', 'player-1')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'NO_RESULTS'
+      );
+    });
+
+    it('throws REVEAL_OUT_OF_BOUNDS when incrementRevealedCount exceeds results length', async () => {
+      const results: ResultSlot[] = [makeResultSlot({ playerIndex: 0 })];
+      // Start with revealedCount already at 1 (all revealed), so next increment pushes it to 2 which is out of bounds
+      const repo: IRoomRepository = {
+        ...makeMockRepo({ status: 'revealing', results, revealedCount: 1 }),
+        incrementRevealedCount: vi.fn(async () => 2),
+      };
+      const svc = new GameService(repo);
+
+      await expect(svc.revealNext('ABCD12', 'player-1')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'REVEAL_OUT_OF_BOUNDS'
+      );
+    });
+
     it('returns the next result slot and increments revealedCount', async () => {
       const results: ResultSlot[] = [
         makeResultSlot({ playerIndex: 0, playerId: 'player-1' }),
@@ -222,6 +245,71 @@ describe('GameService', () => {
 
       const { room } = await svc.revealNext('ABCD12', 'player-1');
       expect(room.status).toBe('finished');
+    });
+  });
+
+  // ── revealAll ──────────────────────────────────────────────────────────────
+
+  describe('revealAll', () => {
+    it('throws NOT_HOST when caller is not the host', async () => {
+      const repo = makeMockRepo({ status: 'revealing', results: [makeResultSlot()] });
+      const svc = new GameService(repo);
+
+      await expect(svc.revealAll('ABCD12', 'not-host')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'NOT_HOST'
+      );
+    });
+
+    it('throws INVALID_STATE when status is not revealing', async () => {
+      const repo = makeMockRepo({ status: 'running', results: [makeResultSlot()] });
+      const svc = new GameService(repo);
+
+      await expect(svc.revealAll('ABCD12', 'player-1')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'INVALID_STATE'
+      );
+    });
+
+    it('throws NO_RESULTS when results is null', async () => {
+      const repo = makeMockRepo({ status: 'revealing', results: null });
+      const svc = new GameService(repo);
+
+      await expect(svc.revealAll('ABCD12', 'player-1')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'NO_RESULTS'
+      );
+    });
+
+    it('returns all remaining results and transitions room to finished', async () => {
+      const results: ResultSlot[] = [
+        makeResultSlot({ playerIndex: 0, playerId: 'player-1' }),
+        makeResultSlot({ playerIndex: 1, playerId: 'player-2' }),
+      ];
+      const repo = makeMockRepo({ status: 'revealing', results, revealedCount: 0 });
+      const svc = new GameService(repo);
+
+      const { results: revealed, room } = await svc.revealAll('ABCD12', 'player-1');
+
+      expect(revealed).toHaveLength(2);
+      expect(room.status).toBe('finished');
+      expect(room.revealedCount).toBe(2);
+    });
+
+    it('returns only unrevealed results when some have already been revealed', async () => {
+      const results: ResultSlot[] = [
+        makeResultSlot({ playerIndex: 0, playerId: 'player-1' }),
+        makeResultSlot({ playerIndex: 1, playerId: 'player-2' }),
+        makeResultSlot({ playerIndex: 2, playerId: 'player-3' }),
+      ];
+      const repo: IRoomRepository = {
+        ...makeMockRepo({ status: 'revealing', results, revealedCount: 1 }),
+        getRevealedCount: vi.fn(async () => 1),
+      };
+      const svc = new GameService(repo);
+
+      const { results: revealed } = await svc.revealAll('ABCD12', 'player-1');
+
+      // Only playerIndex 1 and 2 should remain (index 0 was already revealed)
+      expect(revealed).toHaveLength(2);
+      expect(revealed[0]?.playerIndex).toBe(1);
     });
   });
 
@@ -265,6 +353,15 @@ describe('GameService', () => {
 
       await expect(svc.kickPlayer('ABCD12', 'player-1', 'nonexistent')).rejects.toSatisfy(
         (e: unknown) => e instanceof DomainError && e.code === 'PLAYER_NOT_FOUND'
+      );
+    });
+
+    it('throws CANNOT_KICK_SELF when host tries to kick themselves', async () => {
+      const repo = makeMockRepo();
+      const svc = new GameService(repo);
+
+      await expect(svc.kickPlayer('ABCD12', 'player-1', 'player-1')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'CANNOT_KICK_SELF'
       );
     });
   });

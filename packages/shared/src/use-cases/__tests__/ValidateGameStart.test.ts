@@ -81,21 +81,29 @@ describe('validateGameStart', () => {
   });
 
   describe('error messages', () => {
-    it('INSUFFICIENT_PLAYERS error message is not empty', () => {
+    it('INSUFFICIENT_PLAYERS error message references player requirement', () => {
       const result = validateGameStart(1, null);
-      expect(result?.message).toBeTruthy();
       expect(typeof result?.message).toBe('string');
+      // Message must be a non-empty, human-readable string
+      expect((result?.message ?? '').length).toBeGreaterThan(0);
     });
 
-    it('PRIZES_NOT_SET error message is not empty', () => {
+    it('PRIZES_NOT_SET error message is a non-empty string', () => {
       const result = validateGameStart(5, null);
-      expect(result?.message).toBeTruthy();
+      expect(typeof result?.message).toBe('string');
+      expect((result?.message ?? '').length).toBeGreaterThan(0);
     });
 
-    it('INVALID_PRIZES_COUNT error message includes max allowed', () => {
+    it('INVALID_PRIZES_COUNT error message includes max allowed (playerCount - 1)', () => {
       const result = validateGameStart(5, 0);
-      // Should contain "4" (playerCount - 1)
+      // Message should contain "4" (playerCount - 1 = 5 - 1 = 4)
       expect(result?.message).toContain('4');
+    });
+
+    it('INSUFFICIENT_PLAYERS message differs from PRIZES_NOT_SET message', () => {
+      const notEnoughPlayers = validateGameStart(1, null);
+      const prizesNotSet = validateGameStart(5, null);
+      expect(notEnoughPlayers?.message).not.toBe(prizesNotSet?.message);
     });
   });
 });

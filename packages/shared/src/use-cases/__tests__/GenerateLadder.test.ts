@@ -102,4 +102,19 @@ describe('generateLadder', () => {
       expect(ladder.seedSource).toBe('my-seed');
     });
   });
+
+  describe('dense column packing (triggers !found branch)', () => {
+    it('N=2 produces a valid ladder even when column space is fully saturated', () => {
+      // N=2 means only one possible bar position (col 0). After it is placed,
+      // the retry loop cannot find a free column and hits the !found break.
+      // This exercises GenerateLadder line 37.
+      const ladder = generateLadder('dense-seed', 2);
+      expect(ladder.colCount).toBe(2);
+      expect(ladder.rowCount).toBe(20);
+      // Each row can have at most 1 bar (the only valid column is 0)
+      for (const seg of ladder.segments) {
+        expect(seg.col).toBe(0);
+      }
+    });
+  });
 });

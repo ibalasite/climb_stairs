@@ -165,6 +165,33 @@ describe('RoomService', () => {
       );
     });
 
+    it('throws INVALID_NICKNAME when nickname contains injection characters', async () => {
+      const repo = makeMockRepo();
+      const svc = new RoomService(repo);
+
+      await expect(svc.createRoom('<script>', 1)).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'INVALID_NICKNAME'
+      );
+      await expect(svc.createRoom('Alice"Bob', 1)).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'INVALID_NICKNAME'
+      );
+    });
+
+    it('throws CODE_COLLISION when all code generation attempts collide', async () => {
+      // Repo always returns an existing room, forcing every attempt to fail
+      const existingRoom = makeRoom();
+      const repo: IRoomRepository = {
+        ...makeMockRepo(existingRoom),
+        // Always return a non-null room to simulate code collision on every attempt
+        findByCode: vi.fn(async () => existingRoom),
+      };
+      const svc = new RoomService(repo);
+
+      await expect(svc.createRoom('Alice', 1)).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'CODE_COLLISION'
+      );
+    });
+
     it('stores the host player with isHost=true', async () => {
       const repo = makeMockRepo();
       const svc = new RoomService(repo);
@@ -177,6 +204,24 @@ describe('RoomService', () => {
   // ── joinRoom ───────────────────────────────────────────────────────────────
 
   describe('joinRoom', () => {
+    it('throws INVALID_NICKNAME when nickname is empty', async () => {
+      const repo = makeMockRepo(makeRoom());
+      const svc = new RoomService(repo);
+
+      await expect(svc.joinRoom('ABCD12', '')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'INVALID_NICKNAME'
+      );
+    });
+
+    it('throws INVALID_NICKNAME when nickname contains injection characters', async () => {
+      const repo = makeMockRepo(makeRoom());
+      const svc = new RoomService(repo);
+
+      await expect(svc.joinRoom('ABCD12', '<Bob>')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'INVALID_NICKNAME'
+      );
+    });
+
     it('throws ROOM_NOT_FOUND when room does not exist', async () => {
       const repo = makeMockRepo(); // no stored room
       const svc = new RoomService(repo);
