@@ -33,6 +33,16 @@ export class RoomService {
         422
       );
     }
+    // Reject control characters (U+0000–U+001F, U+007F–U+009F) and
+    // HTML/script-significant characters to prevent injection at the trust boundary.
+    // eslint-disable-next-line no-control-regex
+    if (/[\u0000-\u001F\u007F-\u009F<>"'`]/.test(trimmed)) {
+      throw new DomainError(
+        'INVALID_NICKNAME',
+        'Nickname contains invalid characters',
+        422
+      );
+    }
   }
 
   async createRoom(hostNickname: string, winnerCount: number): Promise<{ room: Room; hostId: string }> {

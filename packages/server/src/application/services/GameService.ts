@@ -42,12 +42,19 @@ export class GameService {
     const ladder = generateLadder(seedSource, playerCount);
     const rawResults = computeResults(ladder, winnerCount);
 
-    // Bind player IDs to result slots
+    // Bind player IDs to result slots — every slot must map to a real player
     const results: ResultSlot[] = rawResults.map((slot) => {
       const player = room.players[slot.playerIndex];
+      if (player === undefined) {
+        throw new DomainError(
+          'RESULT_PLAYER_MISMATCH',
+          `Result slot playerIndex ${slot.playerIndex} has no corresponding player`,
+          500
+        );
+      }
       return {
         ...slot,
-        playerId: player !== undefined ? player.id : '',
+        playerId: player.id,
       };
     });
 
@@ -85,12 +92,17 @@ export class GameService {
     const newCount = await this.repo.incrementRevealedCount(roomCode);
     const index = newCount - 1;
 
-    const result = room.results[index];
-    if (result === undefined) {
+    // Guard: if the atomic counter exceeded array bounds (e.g. concurrent calls),
+    // treat it as out-of-bounds rather than returning undefined data.
+    if (index < 0 || index >= room.results.length) {
       throw new DomainError('REVEAL_OUT_OF_BOUNDS', 'No more results to reveal', 422);
     }
 
+    const result = room.results[index]!;
+
     const allRevealed = newCount >= room.results.length;
+    // Only persist the status change — revealedCount is owned by the atomic counter,
+    // not by the document update, to avoid a non-atomic read-modify-write race.
     const updatedRoom = await this.repo.update(roomCode, {
       revealedCount: newCount,
       ...(allRevealed ? { status: 'finished' } : {}),
