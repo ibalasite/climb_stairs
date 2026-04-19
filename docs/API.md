@@ -384,7 +384,7 @@ interface RevealRequest {
 
 **Success Response — 200 OK**
 
-回傳更新後的房間物件（直接 JSON）：
+回傳更新後的房間物件（直接 JSON）。`ladder` 在 `revealing` 狀態為 `LadderDataPublic`（省略 `seed`）：
 
 ```json
 {
@@ -393,7 +393,11 @@ interface RevealRequest {
   "hostId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "players": [],
   "winnerCount": 1,
-  "ladder": null,
+  "ladder": {
+    "rowCount": 20,
+    "colCount": 3,
+    "segments": [{ "row": 0, "col": 1 }, { "row": 3, "col": 0 }]
+  },
   "revealedCount": 1,
   "revealMode": "manual",
   "autoRevealIntervalSec": null,
@@ -617,6 +621,45 @@ WSS /ws?room={roomCode}&token={token}
 3. 查詢 Redis `kickedPlayerIds`：若 `playerId` 在列表中，發送 `PLAYER_KICKED` JSON frame 後以 close code **4003** 關閉連線
 4. 驗證通過後回應 HTTP 101，建立 WebSocket 連線
 
+### 共用資料型別
+
+以下型別在 HTTP 回應與 WS payload 中均有使用，統一於此定義：
+
+```typescript
+/** 房間玩家物件 */
+interface Player {
+  id: string;           // UUID v4
+  nickname: string;     // 1-20 字元暱稱
+  colorIndex: number;   // 0-based 顏色索引（前端調色板對應）
+  isHost: boolean;
+  isOnline: boolean;
+  joinedAt: number;     // Unix milliseconds
+  result: ResultSlot | null;  // null = 尚未揭示
+}
+
+/** 完整房間物件（HTTP 端點與 ROOM_STATE_FULL 使用） */
+interface Room {
+  code: string;                        // 6 碼房間代碼
+  title: string | null;                // 可選房間名稱（UPDATE_TITLE 設定）
+  status: "waiting" | "running" | "revealing" | "finished";
+  hostId: string;                      // UUID v4，房主 playerId
+  players: readonly Player[];
+  winnerCount: number | null;          // null = 尚未設定
+  ladder: LadderDataPublic | LadderData | null;  // null = 未生成；LadderDataPublic = revealing；LadderData = finished
+  results: readonly ResultSlot[] | null;
+  revealedCount: number;
+  revealMode: "manual" | "auto";
+  autoRevealIntervalSec: number | null;          // null = 手動模式
+  kickedPlayerIds: readonly string[];            // 被踢玩家 UUID 列表（不對外廣播）
+  createdAt: number;                   // Unix milliseconds
+  updatedAt: number;                   // Unix milliseconds
+}
+```
+
+> **注意**：`ROOM_STATE` 廣播使用 `Omit<Room, "ladder" | "results" | "kickedPlayerIds">`，即省略梯子資料、結果與踢出名單；完整資料僅在 `ROOM_STATE_FULL`（unicast）中發送。`seed` 欄位在 `status=finished` 前不含於任何對外傳輸中。
+
+---
+
 ### 訊息 Envelope 格式
 
 **Server → Client（ServerEnvelope）**
@@ -670,6 +713,7 @@ interface RoomStatePayload {
   "payload": {
     "room": {
       "code": "AB3K7X",
+      "title": null,
       "status": "waiting",
       "hostId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
       "players": [
