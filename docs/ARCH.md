@@ -27,7 +27,7 @@ graph TD
 
     UC --> APP
     APP --> INF
-    APP --> PRES
+    PRES --> APP
 ```
 
 | 層級 | 所在套件 | 職責 | 外部依賴 |
@@ -94,10 +94,10 @@ graph LR
 | `presentation/schemas/` | 定義 Fastify AJV JSON Schema，對所有 HTTP 請求/回應做格式驗證 |
 | `application/services/RoomService.ts` | 協調房間建立、加入、踢出等業務流程，呼叫 RoomRepository 並發布 ROOM_STATE 廣播 |
 | `application/services/GameService.ts` | 協調遊戲開局（START_GAME，僅生成 seedSource，不生成梯子）、開始揭示（BEGIN_REVEAL，`running → revealing`，**此時才原子生成 LadderData + ResultSlots**）、逐一揭示（REVEAL_NEXT）、全揭（REVEAL_ALL_TRIGGER）、結束（END_GAME，`revealing → finished`，seed 首次公開）、再玩一局（PLAY_AGAIN，取代 RESET_ROOM）流程，呼叫 GenerateLadder/ComputeResults 並觸發廣播 |
-| `application/handlers/WsMessageHandler.ts` | 解析 ClientEnvelope，驗證 JWT role，分派至對應 Service 方法 |
+| `application/handlers/WsMessageHandler.ts` | 解析 ClientEnvelope，執行**二次** role + room.hostId 驗證（主要 JWT 簽章驗證已在 WsServer.handleUpgrade 完成），分派至對應 Service 方法 |
 | `application/handlers/PubSubHandler.ts` | 訂閱 Redis `room:*:events` 頻道，將收到的 PubSubMessage 轉發至房間內所有本地 WsSession |
 | `infrastructure/redis/RedisClient.ts` | 建立並匯出 ioredis 單例（含連線重試設定） |
-| `infrastructure/redis/RoomRepository.ts` | 實作 IRoomRepository：對 Redis 進行 Room 的 CRUD、TTL 管理與 WATCH/MULTI/EXEC 原子操作 |
+| `infrastructure/redis/RoomRepository.ts` | 實作 IRoomRepository：對 Redis 進行 Room 的 CRUD、TTL 管理；一般操作使用 WATCH/MULTI/EXEC 原子操作；BEGIN_REVEAL 使用 Lua Script 確保 GenerateLadder 結果與 status=revealing 原子寫入 |
 | `infrastructure/redis/PubSubBroker.ts` | 封裝 Redis PUBLISH 與 SUBSCRIBE，抽象跨 Pod 廣播細節 |
 | `infrastructure/websocket/WsServer.ts` | 封裝 `ws.Server`，處理 HTTP Upgrade、JWT 驗證、踢除攔截（close 4003），建立 WsSession |
 | `infrastructure/websocket/WsSession.ts` | 管理單一 WebSocket 連線的生命週期：心跳、訊息序列化/反序列化、速率限制（60 msg/min）、斷線計時 |
@@ -108,7 +108,7 @@ Pod 本地記憶體中存在兩種 `setTimeout`/`setInterval` 計時器，其所
 
 | 計時器 | 所有者模組 | 觸發條件 | Pod 重啟後恢復 |
 |--------|-----------|---------|--------------|
-| auto-reveal interval | `GameService`（靜態 Map `roomCode → NodeJS.Timeout`） | SET_REVEAL_MODE mode=auto；intervalSec 1-30s | 重連客戶端收到 ROOM_STATE_FULL（status=revealing）後，Host 須重新送 SET_REVEAL_MODE 恢復計時；服務端**不**自動恢復計時，以避免幽靈計時器 |
+| auto-reveal interval | `GameService`（靜態 Map `roomCode → NodeJS.Timeout`） | SET_REVEAL_MODE mode=auto；intervalSec 1-30s | 重連客戶端收到 ROOM_STATE_FULL（status=revealing）後，Host 須重新送 SET_REVEAL_MODE 恢復計時；服務端**不**自動恢復計時，以避免幽靈計時器。**客戶端恢復觸發機制：** Client 收到 ROOM_STATE_FULL 且 `autoRevealActive === true`（payload 欄位）時，Host UI 顯示「重新啟動自動揭示」提示並自動重發 SET_REVEAL_MODE；非 Host 客戶端無需操作 |
 | (Out of Scope for MVP) host-transfer grace（60s） | `WsSession`（`disconnect` event 觸發，Timer ID 存於 Session） | WS close event（host 斷線）；playerId === room.hostId | 重啟後 timer 消失；若 host 60s 內未重連，下一個連線至該房間的請求（心跳或新訊息）觸發 GameService 補跑 hostTransferIfNeeded() 邏輯（檢查 room.hostId.isOnline === false 且 updatedAt + 60s < now） |
 
 **設計決策：** 計時器不序列化至 Redis，以保持 Pod 無狀態。Pod 重啟後，auto-reveal 依賴 Host 主動恢復，host-transfer 依賴下一個到達事件補跑。此為 MVP 單 Pod 下可接受的 trade-off；Post-MVP 多 Pod 時，計時器只在擁有 Host Session 的 Pod 上存在，廣播仍透過 Pub/Sub 正確傳遞。
@@ -194,6 +194,8 @@ Pod 本地記憶體中存在兩種 `setTimeout`/`setInterval` 計時器，其所
 **Token 有效期：** JWT `exp` 設為 **6 小時**（21600 秒）。玩家 token 在房間生命週期內有效；finished 房間 TTL 為 1h，token 在此仍有效但 Redis 中已無 Room 資料（`RoomRepository.findByCode` 回傳 null → 403）。
 
 **取捨：** Token 一旦簽發無法提前撤銷（除非加黑名單）；host 轉移後舊 host token 在 exp 前仍有效，須以 `room.hostId` 做雙重驗證。Token 6h exp 在極端情況下 Room TTL（24h waiting）屆滿前 token 可能先過期，此時玩家需重新加入取得新 token。
+
+**已知安全取捨（JWT exp vs 長連線 WS）：** JWT `exp` 僅在 WS Upgrade 握手時（`handleUpgrade`）及 HTTP 請求時被驗證；一旦 WS 連線建立成功，後續訊息**不重驗 exp**（`WsMessageHandler` 只做 role + hostId 比對，不重新解析 JWT）。這意味著若玩家 token 在連線中途到期（6h 後），其 WS 連線仍維持有效直至斷線或主動 close。**此為 MVP 接受的安全取捨**：房間生命週期 ≤ 24h，遊戲時長通常遠低於 6h；若需要強制 exp 執行，Post-MVP 可在 WsSession 加入定時 token 輪替機制（每 N 分鐘要求客戶端以新 token 重連）。
 
 ---
 
@@ -374,7 +376,7 @@ interface PubSubMessage {
 - 每個 Pod 啟動時建立一條獨立的 ioredis 連線（`redis.duplicate()`）並 PSUBSCRIBE `room:*:events`
 - Pattern subscription 確保新建房間頻道無需手動 SUBSCRIBE
 - MVP 單 Pod 時 PUBLISH 觸發自身訂閱，行為與多 Pod 完全一致（零差異）
-- PUBLISH 失敗時進行指數退避重試（100ms / 200ms / 400ms）；三次失敗後觸發 critical alert
+- PUBLISH 失敗時進行指數退避重試（100ms / 200ms / 400ms）；三次失敗後觸發 critical alert（以 `pino.error` 輸出 `{ event: "PUBSUB_PUBLISH_FAILED", roomCode, attempt: 3 }` JSON 日誌，由 fluent-bit 傳遞至集中 log 系統；生產環境另設 Prometheus counter `pubsub_publish_failed_total` 供 Alertmanager 觸發 PagerDuty 告警）
 
 ---
 
@@ -499,6 +501,8 @@ services:
 2. 撰寫對應單元測試（Vitest），確保 `shared` 覆蓋率 ≥ 90%
 3. 在 `GameService` 或 `RoomService` 呼叫新 Use Case
 4. Use Case 若需新的 Domain 規則，先在 `packages/shared/src/domain/` 新增 Entity/Value Object
+
+**PRNG 擴展注意事項：** 若未來房間容量或梯子複雜度大幅提升（例如超過 50 人 × 50 格），`createMulberry32` + `fisherYatesShuffle` 的效能仍可接受（純 CPU，無 I/O），不需更換演算法；若需提升隨機品質（如防碰撞需求），可替換 PRNG 實作而不改變介面（`src/prng/index.ts` 僅匯出函式簽名，實作可替換）。
 
 ### 10.4 新增 Repository / 外部服務
 
