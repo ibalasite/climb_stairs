@@ -174,6 +174,56 @@ export class GameService {
     });
   }
 
+  async endGame(roomCode: string, hostPlayerId: string): Promise<Room> {
+    const room = await this.requireRoom(roomCode);
+    this.assertHost(room, hostPlayerId);
+
+    if (room.status !== 'revealing') {
+      throw new DomainError('INVALID_STATE', 'Room must be in revealing state to end the game', 409);
+    }
+
+    return this.repo.update(roomCode, { status: 'finished' });
+  }
+
+  async playAgain(roomCode: string, hostPlayerId: string): Promise<Room> {
+    const room = await this.requireRoom(roomCode);
+    this.assertHost(room, hostPlayerId);
+
+    if (room.status !== 'finished') {
+      throw new DomainError('INVALID_STATE', 'Room must be in finished state to play again', 409);
+    }
+
+    // Prune offline players, keep host always
+    const onlinePlayers = room.players.filter((p) => p.isOnline || p.id === hostPlayerId);
+
+    if (onlinePlayers.length < 2) {
+      throw new DomainError(
+        'INSUFFICIENT_ONLINE_PLAYERS',
+        'At least 2 online players are required to play again',
+        422
+      );
+    }
+
+    await this.repo.clearKickedPlayers(roomCode);
+
+    // Reset player results
+    const resetPlayers = onlinePlayers.map((p) => ({ ...p, result: null }));
+
+    // If the old winnerCount would be invalid for the new player count, null it out
+    const newPlayerCount = onlinePlayers.length;
+    const adjustedWinnerCount =
+      room.winnerCount !== null && room.winnerCount >= newPlayerCount ? null : room.winnerCount;
+
+    return this.repo.update(roomCode, {
+      status: 'waiting',
+      ladder: null,
+      results: null,
+      revealedCount: 0,
+      players: resetPlayers,
+      winnerCount: adjustedWinnerCount,
+    });
+  }
+
   async kickPlayer(roomCode: string, hostPlayerId: string, targetPlayerId: string): Promise<Room> {
     const room = await this.requireRoom(roomCode);
     this.assertHost(room, hostPlayerId);

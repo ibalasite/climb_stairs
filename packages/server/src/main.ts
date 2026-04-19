@@ -256,6 +256,34 @@ async function bootstrap(): Promise<void> {
     return reply.status(200).send(room);
   });
 
+  // ─── POST /api/rooms/:code/game/end ───────────────────────────────────────
+
+  app.post('/api/rooms/:code/game/end', async (req, reply) => {
+    const { code } = req.params as { code: string };
+
+    const auth = await requireAuth(req.headers['authorization']);
+    if (auth.error !== null) {
+      return reply.status(401).send({ error: auth.error, message: auth.error === 'AUTH_TOKEN_EXPIRED' ? 'Token has expired' : 'Invalid or missing token' });
+    }
+
+    const room = await gameService.endGame(code, auth.claims.playerId);
+    return reply.status(200).send(room);
+  });
+
+  // ─── POST /api/rooms/:code/game/play-again ────────────────────────────────
+
+  app.post('/api/rooms/:code/game/play-again', async (req, reply) => {
+    const { code } = req.params as { code: string };
+
+    const auth = await requireAuth(req.headers['authorization']);
+    if (auth.error !== null) {
+      return reply.status(401).send({ error: auth.error, message: auth.error === 'AUTH_TOKEN_EXPIRED' ? 'Token has expired' : 'Invalid or missing token' });
+    }
+
+    const room = await gameService.playAgain(code, auth.claims.playerId);
+    return reply.status(200).send(room);
+  });
+
   // ─── Listen ────────────────────────────────────────────────────────────────
 
   const port = Number(process.env['PORT'] ?? 3000);
@@ -389,6 +417,18 @@ async function bootstrap(): Promise<void> {
           case 'REVEAL_ALL_TRIGGER': {
             const { results, room } = await gameService.revealAll(roomCode, playerId);
             broadcastAll(roomCode, { type: 'REVEAL_ALL', payload: { results, room } });
+            break;
+          }
+
+          case 'END_GAME': {
+            const room = await gameService.endGame(roomCode, playerId);
+            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: room });
+            break;
+          }
+
+          case 'PLAY_AGAIN': {
+            const room = await gameService.playAgain(roomCode, playerId);
+            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: room });
             break;
           }
 
