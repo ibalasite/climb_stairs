@@ -62,6 +62,10 @@ export class RoomRepository implements IRoomRepository {
     return this.redis.incr(revealedCountKey(code));
   }
 
+  async resetRevealedCount(code: string): Promise<void> {
+    await this.redis.del(revealedCountKey(code));
+  }
+
   async getRevealedCount(code: string): Promise<number> {
     const raw = await this.redis.get(revealedCountKey(code));
     if (raw === null) return 0;

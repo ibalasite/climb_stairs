@@ -62,6 +62,7 @@ function makeMockRepo(existing?: Room): IRoomRepository {
     isKicked: vi.fn(async () => false),
     clearKickedPlayers: vi.fn(),
     incrementRevealedCount: vi.fn(async () => 1),
+    resetRevealedCount: vi.fn(async () => {}),
     getRevealedCount: vi.fn(async () => 0),
     delete: vi.fn(),
     expireIn: vi.fn(),

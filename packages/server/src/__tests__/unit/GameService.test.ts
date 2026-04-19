@@ -67,6 +67,9 @@ function makeMockRepo(roomOverride?: Partial<Room>): IRoomRepository {
       storedRoom = { ...storedRoom, revealedCount: storedRoom.revealedCount + 1 };
       return storedRoom.revealedCount;
     }),
+    resetRevealedCount: vi.fn(async () => {
+      storedRoom = { ...storedRoom, revealedCount: 0 };
+    }),
     getRevealedCount: vi.fn(async () => storedRoom.revealedCount),
     delete: vi.fn(),
     expireIn: vi.fn(),
@@ -177,6 +180,19 @@ describe('GameService', () => {
       const room = await svc.startGame('ABCD12', 'player-1');
 
       expect(room.revealedCount).toBe(0);
+    });
+
+    it('resets the atomic revealedCount counter before starting to avoid stale state from a previous game', async () => {
+      const players = [
+        makePlayer({ id: 'player-1', isHost: true }),
+        makePlayer({ id: 'player-2', isHost: false, nickname: 'Bob', colorIndex: 1 }),
+      ];
+      const repo = makeMockRepo({ players, winnerCount: 1 });
+      const svc = new GameService(repo);
+
+      await svc.startGame('ABCD12', 'player-1');
+
+      expect(repo.resetRevealedCount).toHaveBeenCalledWith('ABCD12');
     });
 
   });

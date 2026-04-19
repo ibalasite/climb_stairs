@@ -58,6 +58,10 @@ export class GameService {
       };
     });
 
+    // Reset the atomic counter before starting so revealNext always begins from 0,
+    // even if a previous game left a stale counter (e.g. after resetRoom / playAgain).
+    await this.repo.resetRevealedCount(roomCode);
+
     return this.repo.update(roomCode, {
       status: 'running',
       ladder,
