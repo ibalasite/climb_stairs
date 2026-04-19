@@ -299,20 +299,25 @@ export type RoomStatus = "waiting" | "running" | "revealing" | "finished";
 
 export type WsEventType =
   | "ROOM_STATE" | "ROOM_STATE_FULL" | "REVEAL_INDEX" | "REVEAL_ALL"
-  | "PLAYER_KICKED" | "SESSION_REPLACED" | "HOST_TRANSFERRED" | "ERROR";
+  | "PLAYER_KICKED" | "SESSION_REPLACED"
+  | "HOST_TRANSFERRED" // future consideration, not MVP
+  | "ERROR";
 
 export type WsMsgType =
   | "START_GAME" | "BEGIN_REVEAL" | "REVEAL_NEXT" | "REVEAL_ALL_TRIGGER"
-  | "SET_REVEAL_MODE" | "RESET_ROOM" | "KICK_PLAYER" | "PING";
+  | "SET_REVEAL_MODE" | "RESET_ROOM" | "KICK_PLAYER" | "PING"
+  | "UPDATE_TITLE"        // host only, waiting state only; updates room.title (0-50 chars)
+  | "UPDATE_WINNER_COUNT"; // host only, waiting state only; validates 1 ≤ N ≤ playerCount-1
 
 export interface Player {
   readonly id: string;           // UUID v4
   readonly nickname: string;     // 1-20 chars, sanitized
   readonly colorIndex: number;   // 0-49
+  // isHost is derived at read time by comparing id === room.hostId; not stored redundantly
   readonly isHost: boolean;
   isOnline: boolean;
   readonly joinedAt: number;     // Unix ms
-  result?: string | null;        // filled after reveal
+  result: 'win' | 'lose' | null; // null until revealed; 'win'/'lose' after reveal (no named prizes per PRD Out-of-Scope #5)
 }
 
 export interface LadderSegment {
@@ -345,6 +350,7 @@ export interface ResultSlot {
 
 export interface Room {
   readonly code: string;           // 6-char room code
+  title: string | null;            // optional room name (0-50 chars); null if not set
   status: RoomStatus;
   hostId: string;                  // mutable: host transfer on 60s disconnect grace
   players: readonly Player[];      // max 50, incl. offline
@@ -438,18 +444,22 @@ export interface JoinRoomResponse {
 
 ## 4. API 設計（HTTP）
 
-所有端點掛載於 `/api/v1`，統一 envelope：
-`{ "success": boolean, "data": T | null, "error": { "code": string, "message": string } | null }`
+所有端點掛載於 `/api/`，回應格式為**直接 JSON 物件，無 success/data/error 包裝**：
+- 成功：直接回傳 DTO（如 `{ roomCode, playerId, token, room }`）
+- 失敗：`{ "error": string, "message": string }`
+
+JWT TTL：**6 小時**（`exp = iat + 21600`）。
 
 | Method | Path | 描述 | 成功 | 錯誤 |
 |--------|------|------|------|------|
-| `POST` | `/api/v1/rooms` | 建立房間（含 hostNickname, winnerCount） | `201 CreateRoomResponse` | `400 INVALID_PRIZES_COUNT`, `429 RATE_LIMIT` |
-| `GET` | `/api/v1/rooms/:code` | 查詢房間公開摘要（unauthenticated） | `200 RoomSummaryPayload` | `404 ROOM_NOT_FOUND` |
-| `POST` | `/api/v1/rooms/:code/players` | 加入房間 | `201 JoinRoomResponse` | `404 ROOM_NOT_FOUND / 409 ROOM_FULL,NICKNAME_TAKEN / 409 INVALID_STATE` |
-| `DELETE` | `/api/v1/rooms/:code/players/:id` | 踢出玩家（需 hostToken；waiting 狀態限定） | `204` | `403 PLAYER_NOT_HOST / 404 / 409 INVALID_STATE` |
-| `POST` | `/api/v1/rooms/:code/start` | 開始遊戲（需 hostToken） | `200 { ladder: LadderData }` | `400 INSUFFICIENT_PLAYERS,PRIZES_NOT_SET,INVALID_PRIZES_COUNT / 409 INVALID_STATE` |
-| `POST` | `/api/v1/rooms/:code/reset` | 再玩一局（需 hostToken；finished 狀態限定） | `200 { room: RoomStatePayload }` | `403 / 409 INVALID_STATE / 400 INSUFFICIENT_ONLINE_PLAYERS` |
-| `GET` | `/api/v1/health` | 健康檢查 | `200 { redis: ok, wsCount }` | — |
+| `POST` | `/api/rooms` | 建立房間（含 hostNickname, winnerCount） | `201 CreateRoomResponse` | `400 INVALID_PRIZES_COUNT`, `429 RATE_LIMIT` |
+| `GET` | `/api/rooms/:code` | 查詢房間公開摘要（unauthenticated） | `200 RoomSummaryPayload` | `404 ROOM_NOT_FOUND` |
+| `POST` | `/api/rooms/:code/players` | 加入房間 | `201 JoinRoomResponse` | `404 ROOM_NOT_FOUND / 409 ROOM_FULL,NICKNAME_TAKEN,ROOM_NOT_ACCEPTING` |
+| `DELETE` | `/api/rooms/:code/players/:id` | 踢出玩家（需 token；waiting 狀態限定） | `204` | `401 AUTH_INVALID_TOKEN,AUTH_TOKEN_EXPIRED / 403 PLAYER_NOT_HOST / 404 / 409 INVALID_STATE,CANNOT_KICK_HOST` |
+| `POST` | `/api/rooms/:code/game/start` | 開始遊戲（需 token） | `200 Room` | `400 INSUFFICIENT_PLAYERS,PRIZES_NOT_SET,INVALID_PRIZES_COUNT / 409 INVALID_STATE` |
+| `POST` | `/api/rooms/:code/game/reset` | 再玩一局（需 token；finished 狀態限定） | `200 Room` | `403 / 409 INVALID_STATE / 400 INSUFFICIENT_ONLINE_PLAYERS` |
+| `GET` | `/health` | 健康檢查（liveness） | `200 { status, redis, wsCount, uptime }` | — |
+| `GET` | `/ready` | 就緒檢查（readiness）；redis="error" 時回傳 503 | `200 { status, redis, wsCount, uptime }` | `503` |
 
 **Rate Limiting：**
 - POST /rooms：10 req/min/IP
@@ -472,7 +482,7 @@ Server Upgrade 階段驗證 JWT token，失敗直接 403。
 // ROOM_STATE — 房間狀態摘要（玩家加入/離線/踢出/中獎名額變更）
 { type: "ROOM_STATE", ts, payload: RoomStatePayload }
 
-// ROOM_STATE_FULL — 新連線或重連時 unicast 給該連線（含 ladder + results + selfPlayerId）
+// ROOM_STATE_FULL — WS 連線成功後 unicast 給連線玩家（含 ladder + results + selfPlayerId）；新連線與重連均觸發
 { type: "ROOM_STATE_FULL", ts, payload: RoomStateFullPayload }
 
 // REVEAL_INDEX — 單一玩家路徑揭示
@@ -481,7 +491,7 @@ Server Upgrade 階段驗證 JWT token，失敗直接 403。
 // REVEAL_ALL — 全部（或剩餘全部）揭示完畢
 { type: "REVEAL_ALL", ts, payload: { results: readonly ResultSlot[] } }
 
-// PLAYER_KICKED — 玩家被踢（廣播給所有人）
+// PLAYER_KICKED — unicast 給被踢玩家（若仍在線）；其他玩家透過後續 ROOM_STATE 廣播得知名單變更
 { type: "PLAYER_KICKED", ts, payload: { kickedPlayerId: string, reason: string } }
 
 // SESSION_REPLACED — 同一 playerId 從新裝置登入，發給被替換的舊連線
@@ -513,6 +523,17 @@ Server Upgrade 階段驗證 JWT token，失敗直接 403。
 { type: "RESET_ROOM", ts, payload: {} }
 { type: "KICK_PLAYER", ts, payload: { targetPlayerId: string } }
 { type: "PING", ts, payload: {} }
+
+// UPDATE_WINNER_COUNT — Host only, waiting 狀態限定
+// 驗證：1 ≤ winnerCount ≤ playerCount-1（playerCount 含 isOnline=false）
+// 失敗：INVALID_PRIZES_COUNT（範圍不合法）或 UPDATE_WINNER_COUNT_NOT_ALLOWED_IN_STATE（非 waiting）
+// 成功：廣播 ROOM_STATE（含更新後 winnerCount）
+{ type: "UPDATE_WINNER_COUNT", ts, payload: { winnerCount: number } }
+
+// UPDATE_TITLE — Host only, waiting 狀態限定
+// 驗證：title 為 0-50 字元（空字串代表清除）；非 waiting 回傳 TITLE_UPDATE_NOT_ALLOWED_IN_STATE
+// 成功：廣播 ROOM_STATE（含更新後 title）
+{ type: "UPDATE_TITLE", ts, payload: { title: string } }
 ```
 
 ### Pub/Sub 跨 Pod 廣播
@@ -713,7 +734,7 @@ PRD AC → Gherkin Tag 對應表：
 | GameService | Mock IRoomRepository |
 | HTTP Schemas | AJV valid/invalid |
 
-覆蓋率目標：shared ≥ 90%；server application/domain ≥ 80%
+覆蓋率目標：shared ≥ 90%；server application/domain ≥ 80%；client（Canvas 渲染邏輯、WS 事件解析）≥ 70%（PRD NFR-07）
 
 ### 9.2 Integration Tests（20%）— testcontainers
 
@@ -748,17 +769,18 @@ PRD AC → Gherkin Tag 對應表：
 ### 10.2 QPS 推算
 
 ```
+// 基準：PRD NFR-02 = 100 並發房間 × 50 人 = 5,000 WS 連線（MVP 目標）
 加入房間高峰（前 5 分鐘）：
-  200 房 × 50 人 / 300s = 33 QPS
+  100 房 × 50 人 / 300s ≈ 17 QPS
 
 WebSocket 廣播（揭示階段）：
-  200 房 × 1 揭示/s × 50 人 = 10,000 WS 發送/s
+  100 房 × 1 揭示/s × 50 人 = 5,000 WS 發送/s
 
 Redis 操作：
-  GET/SET: 500 ops/s
-  PUBLISH: 200 ops/s
-  INCR: 200 ops/s
-  總計 < 1,000 ops/s（Redis 可承受 100k+ ops/s）
+  GET/SET: 250 ops/s
+  PUBLISH: 100 ops/s
+  INCR: 100 ops/s
+  總計 < 500 ops/s（Redis 可承受 100k+ ops/s）
 ```
 
 ### 10.3 HPA 規則
@@ -906,6 +928,12 @@ graph TD
 | `PRIZES_NOT_SET` | 400 | W 尚未設定（AC-H03-2，回傳訊息：「請先設定中獎名額」） |
 | `INVALID_PRIZES_COUNT` | 400 | W < 1 或 W >= N |
 | `INVALID_STATE` | 409 | 操作不符合當前狀態（統一用此碼，PRD FR-04-3/FR-09-3） |
+| `CANNOT_KICK_HOST` | 400 | 踢除操作目標為 Host 本身，不允許 |
+| `INVALID_NAME` | 400 | 暱稱或 title 格式不合法（長度超限、含禁止字元） |
+| `ROOM_CODE_GENERATION_FAILED` | 500 | Room Code 碰撞重試超過 10 次，無法生成唯一碼 |
+| `TITLE_UPDATE_NOT_ALLOWED_IN_STATE` | 409 | 在非 waiting 狀態嘗試更新 title |
+| `UPDATE_WINNER_COUNT_NOT_ALLOWED_IN_STATE` | 409 | 在非 waiting 狀態嘗試更新 winnerCount |
+| `INVALID_AUTO_REVEAL_INTERVAL` | 400 | SET_REVEAL_MODE 中 intervalSec 不為整數或超出 1-30 範圍 |
 | `SYS_INTERNAL_ERROR` | 500 | 非預期錯誤 |
 | `RATE_LIMIT` | 429 | 超過速率限制 |
 
@@ -951,22 +979,43 @@ WS 斷線：
 8. 廣播 ROOM_STATE（status: waiting）
 ```
 
-### 12.4 START_GAME 原子性
+### 12.4 START_GAME / BEGIN_REVEAL 原子性
+
+**START_GAME（`waiting → running`）：**
 
 ```
-// 避免兩階段寫入：先生成 ladder，再整批提交
+// 避免兩階段寫入：先生成 ladder（若提前生成），再整批提交
 const seedSource = crypto.randomUUID();
-const ladder = generateLadder(seedSource, N);          // pure, no I/O
-const results = computeResults(ladder, winnerCount);    // pure
+// 注意：ladder 生成移至 BEGIN_REVEAL 階段（running → revealing 原子寫入）
 
-// 單一 MULTI/EXEC 原子寫入（ladder 與 status 同一 transaction）
+// START_GAME 僅寫入 status: "running"
 WATCH room:{code}
 MULTI
-  SET room:{code} {...room, status: "running", ladder, results}
-  DEL room:{code}:revealedCount   // 重置計數器（或於此 SET 0）
+  SET room:{code} {...room, status: "running"}
 EXEC
-// EXEC null 代表被 WATCH 修改，需重試一次（最多 3 次）
+// EXEC null 代表被 WATCH 修改，需重試（最多 3 次）
+// 成功後廣播 ROOM_STATE（status: "running"）
 ```
+
+**BEGIN_REVEAL（`running → revealing`）— Lua Script 保證原子性：**
+
+```lua
+-- eval lua_script 1 room:{code} {room_json}
+-- 在單一 Lua 腳本中：生成完整 ResultSlots（純計算已在 Server 端完成）、
+-- 更新 room.status = "revealing"、寫入 ladder/results/startColumn/endColumn/result
+-- Lua 腳本在 Redis 中原子執行，無法被其他命令插入
+local room = cjson.decode(ARGV[1])
+room.status = "revealing"
+-- room.ladder, room.results 已由 Server 計算填入 ARGV[1]
+redis.call('SET', KEYS[1], cjson.encode(room))
+redis.call('DEL', KEYS[1] .. ':revealedCount')  -- 重置揭示計數器
+return 1
+```
+
+**10 秒 Rollback Timeout（PDD §7.1）：**
+若 BEGIN_REVEAL 後 10 秒內 Server 未收到任何 REVEAL_NEXT/REVEAL_ALL_TRIGGER，
+GameService 自動將 status 回退為 `running`，廣播 ROOM_STATE 通知客戶端重試。
+此保護避免 Server 崩潰後房間永久卡在 `revealing` 初始化狀態。
 
 ### 12.5 前端錯誤策略
 

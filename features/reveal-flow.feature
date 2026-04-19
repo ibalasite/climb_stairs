@@ -73,3 +73,18 @@ Feature: 路徑揭曉流程
     When 所有客戶端完成動畫播放
     Then 伺服器廣播 ROOM_STATE，status 為 "finished"
     And 所有客戶端顯示完整得獎名單
+
+  # ---------------------------------------------------------------------------
+  # AC-H05 — auto-reveal intervalSec 邊界值驗證（T=1 valid, T=30 valid, T=0 reject, T=31 reject）
+  # ---------------------------------------------------------------------------
+  @AC-REVEAL-AUTO-BOUNDARY @P1
+  Scenario Outline: 自動揭曉間隔 T 邊界值驗證
+    When 主持人送出 SET_REVEAL_MODE（mode="auto"，intervalSec=<T>）
+    Then <expected_result>
+
+    Examples:
+      | T  | expected_result                                         |
+      | 1  | 伺服器接受並開始每隔 1 秒廣播 REVEAL_INDEX（合法下限）    |
+      | 30 | 伺服器接受並開始每隔 30 秒廣播 REVEAL_INDEX（合法上限）   |
+      | 0  | 伺服器回傳錯誤碼 "INVALID_AUTO_REVEAL_INTERVAL"（T=0 非法）|
+      | 31 | 伺服器回傳錯誤碼 "INVALID_AUTO_REVEAL_INTERVAL"（T=31 非法）|

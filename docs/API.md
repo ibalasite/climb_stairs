@@ -616,7 +616,7 @@ interface RoomStateFullPayload extends RoomStatePayload {
 }
 ```
 
-**觸發時機：** WS Upgrade 成功後立即 unicast
+**觸發時機：** WS 連線成功後立即 unicast 給連線玩家（含 `selfPlayerId`）；新連線與重連均觸發
 
 ---
 
@@ -705,7 +705,7 @@ interface RevealAllPayload {
 
 #### PLAYER_KICKED
 
-房主踢出玩家時廣播給房間所有人（含被踢者若仍在線）。
+房主踢出玩家時，**unicast 給被踢玩家**（若仍在線）；房間其他玩家透過後續 `ROOM_STATE` 廣播得知名單變更。
 
 ```typescript
 type WsEventType = "PLAYER_KICKED";
@@ -727,7 +727,7 @@ interface PlayerKickedPayload {
 }
 ```
 
-**觸發時機：** `DELETE /api/rooms/:code/players/:playerId` 或 `KICK_PLAYER` WS 訊息成功執行後
+**觸發時機：** `DELETE /api/rooms/:code/players/:playerId` 或 `KICK_PLAYER` WS 訊息成功執行後；unicast 給被踢玩家，其他玩家收到 `ROOM_STATE` 廣播
 
 ---
 

@@ -109,7 +109,7 @@ Pod 本地記憶體中存在兩種 `setTimeout`/`setInterval` 計時器，其所
 | 計時器 | 所有者模組 | 觸發條件 | Pod 重啟後恢復 |
 |--------|-----------|---------|--------------|
 | auto-reveal interval | `GameService`（靜態 Map `roomCode → NodeJS.Timeout`） | SET_REVEAL_MODE mode=auto；intervalSec 1-30s | 重連客戶端收到 ROOM_STATE_FULL（status=revealing）後，Host 須重新送 SET_REVEAL_MODE 恢復計時；服務端**不**自動恢復計時，以避免幽靈計時器 |
-| host-transfer grace（60s） | `WsSession`（`disconnect` event 觸發，Timer ID 存於 Session） | WS close event（host 斷線）；playerId === room.hostId | 重啟後 timer 消失；若 host 60s 內未重連，下一個連線至該房間的請求（心跳或新訊息）觸發 GameService 補跑 hostTransferIfNeeded() 邏輯（檢查 room.hostId.isOnline === false 且 updatedAt + 60s < now） |
+| (Out of Scope for MVP) host-transfer grace（60s） | `WsSession`（`disconnect` event 觸發，Timer ID 存於 Session） | WS close event（host 斷線）；playerId === room.hostId | 重啟後 timer 消失；若 host 60s 內未重連，下一個連線至該房間的請求（心跳或新訊息）觸發 GameService 補跑 hostTransferIfNeeded() 邏輯（檢查 room.hostId.isOnline === false 且 updatedAt + 60s < now） |
 
 **設計決策：** 計時器不序列化至 Redis，以保持 Pod 無狀態。Pod 重啟後，auto-reveal 依賴 Host 主動恢復，host-transfer 依賴下一個到達事件補跑。此為 MVP 單 Pod 下可接受的 trade-off；Post-MVP 多 Pod 時，計時器只在擁有 Host Session 的 Pod 上存在，廣播仍透過 Pub/Sub 正確傳遞。
 
@@ -191,9 +191,9 @@ Pod 本地記憶體中存在兩種 `setTimeout`/`setInterval` 計時器，其所
 - `jose` 支援 Web Crypto API，瀏覽器端未來可直接驗證（可審計）。
 - HS256 在 shared secret 模型下實作簡單，適合 MVP 單服務架構。
 
-**Token 有效期：** JWT `exp` 設為 **24 小時**，與 waiting 房間 TTL 對齊。玩家 token 在房間生命週期內有效；finished 房間 TTL 為 1h，token 在此仍有效但 Redis 中已無 Room 資料（`RoomRepository.findByCode` 回傳 null → 403）。
+**Token 有效期：** JWT `exp` 設為 **6 小時**（21600 秒）。玩家 token 在房間生命週期內有效；finished 房間 TTL 為 1h，token 在此仍有效但 Redis 中已無 Room 資料（`RoomRepository.findByCode` 回傳 null → 403）。
 
-**取捨：** Token 一旦簽發無法提前撤銷（除非加黑名單）；host 轉移後舊 host token 在 exp 前仍有效，須以 `room.hostId` 做雙重驗證。Token 24h exp 在極端情況（玩家隔天重連同一房間）仍可連入，但 Room TTL 屆滿後 Redis 無狀態可回傳，實際影響可忽略。
+**取捨：** Token 一旦簽發無法提前撤銷（除非加黑名單）；host 轉移後舊 host token 在 exp 前仍有效，須以 `room.hostId` 做雙重驗證。Token 6h exp 在極端情況下 Room TTL（24h waiting）屆滿前 token 可能先過期，此時玩家需重新加入取得新 token。
 
 ---
 

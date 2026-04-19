@@ -60,3 +60,46 @@ Feature: 房間生命週期
       | 1               |
       | 5               |
       | 9               |
+
+  # ---------------------------------------------------------------------------
+  # AC-H01-4 — Room Code 碰撞超過 10 次 → ROOM_CODE_GENERATION_FAILED
+  # ---------------------------------------------------------------------------
+  @AC-ROOM-006 @P0
+  Scenario: Room Code 碰撞超過 10 次後系統回傳 ROOM_CODE_GENERATION_FAILED
+    Given Redis 中已存在超過 10 個碰撞的 Room Code，導致每次嘗試均重複
+    When 主持人送出建立房間請求
+    Then HTTP 回應狀態碼為 500
+    And 回應錯誤碼為 "ROOM_CODE_GENERATION_FAILED"
+    And 前端顯示「建立失敗，請重試」提示
+    And Redis 中不存在任何孤立房間 key
+
+  # ---------------------------------------------------------------------------
+  # AC-H02-1 — waiting 狀態下 Host 可更新中獎名額（UPDATE_WINNER_COUNT）
+  # ---------------------------------------------------------------------------
+  @AC-WIN-001 @P0
+  Scenario: 主持人在 waiting 狀態成功更新中獎名額
+    Given 房間碼 "ALPHA2" 存在且狀態為 "waiting"
+    And 房間有 5 名玩家（N=5）且 winnerCount 尚未設定
+    When 主持人送出 UPDATE_WINNER_COUNT（winnerCount=2）
+    Then 伺服器接受並廣播 ROOM_STATE 給所有在線玩家
+    And ROOM_STATE payload 中 winnerCount 為 2
+
+  @AC-WIN-002 @P0
+  Scenario Outline: 主持人設定非法中獎名額時收到 INVALID_PRIZES_COUNT
+    Given 房間碼 "ALPHA2" 存在且狀態為 "waiting"
+    And 房間有 <N> 名玩家（N=<N>）
+    When 主持人送出 UPDATE_WINNER_COUNT（winnerCount=<W>）
+    Then 伺服器回傳錯誤碼 "INVALID_PRIZES_COUNT"
+    And 房間 winnerCount 維持不變
+
+    Examples:
+      | N | W | 說明             |
+      | 5 | 0 | W=0，低於下限     |
+      | 5 | 5 | W=N，等於上限違規 |
+
+  @AC-WIN-003 @P0
+  Scenario: 主持人在非 waiting 狀態更新中獎名額時被拒絕
+    Given 房間碼 "ALPHA2" 存在且狀態為 "running"
+    When 主持人送出 UPDATE_WINNER_COUNT（winnerCount=1）
+    Then 伺服器回傳錯誤碼 "UPDATE_WINNER_COUNT_NOT_ALLOWED_IN_STATE"
+    And 房間狀態維持 "running"

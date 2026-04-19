@@ -79,3 +79,20 @@ Feature: 玩家加入與管理
     And ROOM_STATE 中 "Frank" 的 isOnline 為 false
     And 其他玩家的等待畫面在 2 秒內更新並顯示 "Frank" 為「離線」
     And "Frank" 的名額與位置保留，不從玩家列表移除
+
+  # ---------------------------------------------------------------------------
+  # EDD §12.1 ROOM_NOT_ACCEPTING — 玩家嘗試加入非 waiting 狀態的房間
+  # ---------------------------------------------------------------------------
+  @AC-PLAYER-007 @P0
+  Scenario Outline: 玩家嘗試加入非 waiting 狀態房間時收到 ROOM_NOT_ACCEPTING
+    Given 房間碼 "ALPHA2" 存在且狀態為 "<room_status>"
+    When 玩家嘗試以暱稱 "NewPlayer" 加入房間
+    Then HTTP 回應狀態碼為 409
+    And 回應錯誤碼為 "ROOM_NOT_ACCEPTING"
+    And 前端顯示「房間已在進行中，無法加入」提示
+
+    Examples:
+      | room_status |
+      | running     |
+      | revealing   |
+      | finished    |

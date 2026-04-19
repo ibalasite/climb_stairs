@@ -104,3 +104,40 @@ Feature: 主持人管理操作
     Then 伺服器回傳錯誤碼 "INSUFFICIENT_ONLINE_PLAYERS"
     And 前端顯示「在線玩家不足，無法開始新局」
     And 房間狀態維持 "finished"
+
+  # ---------------------------------------------------------------------------
+  # AC-P06-1/2 — 玩家被踢除後收到 PLAYER_KICKED 通知並跳轉首頁
+  # ---------------------------------------------------------------------------
+  @AC-P06-001 @P1
+  Scenario: 玩家被踢除後收到 PLAYER_KICKED unicast 並跳轉首頁
+    Given 房間碼 "DELTA5" 存在且狀態為 "waiting"
+    And 玩家 "Alice"（playerId="player-alice-uuid"）已連線至房間
+    When 主持人送出 KICK_PLAYER（targetPlayerId="player-alice-uuid"）
+    Then 伺服器 unicast PLAYER_KICKED 給 "Alice" 的 WebSocket 連線
+    And "Alice" 的客戶端顯示「你已被主持人移出房間」提示
+    And "Alice" 的 WebSocket 連線關閉
+    And 頁面顯示「回首頁」按鈕
+
+  @AC-P06-002 @P1
+  Scenario: 被踢除的玩家嘗試重連時收到 PLAYER_KICKED 錯誤
+    Given playerId="player-alice-uuid" 已存在於 kickedPlayerIds
+    When "Alice" 嘗試以相同 playerId 重新建立 WebSocket 連線
+    Then WS Upgrade 被以 close code 4003 拒絕
+    And 前端顯示「你已被移出此房間，無法重新加入」
+
+  # ---------------------------------------------------------------------------
+  # NFR-05 — 無效或過期 JWT 嘗試 Host 操作時回傳 401
+  # ---------------------------------------------------------------------------
+  @AC-AUTH-001 @P0
+  Scenario: 使用無效 JWT 執行 Host 操作時收到 401 AUTH_INVALID_TOKEN
+    Given 主持人使用格式錯誤或簽名不符的 JWT token
+    When 主持人嘗試送出 DELETE /api/rooms/DELTA5/players/some-player-id
+    Then HTTP 回應狀態碼為 401
+    And 回應錯誤碼為 "AUTH_INVALID_TOKEN"
+
+  @AC-AUTH-002 @P0
+  Scenario: 使用過期 JWT 執行 Host 操作時收到 401 AUTH_TOKEN_EXPIRED
+    Given 主持人的 JWT token 已超過 6 小時過期
+    When 主持人嘗試送出 POST /api/rooms/DELTA5/game/start
+    Then HTTP 回應狀態碼為 401
+    And 回應錯誤碼為 "AUTH_TOKEN_EXPIRED"
