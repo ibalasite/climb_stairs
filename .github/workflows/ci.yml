@@ -183,26 +183,37 @@ jobs:
           version: "v1.29.0"
 
       - name: Configure kubeconfig
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
         run: |
+          if [ -z "$KUBECONFIG_B64" ]; then
+            echo "KUBECONFIG secret not configured — skipping k8s deploy"
+            echo "SKIP_DEPLOY=true" >> "$GITHUB_ENV"
+            exit 0
+          fi
           mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+          echo "$KUBECONFIG_B64" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
       - name: Deploy namespace and config
+        if: env.SKIP_DEPLOY != 'true'
         run: |
           kubectl apply -f k8s/namespace.yaml
           kubectl apply -f k8s/configmap.yaml
 
       - name: Update image in deployment
+        if: env.SKIP_DEPLOY != 'true'
         run: |
           kubectl set image deployment/ladder-server \
             ladder-server=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }} \
             -n ladder-room
 
       - name: Wait for rollout
+        if: env.SKIP_DEPLOY != 'true'
         run: kubectl rollout status deployment/ladder-server -n ladder-room --timeout=120s
 
       - name: Apply remaining manifests
+        if: env.SKIP_DEPLOY != 'true'
         run: |
           kubectl apply -f k8s/service.yaml
           kubectl apply -f k8s/ingress.yaml
