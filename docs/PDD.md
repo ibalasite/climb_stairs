@@ -715,3 +715,23 @@ Server 回應錯誤碼（HTTP 或 WebSocket response）：
 *文件版本：v2.1（PDD rev 3，對應產品 MVP v1）*  
 *最後更新：2026-04-19*  
 *狀態：Draft — PRNG 演算法規格與手機端 FPS 目標已決定；同步方案 / 樓梯渲染選型待技術評估*
+
+## 17. 技術選型（STEP-02 決定）
+
+| 層 | 技術 |
+|----|------|
+| 後端 Runtime | Node.js LTS (≥ 20) |
+| 後端語言 | TypeScript (strict mode) |
+| HTTP 框架 | Fastify |
+| WebSocket | ws（原生，不用 Socket.IO） |
+| 房間狀態儲存 | Redis（原子操作 + Pub/Sub） |
+| 前端語言 | Vanilla TypeScript |
+| 前端渲染 | HTML5 Canvas（樓梯動畫）|
+| 前端建構 | Vite |
+| 共享邏輯 | Mulberry32 PRNG、遊戲路徑計算（前後端共用 npm workspace） |
+| 容器化 | Docker multi-stage（distroless runtime） |
+| 基礎設施 | k8s（Rancher Desktop）+ HPA |
+| CI/CD | GitHub Actions |
+| 測試 | Vitest（unit）+ Supertest（integration）+ Playwright（E2E） |
+
+*選型時間：2026-04-19*
