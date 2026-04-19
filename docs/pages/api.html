@@ -3,383 +3,1011 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>API — Ladder Room Online 文件</title>
+  <title>API 文件 — climb_stairs</title>
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
 </head>
 <body>
-<nav class="top-nav">
-  <a class="nav-brand" href="index.html">Ladder Room Online</a>
-  <div class="nav-controls">
-    <div class="search-wrap">
-      <input class="search-input" type="search" placeholder="搜尋文件…" aria-label="搜尋">
-      <div class="search-results" role="listbox"></div>
+  <header class="top-nav">
+    <a href="index.html" class="nav-brand">climb_stairs</a>
+    <div class="nav-controls">
+      <div class="search-wrap">
+        <input class="search-input" type="search" placeholder="搜尋文件...">
+        <div class="search-results"></div>
+      </div>
+      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">&#xfe0f; GitHub</a>
     </div>
-    <a class="nav-gh-link" href="https://github.com/tobala/climb_stairs" target="_blank" rel="noopener">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-      GitHub
-    </a>
+  </header>
+  <div class="doc-page-banner">
+    <p class="banner-breadcrumb"><a href="index.html">climb_stairs</a> &rsaquo; API 文件</p>
+    <h1 class="banner-title">API 文件</h1>
   </div>
-</nav>
-
-<div class="doc-page-banner">
-  <div class="banner-breadcrumb"><a href="index.html">首頁</a> › API</div>
-  <h1 class="banner-title">API 參考文件</h1>
-  <p class="banner-desc">HTTP REST 端點、WebSocket 事件、錯誤碼、JWT 規格 · v1.1</p>
-</div>
-
-<div class="page-wrapper">
-  <nav class="sidebar">
-    <div class="sidebar__section">
-      <div class="sidebar__label">文件</div>
-      <a class="sidebar__link" href="index.html">🏠 首頁</a>
-      <a class="sidebar__link" href="pdd.html">📋 PDD 產品需求</a>
-      <a class="sidebar__link" href="prd.html">📝 PRD 功能規格</a>
-      <a class="sidebar__link" href="edd.html">⚙️ EDD 工程設計</a>
-      <a class="sidebar__link" href="arch.html">🏗️ ARCH 架構</a>
-      <a class="sidebar__link active" href="api.html">🔌 API 參考</a>
-      <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
-      <a class="sidebar__link" href="design.html">🎨 UI Design</a>
-      <a class="sidebar__link" href="bdd.html">✅ BDD 測試</a>
-    </div>
-  </nav>
-
-  <main class="doc-content">
-    <h1>API 參考文件</h1>
-
-    <h2>1. 概覽</h2>
-
-    <h3>Base URL</h3>
-    <pre><code>Production:  https://api.ladder-room.online/api
+  <div class="page-wrapper">
+    <aside class="sidebar" aria-label="文件導覽">
+      <div class="sidebar__section">
+        <div class="sidebar__label">文件</div>
+        <a class="sidebar__link" href="index.html">🏠 首頁</a>
+<a class="sidebar__link" href="pdd.html">📋 產品設計文件 (PDD)</a>
+<a class="sidebar__link" href="prd.html">📝 產品需求文件 (PRD)</a>
+<a class="sidebar__link" href="edd.html">🏗️ 工程設計文件 (EDD)</a>
+<a class="sidebar__link" href="arch.html">🧩 架構設計</a>
+<a class="sidebar__link active" href="api.html">🔌 API 文件</a>
+<a class="sidebar__link" href="schema.html">🗄️ Schema 文件</a>
+<a class="sidebar__link" href="design.html">🎨 Design 設計文件</a>
+<a class="sidebar__link" href="align_report.html">📊 對齊報告</a>
+<a class="sidebar__link" href="bdd.html">🧪 BDD Scenarios</a>
+      </div>
+    </aside>
+    <main class="doc-content"><h1>API Design Document — Ladder Room Online</h1>
+<p><em>Version: v1.1 | 2026-04-19 | Based on EDD v1.3 + PRD v1.3</em></p>
+<hr>
+<h2>1. 概覽</h2>
+<h3>Base URL 與版本策略</h3>
+<pre><code class="">Production: https://api.ladder-room.online/api
 Development: http://localhost:3000/api
 WebSocket:   wss://api.ladder-room.online/ws</code></pre>
-
-    <h3>Content-Type</h3>
-    <p>所有請求與回應均使用 <code>Content-Type: application/json; charset=utf-8</code>。WebSocket 訊息以 UTF-8 JSON 字串傳輸，不使用 Binary frame。</p>
-
-    <h3>認證</h3>
-    <p>Host 專屬操作需在 <code>Authorization</code> Header 帶入 JWT：</p>
-    <pre><code>Authorization: Bearer &lt;token&gt;</code></pre>
-    <p><code>token</code> 由 <code>POST /api/rooms</code>（建立房間）或 <code>POST /api/rooms/:code/players</code>（加入房間）取得。一般查詢端點無需認證。</p>
-
-    <h3>回應格式</h3>
-    <p>所有 HTTP 回應均為<strong>直接 JSON 物件</strong>，不包裝 envelope。</p>
-    <pre><code>// 成功
-{ "roomCode": "AB3K7X", "playerId": "uuid-...", "token": "eyJ..." }
-
-// 失敗
-{ "error": "ROOM_FULL", "message": "Room has reached the maximum of 50 players." }</code></pre>
-
-    <h2>2. HTTP REST 端點</h2>
-
-    <h3>端點總覽</h3>
-    <table>
-      <thead><tr><th>#</th><th>Method</th><th>Path</th><th>描述</th><th>需要 Auth</th></tr></thead>
-      <tbody>
-        <tr><td>1</td><td><code>POST</code></td><td><code>/api/rooms</code></td><td>建立房間</td><td>否</td></tr>
-        <tr><td>2</td><td><code>GET</code></td><td><code>/api/rooms/:code</code></td><td>查詢房間摘要</td><td>否</td></tr>
-        <tr><td>3</td><td><code>POST</code></td><td><code>/api/rooms/:code/players</code></td><td>加入房間</td><td>否</td></tr>
-        <tr><td>4</td><td><code>DELETE</code></td><td><code>/api/rooms/:code/players/:playerId</code></td><td>踢出玩家</td><td>是（host）</td></tr>
-        <tr><td>5</td><td><code>POST</code></td><td><code>/api/rooms/:code/game/start</code></td><td>開始遊戲</td><td>是（host）</td></tr>
-        <tr><td>6</td><td><code>POST</code></td><td><code>/api/rooms/:code/game/reveal</code></td><td>揭示結果（next | all）</td><td>是（host）</td></tr>
-        <tr><td>7</td><td><code>POST</code></td><td><code>/api/rooms/:code/game/end</code></td><td>結束本局</td><td>是（host）</td></tr>
-        <tr><td>8</td><td><code>POST</code></td><td><code>/api/rooms/:code/game/play-again</code></td><td>再玩一局</td><td>是（host）</td></tr>
-        <tr><td>9</td><td><code>GET</code></td><td><code>/health</code></td><td>健康檢查（liveness）</td><td>否</td></tr>
-        <tr><td>10</td><td><code>GET</code></td><td><code>/ready</code></td><td>就緒檢查（readiness）</td><td>否</td></tr>
-      </tbody>
-    </table>
-
-    <hr>
-
-    <h3>1. POST /api/rooms — 建立房間</h3>
-    <p>建立新房間，創建者自動成為房主（host），並取得 host 身份的 <code>token</code>。</p>
-
-    <h4>Request Body</h4>
-    <pre><code>{
-  "hostNickname": "Alice",   // 1-20 個字元，禁止 null/控制字元
-  "winnerCount": 3           // 整數 >= 1
+<ul><li>所有 HTTP REST 端點掛載於 <code>/api/</code>。</li><li>WebSocket 不含版本路徑，由 query param <code>token</code> 的 JWT <code>iat</code> 隱含版本邊界。</li></ul>
+<h3>Content-Type</h3>
+<p>所有請求與回應均使用：</p>
+<pre><code class="">Content-Type: application/json; charset=utf-8</code></pre>
+<p>WebSocket 訊息以 UTF-8 JSON 字串傳輸，不使用 Binary frame。</p>
+<h3>認證</h3>
+<p>Host 專屬操作需在 <code>Authorization</code> Header 帶入 JWT：</p>
+<pre><code class="">Authorization: Bearer &lt;token&gt;</code></pre>
+<p><code>token</code> 由 <code>POST /api/rooms</code>（建立房間）或 <code>POST /api/rooms/:code/players</code>（加入房間）取得。</p>
+<p>一般查詢端點（<code>GET /api/rooms/:code</code>、<code>GET /health</code>）無需認證。</p>
+<h3>回應格式</h3>
+<p>所有 HTTP 回應均為<strong>直接 JSON 物件</strong>，不包裝 envelope。</p>
+<p><strong>成功範例（POST /api/rooms）：</strong></p>
+<pre><code class="language-json">{ &quot;roomCode&quot;: &quot;AB3K7X&quot;, &quot;playerId&quot;: &quot;uuid-...&quot;, &quot;token&quot;: &quot;eyJ...&quot; }</code></pre>
+<p><strong>失敗範例：</strong></p>
+<pre><code class="language-json">{
+  &quot;error&quot;: &quot;ROOM_FULL&quot;,
+  &quot;message&quot;: &quot;Room has reached the maximum of 50 players.&quot;
 }</code></pre>
-
-    <h4>Success Response — 201 Created</h4>
-    <pre><code>{
-  "roomCode": "AB3K7X",
-  "playerId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "room": {
-    "code": "AB3K7X",
-    "title": null,
-    "status": "waiting",
-    "hostId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-    "players": [
-      { "id": "f47ac10b...", "nickname": "Alice", "colorIndex": 0,
-        "isHost": true, "isOnline": true, "joinedAt": 1745049600000, "result": null }
+<hr>
+<h2>2. HTTP REST 端點</h2>
+<h3>端點總覽</h3>
+<table>
+<tr><th>#</th><th>Method</th><th>Path</th><th>描述</th><th>需要 Auth</th></tr>
+<tr><td>1</td><td><code>POST</code></td><td><code>/api/rooms</code></td><td>建立房間</td><td>否</td></tr>
+<tr><td>2</td><td><code>GET</code></td><td><code>/api/rooms/:code</code></td><td>查詢房間摘要</td><td>否</td></tr>
+<tr><td>3</td><td><code>POST</code></td><td><code>/api/rooms/:code/players</code></td><td>加入房間</td><td>否</td></tr>
+<tr><td>4</td><td><code>DELETE</code></td><td><code>/api/rooms/:code/players/:playerId</code></td><td>踢出玩家</td><td>是（host）</td></tr>
+<tr><td>5</td><td><code>POST</code></td><td><code>/api/rooms/:code/game/start</code></td><td>開始遊戲</td><td>是（host）</td></tr>
+<tr><td>6</td><td><code>POST</code></td><td><code>/api/rooms/:code/game/reveal</code></td><td>揭示結果（next \</td><td>all）</td><td>是（host）</td></tr>
+<tr><td>7</td><td><code>POST</code></td><td><code>/api/rooms/:code/game/end</code></td><td>結束本局</td><td>是（host）</td></tr>
+<tr><td>8</td><td><code>POST</code></td><td><code>/api/rooms/:code/game/play-again</code></td><td>再玩一局</td><td>是（host）</td></tr>
+<tr><td>9</td><td><code>GET</code></td><td><code>/health</code></td><td>健康檢查（liveness）</td><td>否</td></tr>
+<tr><td>10</td><td><code>GET</code></td><td><code>/ready</code></td><td>就緒檢查（readiness）</td><td>否</td></tr>
+</table>
+<hr>
+<h3>1. POST /api/rooms — 建立房間</h3>
+<p>建立新房間，創建者自動成為房主（host），並取得 host 身份的 <code>token</code>。</p>
+<p><strong>Request Headers</strong></p>
+<pre><code class="">Content-Type: application/json</code></pre>
+<p><strong>Request Body Schema</strong></p>
+<pre><code class="language-typescript">interface CreateRoomRequest {
+  hostNickname: string;  // 1-20 個字元，禁止 null/控制字元（pattern: /^[^\x00-\x1F\x7F]{1,20}$/）
+  winnerCount: number;   // 整數 &gt;= 1（上限在玩家加入後於 START_GAME 驗證 W &lt;= N-1）
+}</code></pre>
+<p><strong>Request Body 範例</strong></p>
+<pre><code class="language-json">{
+  &quot;hostNickname&quot;: &quot;Alice&quot;,
+  &quot;winnerCount&quot;: 3
+}</code></pre>
+<p><strong>Success Response — 201 Created</strong></p>
+<pre><code class="language-typescript">interface CreateRoomResponse {
+  roomCode: string;  // 6 個字元，字元集 A-HJ-NP-Z2-9（排除易混淆字元 I/O/0/1）
+  playerId: string;  // UUID v4，房主身份識別
+  token: string;     // JWT HS256，role: &quot;host&quot;，TTL 6 小時
+  room: Room;        // 完整房間物件
+}</code></pre>
+<pre><code class="language-json">{
+  &quot;roomCode&quot;: &quot;AB3K7X&quot;,
+  &quot;playerId&quot;: &quot;f47ac10b-58cc-4372-a567-0e02b2c3d479&quot;,
+  &quot;token&quot;: &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot;,
+  &quot;room&quot;: {
+    &quot;code&quot;: &quot;AB3K7X&quot;,
+    &quot;title&quot;: null,
+    &quot;status&quot;: &quot;waiting&quot;,
+    &quot;hostId&quot;: &quot;f47ac10b-58cc-4372-a567-0e02b2c3d479&quot;,
+    &quot;players&quot;: [
+      { &quot;id&quot;: &quot;f47ac10b-58cc-4372-a567-0e02b2c3d479&quot;, &quot;nickname&quot;: &quot;Alice&quot;, &quot;colorIndex&quot;: 0, &quot;isHost&quot;: true, &quot;isOnline&quot;: true, &quot;joinedAt&quot;: 1745049600000, &quot;result&quot;: null }
     ],
-    "winnerCount": 3,
-    "ladder": null,
-    "results": null,
-    "revealedCount": 0,
-    "revealMode": "manual",
-    "autoRevealIntervalSec": null,
-    "kickedPlayerIds": [],
-    "createdAt": 1745049600000,
-    "updatedAt": 1745049600000
+    &quot;winnerCount&quot;: 3,
+    &quot;ladder&quot;: null,
+    &quot;results&quot;: null,
+    &quot;revealedCount&quot;: 0,
+    &quot;revealMode&quot;: &quot;manual&quot;,
+    &quot;autoRevealIntervalSec&quot;: null,
+    &quot;kickedPlayerIds&quot;: [],
+    &quot;createdAt&quot;: 1745049600000,
+    &quot;updatedAt&quot;: 1745049600000
   }
 }</code></pre>
-
-    <h4>Error Responses</h4>
-    <table>
-      <thead><tr><th>HTTP</th><th>錯誤碼</th><th>說明</th></tr></thead>
-      <tbody>
-        <tr><td>400</td><td><code>INVALID_NICKNAME</code></td><td>hostNickname 格式不合法（長度超限或含禁止字元）</td></tr>
-        <tr><td>400</td><td><code>INVALID_PRIZES_COUNT</code></td><td>winnerCount &lt; 1 或不為整數</td></tr>
-        <tr><td>429</td><td><code>RATE_LIMIT</code></td><td>超過 10 req/min/IP</td></tr>
-      </tbody>
-    </table>
-
-    <hr>
-
-    <h3>2. GET /api/rooms/:code — 查詢房間摘要</h3>
-    <p>查詢指定房間的公開摘要資訊。無需認證。</p>
-
-    <h4>Success Response — 200 OK</h4>
-    <pre><code>{
-  "code": "AB3K7X",
-  "title": null,
-  "status": "waiting",
-  "hostId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "players": [],
-  "winnerCount": 1,
-  "revealedCount": 0,
-  "revealMode": "manual",
-  "autoRevealIntervalSec": null,
-  "createdAt": 1745049600000,
-  "updatedAt": 1745049600000
+<p><strong>Error Responses</strong></p>
+<table>
+<tr><th>HTTP</th><th>錯誤碼</th><th>說明</th></tr>
+<tr><td>400</td><td><code>INVALID_NICKNAME</code></td><td><code>hostNickname</code> 格式不合法（長度超限或含禁止字元）</td></tr>
+<tr><td>400</td><td><code>INVALID<em>PRIZES</em>COUNT</code></td><td><code>winnerCount &lt; 1</code> 或不為整數</td></tr>
+<tr><td>429</td><td><code>RATE_LIMIT</code></td><td>超過 10 req/min/IP</td></tr>
+</table>
+<pre><code class="language-json">{
+  &quot;error&quot;: &quot;INVALID_PRIZES_COUNT&quot;,
+  &quot;message&quot;: &quot;winnerCount must be an integer &gt;= 1.&quot;
 }</code></pre>
-
-    <h4>Error Responses</h4>
-    <table>
-      <thead><tr><th>HTTP</th><th>錯誤碼</th><th>說明</th></tr></thead>
-      <tbody>
-        <tr><td>404</td><td><code>ROOM_NOT_FOUND</code></td><td>房間碼不存在或已過期</td></tr>
-      </tbody>
-    </table>
-
-    <hr>
-
-    <h3>3. POST /api/rooms/:code/players — 加入房間</h3>
-
-    <h4>Request Body</h4>
-    <pre><code>{ "nickname": "Bob" }</code></pre>
-
-    <h4>Success Response — 201 Created</h4>
-    <pre><code>{
-  "playerId": "a1b2c3d4-...",
-  "token": "eyJ...",
-  "colorIndex": 5
+<p><strong>Rate Limit:</strong> 10 req/min/IP</p>
+<hr>
+<h3>2. GET /api/rooms/:code — 查詢房間摘要</h3>
+<p>查詢指定房間的公開摘要資訊。無需認證，回傳完整房間物件。</p>
+<p><strong>Path Parameters</strong></p>
+<table>
+<tr><th>參數</th><th>格式</th><th>說明</th></tr>
+<tr><td><code>code</code></td><td><code>[A-HJ-NP-Z2-9]{6}</code></td><td>6 碼房間代碼</td></tr>
+</table>
+<p><strong>Request Headers</strong></p>
+<p>無（unauthenticated）</p>
+<p><strong>Success Response — 200 OK</strong></p>
+<p>回傳房間物件（直接 JSON，無 envelope）：</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: &quot;AB3K7X&quot;,
+  &quot;title&quot;: null,
+  &quot;status&quot;: &quot;waiting&quot;,
+  &quot;hostId&quot;: &quot;f47ac10b-58cc-4372-a567-0e02b2c3d479&quot;,
+  &quot;players&quot;: [],
+  &quot;winnerCount&quot;: 1,
+  &quot;revealedCount&quot;: 0,
+  &quot;revealMode&quot;: &quot;manual&quot;,
+  &quot;autoRevealIntervalSec&quot;: null,
+  &quot;createdAt&quot;: 1745049600000,
+  &quot;updatedAt&quot;: 1745049600000
 }</code></pre>
+<p><strong>Error Responses</strong></p>
+<table>
+<tr><th>HTTP</th><th>錯誤碼</th><th>說明</th></tr>
+<tr><td>404</td><td><code>ROOM<em>NOT</em>FOUND</code></td><td>房間不存在或 TTL 過期</td></tr>
+</table>
+<p><strong>Rate Limit:</strong> 100 req/min/IP</p>
+<hr>
+<h3>3. POST /api/rooms/:code/players — 加入房間</h3>
+<p>以暱稱加入指定房間，取得玩家 JWT。</p>
+<p><strong>Path Parameters</strong></p>
+<table>
+<tr><th>參數</th><th>格式</th><th>說明</th></tr>
+<tr><td><code>code</code></td><td><code>[A-HJ-NP-Z2-9]{6}</code></td><td>6 碼房間代碼</td></tr>
+</table>
+<p><strong>Request Headers</strong></p>
+<pre><code class="">Content-Type: application/json</code></pre>
+<p><strong>Request Body Schema</strong></p>
+<pre><code class="language-typescript">interface JoinRoomRequest {
+  nickname: string;  // 1-20 個 Unicode 字元（pattern: /^[^\x00-\x1F\x7F]{1,20}$/）
+}</code></pre>
+<p><strong>Request Body 範例</strong></p>
+<pre><code class="language-json">{
+  &quot;nickname&quot;: &quot;Bob&quot;
+}</code></pre>
+<p><strong>Success Response — 201 Created</strong></p>
+<pre><code class="language-typescript">interface JoinRoomResponse {
+  playerId: string;  // UUID v4
+  token: string;     // JWT HS256，role: &quot;player&quot;，TTL 6 小時
+  room: Room;        // 完整房間物件
+}</code></pre>
+<pre><code class="language-json">{
+  &quot;playerId&quot;: &quot;a3bb189e-8bf9-3888-9912-ace4e6543002&quot;,
+  &quot;token&quot;: &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot;,
+  &quot;room&quot;: { &quot;code&quot;: &quot;AB3K7X&quot;, &quot;status&quot;: &quot;waiting&quot;, &quot;...&quot; : &quot;...&quot; }
+}</code></pre>
+<p><strong>Error Responses</strong></p>
+<table>
+<tr><th>HTTP</th><th>錯誤碼</th><th>說明</th></tr>
+<tr><td>404</td><td><code>ROOM<em>NOT</em>FOUND</code></td><td>房間不存在</td></tr>
+<tr><td>409</td><td><code>ROOM_FULL</code></td><td>已達 50 人上限</td></tr>
+<tr><td>409</td><td><code>NICKNAME_TAKEN</code></td><td>暱稱在此房間已被使用</td></tr>
+<tr><td>409</td><td><code>ROOM<em>NOT</em>ACCEPTING</code></td><td>房間狀態非 <code>waiting</code>（進行中或已結束）</td></tr>
+</table>
+<p><strong>Rate Limit:</strong> 20 req/min/IP</p>
+<hr>
+<h3>4. DELETE /api/rooms/:code/players/:playerId — 踢出玩家</h3>
+<p>房主將指定玩家從房間移除。僅在 <code>waiting</code> 狀態有效。</p>
+<p><strong>Path Parameters</strong></p>
+<table>
+<tr><th>參數</th><th>格式</th><th>說明</th></tr>
+<tr><td><code>code</code></td><td><code>[A-HJ-NP-Z2-9]{6}</code></td><td>6 碼房間代碼</td></tr>
+<tr><td><code>playerId</code></td><td>UUID v4</td><td>目標玩家的 <code>playerId</code></td></tr>
+</table>
+<p><strong>Request Headers</strong></p>
+<pre><code class="">Authorization: Bearer &lt;token&gt;
+Content-Type: application/json</code></pre>
+<p><strong>Request Body:</strong> 無（空 body）</p>
+<p><strong>Success Response — 204 No Content</strong></p>
+<p>回應 body 為空。</p>
+<p><strong>Error Responses</strong></p>
+<table>
+<tr><th>HTTP</th><th>錯誤碼</th><th>說明</th></tr>
+<tr><td>401</td><td><code>AUTH<em>INVALID</em>TOKEN</code></td><td>JWT 無效或格式錯誤</td></tr>
+<tr><td>401</td><td><code>AUTH<em>TOKEN</em>EXPIRED</code></td><td>JWT 已過期</td></tr>
+<tr><td>403</td><td><code>PLAYER<em>NOT</em>HOST</code></td><td>操作者不是房主</td></tr>
+<tr><td>404</td><td><code>PLAYER<em>NOT</em>FOUND</code></td><td>目標玩家不存在此房間</td></tr>
+<tr><td>409</td><td><code>INVALID_STATE</code></td><td>房間狀態非 <code>waiting</code>（無法在遊戲進行中踢人）</td></tr>
+</table>
+<pre><code class="language-json">{
+  &quot;error&quot;: &quot;PLAYER_NOT_HOST&quot;,
+  &quot;message&quot;: &quot;Only the host can kick players.&quot;
+}</code></pre>
+<p><strong>Rate Limit:</strong> 100 req/min/IP</p>
+<hr>
+<h3>5. POST /api/rooms/:code/game/start — 開始遊戲</h3>
+<p>房主觸發遊戲開始。後端生成 <code>seedSource</code>（UUID v4）並計算 <code>rowCount</code>，<strong>不生成梯子結構</strong>（梯子延遲至 BEGIN_REVEAL 時生成）。回傳房間物件（不含 <code>ladder</code>）。</p>
+<p><strong>Path Parameters</strong></p>
+<table>
+<tr><th>參數</th><th>格式</th><th>說明</th></tr>
+<tr><td><code>code</code></td><td><code>[A-HJ-NP-Z2-9]{6}</code></td><td>6 碼房間代碼</td></tr>
+</table>
+<p><strong>Request Headers</strong></p>
+<pre><code class="">Authorization: Bearer &lt;token&gt;
+Content-Type: application/json</code></pre>
+<p><strong>Request Body:</strong> <code>{}</code> 或空（winnerCount 於建立房間時已設定）</p>
+<p><strong>Success Response — 200 OK</strong></p>
+<p>回傳房間物件（直接 JSON；<code>ladder</code> 欄位為 <code>null</code>，梯子尚未生成）：</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: &quot;AB3K7X&quot;,
+  &quot;status&quot;: &quot;running&quot;,
+  &quot;hostId&quot;: &quot;f47ac10b-58cc-4372-a567-0e02b2c3d479&quot;,
+  &quot;players&quot;: [],
+  &quot;winnerCount&quot;: 1,
+  &quot;ladder&quot;: null,
+  &quot;revealedCount&quot;: 0,
+  &quot;revealMode&quot;: &quot;manual&quot;,
+  &quot;autoRevealIntervalSec&quot;: null,
+  &quot;createdAt&quot;: 1745049600000,
+  &quot;updatedAt&quot;: 1745050000000
+}</code></pre>
+<blockquote><p><strong>注意</strong>：<code>seed</code> 與 <code>seedSource</code> 在 <code>status=finished</code> 之前均不對客戶端公開（PRD AC-H03-1, NFR-05）。<code>rowCount</code> 透過 WS <code>ROOM<em>STATE</code> 廣播傳遞（含於 room 物件），但 <code>seed</code> 不公開。梯子結構（<code>LadderData</code>）在 BEGIN</em>REVEAL 時才生成並寫入 Redis。</p></blockquote>
+<p><strong>Error Responses</strong></p>
+<table>
+<tr><th>HTTP</th><th>錯誤碼</th><th>說明</th></tr>
+<tr><td>400</td><td><code>INSUFFICIENT_PLAYERS</code></td><td>玩家數 N &lt; 2</td></tr>
+<tr><td>400</td><td><code>PRIZES<em>NOT</em>SET</code></td><td><code>winnerCount</code> 尚未設定（null）</td></tr>
+<tr><td>400</td><td><code>INVALID<em>PRIZES</em>COUNT</code></td><td><code>winnerCount &gt;= N</code>（需 1 &lt;= W &lt;= N-1）</td></tr>
+<tr><td>403</td><td><code>PLAYER<em>NOT</em>HOST</code></td><td>操作者不是房主</td></tr>
+<tr><td>409</td><td><code>INVALID_STATE</code></td><td>房間狀態非 <code>waiting</code></td></tr>
+</table>
+<p><strong>Rate Limit:</strong> 100 req/min/IP</p>
+<hr>
+<h3>6. POST /api/rooms/:code/game/reveal — 揭示結果</h3>
+<p>房主觸發結果揭示。<code>mode: &quot;next&quot;</code> 逐一揭示下一位玩家；<code>mode: &quot;all&quot;</code> 一次揭示全部剩餘。</p>
+<p>房間必須在 <code>revealing</code> 狀態。揭示完畢後需由房主另行發送 END_GAME 訊息（WS 或 HTTP）才轉入 <code>finished</code>。</p>
+<p><strong>Path Parameters</strong></p>
+<table>
+<tr><th>參數</th><th>格式</th><th>說明</th></tr>
+<tr><td><code>code</code></td><td><code>[A-HJ-NP-Z2-9]{6}</code></td><td>6 碼房間代碼</td></tr>
+</table>
+<p><strong>Request Headers</strong></p>
+<pre><code class="">Authorization: Bearer &lt;token&gt;
+Content-Type: application/json</code></pre>
+<p><strong>Request Body Schema</strong></p>
+<pre><code class="language-typescript">interface RevealRequest {
+  mode: &quot;next&quot; | &quot;all&quot;;
+}</code></pre>
+<p><strong>Request Body 範例</strong></p>
+<pre><code class="language-json">{ &quot;mode&quot;: &quot;next&quot; }</code></pre>
+<p><strong>Success Response — 200 OK</strong></p>
+<p>回傳更新後的房間物件（直接 JSON）。<code>ladder</code> 在 <code>revealing</code> 狀態為 <code>LadderDataPublic</code>（省略 <code>seed</code>）：</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: &quot;AB3K7X&quot;,
+  &quot;status&quot;: &quot;revealing&quot;,
+  &quot;hostId&quot;: &quot;f47ac10b-58cc-4372-a567-0e02b2c3d479&quot;,
+  &quot;players&quot;: [],
+  &quot;winnerCount&quot;: 1,
+  &quot;ladder&quot;: {
+    &quot;rowCount&quot;: 20,
+    &quot;colCount&quot;: 3,
+    &quot;segments&quot;: [{ &quot;row&quot;: 0, &quot;col&quot;: 1 }, { &quot;row&quot;: 3, &quot;col&quot;: 0 }]
+  },
+  &quot;revealedCount&quot;: 1,
+  &quot;revealMode&quot;: &quot;manual&quot;,
+  &quot;autoRevealIntervalSec&quot;: null,
+  &quot;createdAt&quot;: 1745049600000,
+  &quot;updatedAt&quot;: 1745050200000
+}</code></pre>
+<p><strong>Error Responses</strong></p>
+<table>
+<tr><th>HTTP</th><th>錯誤碼</th><th>說明</th></tr>
+<tr><td>400</td><td><code>INVALID<em>REVEAL</em>MODE</code></td><td><code>mode</code> 欄位不合法（非 <code>&quot;next&quot;</code> / <code>&quot;all&quot;</code>）</td></tr>
+<tr><td>403</td><td><code>PLAYER<em>NOT</em>HOST</code></td><td>操作者不是房主</td></tr>
+<tr><td>409</td><td><code>INVALID_STATE</code></td><td>房間狀態非 <code>revealing</code></td></tr>
+</table>
+<p><strong>Rate Limit:</strong> 100 req/min/IP</p>
+<hr>
+<h3>7. POST /api/rooms/:code/game/end — 結束本局</h3>
+<p>房主在所有路徑揭示完畢後，手動觸發本局結束。房間從 <code>revealing</code> 轉為 <code>finished</code>，並廣播包含 <code>seed</code> 的 <code>ROOM_STATE</code>。</p>
+<p><strong>重要</strong>：<code>REVEAL<em>ALL</em>TRIGGER</code> 或最後一次 <code>REVEAL<em>NEXT</code> 本身不自動轉入 <code>finished</code>；必須由 Host 另外發送 END</em>GAME（WS 或此 HTTP 端點）才能完成狀態轉換（PRD AC-H04-4, AC-H06-2）。</p>
+<p><strong>Path Parameters</strong></p>
+<table>
+<tr><th>參數</th><th>格式</th><th>說明</th></tr>
+<tr><td><code>code</code></td><td><code>[A-HJ-NP-Z2-9]{6}</code></td><td>6 碼房間代碼</td></tr>
+</table>
+<p><strong>Request Headers</strong></p>
+<pre><code class="">Authorization: Bearer &lt;token&gt;
+Content-Type: application/json</code></pre>
+<p><strong>Request Body:</strong> <code>{}</code> 或空</p>
+<p><strong>Success Response — 200 OK</strong></p>
+<p>回傳已結束的房間物件（直接 JSON，含 <code>seed</code> 與完整 <code>results</code>）：</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: &quot;AB3K7X&quot;,
+  &quot;status&quot;: &quot;finished&quot;,
+  &quot;hostId&quot;: &quot;f47ac10b-58cc-4372-a567-0e02b2c3d479&quot;,
+  &quot;players&quot;: [],
+  &quot;winnerCount&quot;: 1,
+  &quot;ladder&quot;: {
+    &quot;seed&quot;: 1879452061,
+    &quot;seedSource&quot;: &quot;550e8400-e29b-41d4-a716-446655440000&quot;,
+    &quot;rowCount&quot;: 20,
+    &quot;colCount&quot;: 3,
+    &quot;segments&quot;: []
+  },
+  &quot;revealedCount&quot;: 3,
+  &quot;revealMode&quot;: &quot;manual&quot;,
+  &quot;autoRevealIntervalSec&quot;: null,
+  &quot;createdAt&quot;: 1745049600000,
+  &quot;updatedAt&quot;: 1745051000000
+}</code></pre>
+<p><strong>Error Responses</strong></p>
+<table>
+<tr><th>HTTP</th><th>錯誤碼</th><th>說明</th></tr>
+<tr><td>403</td><td><code>PLAYER<em>NOT</em>HOST</code></td><td>操作者不是房主</td></tr>
+<tr><td>409</td><td><code>INVALID_STATE</code></td><td>房間狀態非 <code>revealing</code> 或尚未所有路徑揭示完畢（<code>revealedCount &lt; totalCount</code>）</td></tr>
+</table>
+<p><strong>Rate Limit:</strong> 100 req/min/IP</p>
+<hr>
+<h3>8. POST /api/rooms/:code/game/play-again — 再玩一局</h3>
+<p>房主在遊戲結束後重置房間進行下一局（取代舊版 <code>RESET_ROOM</code>）。僅限 <code>finished</code> 狀態。離線玩家被移除，<code>kickedPlayerIds</code> 清空，<code>winnerCount</code> 若 &gt;= 新玩家數則重置為 null。</p>
+<p><strong>Path Parameters</strong></p>
+<table>
+<tr><th>參數</th><th>格式</th><th>說明</th></tr>
+<tr><td><code>code</code></td><td><code>[A-HJ-NP-Z2-9]{6}</code></td><td>6 碼房間代碼</td></tr>
+</table>
+<p><strong>Request Headers</strong></p>
+<pre><code class="">Authorization: Bearer &lt;token&gt;
+Content-Type: application/json</code></pre>
+<p><strong>Request Body:</strong> <code>{}</code> 或空</p>
+<p><strong>Success Response — 200 OK</strong></p>
+<p>回傳重置後的房間物件（直接 JSON）：</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: &quot;AB3K7X&quot;,
+  &quot;status&quot;: &quot;waiting&quot;,
+  &quot;hostId&quot;: &quot;f47ac10b-58cc-4372-a567-0e02b2c3d479&quot;,
+  &quot;players&quot;: [
+    {
+      &quot;id&quot;: &quot;f47ac10b-58cc-4372-a567-0e02b2c3d479&quot;,
+      &quot;nickname&quot;: &quot;Alice&quot;,
+      &quot;colorIndex&quot;: 0,
+      &quot;isHost&quot;: true,
+      &quot;isOnline&quot;: true,
+      &quot;joinedAt&quot;: 1745049600000,
+      &quot;result&quot;: null
+    }
+  ],
+  &quot;winnerCount&quot;: null,
+  &quot;revealedCount&quot;: 0,
+  &quot;revealMode&quot;: &quot;manual&quot;,
+  &quot;autoRevealIntervalSec&quot;: null,
+  &quot;createdAt&quot;: 1745049600000,
+  &quot;updatedAt&quot;: 1745049900000
+}</code></pre>
+<p><strong>Error Responses</strong></p>
+<table>
+<tr><th>HTTP</th><th>錯誤碼</th><th>說明</th></tr>
+<tr><td>400</td><td><code>INSUFFICIENT<em>ONLINE</em>PLAYERS</code></td><td>在線玩家數 &lt; 2，無法開始新局</td></tr>
+<tr><td>403</td><td><code>PLAYER<em>NOT</em>HOST</code></td><td>操作者不是房主</td></tr>
+<tr><td>409</td><td><code>INVALID_STATE</code></td><td>房間狀態非 <code>finished</code></td></tr>
+</table>
+<p><strong>Rate Limit:</strong> 100 req/min/IP</p>
+<hr>
+<h3>9. GET /health — 健康檢查（Liveness）</h3>
+<p>回報後端服務與 Redis 連線狀態。供 Kubernetes liveness probe 使用。</p>
+<p><strong>Request Headers:</strong> 無</p>
+<p><strong>Success Response — 200 OK</strong></p>
+<pre><code class="language-typescript">interface HealthResponse {
+  status: &quot;ok&quot;;
+  redis: &quot;ok&quot; | &quot;error&quot;;
+  wsCount: number;   // 當前 active WebSocket 連線數
+  uptime: number;    // process.uptime()，單位秒
+}</code></pre>
+<pre><code class="language-json">{
+  &quot;status&quot;: &quot;ok&quot;,
+  &quot;redis&quot;: &quot;ok&quot;,
+  &quot;wsCount&quot;: 312,
+  &quot;uptime&quot;: 86423.7
+}</code></pre>
+<p><strong>Rate Limit:</strong> 100 req/min/IP</p>
+<hr>
+<h3>10. GET /ready — 就緒檢查（Readiness）</h3>
+<p>回報後端是否已準備好接收流量（Redis 連線正常且無正在進行的啟動作業）。供 Kubernetes readiness probe 使用。</p>
+<p><strong>Request Headers:</strong> 無</p>
+<p><strong>Success Response — 200 OK</strong></p>
+<pre><code class="language-typescript">interface ReadyResponse {
+  status: &quot;ok&quot; | &quot;not_ready&quot;;
+  redis: &quot;ok&quot; | &quot;error&quot;;
+}</code></pre>
+<pre><code class="language-json">{
+  &quot;status&quot;: &quot;ok&quot;,
+  &quot;redis&quot;: &quot;ok&quot;
+}</code></pre>
+<p><strong>Error Response — 503 Service Unavailable</strong>（Redis 未就緒）</p>
+<pre><code class="language-json">{
+  &quot;status&quot;: &quot;not_ready&quot;,
+  &quot;redis&quot;: &quot;error&quot;
+}</code></pre>
+<p><strong>Rate Limit:</strong> 100 req/min/IP</p>
+<hr>
+<h2>3. WebSocket API</h2>
+<h3>連線端點</h3>
+<pre><code class="">WSS /ws?room={roomCode}&amp;token={token}</code></pre>
+<table>
+<tr><th>Query Param</th><th>格式</th><th>說明</th></tr>
+<tr><td><code>room</code></td><td><code>[A-HJ-NP-Z2-9]{6}</code></td><td>目標房間代碼</td></tr>
+<tr><td><code>token</code></td><td>JWT HS256 字串</td><td>玩家或房主的 <code>token</code></td></tr>
+</table>
+<h3>Upgrade 驗證流程</h3>
+<ol><li>驗證 <code>token</code> 的 JWT 簽名與 <code>exp</code>（允許 30 秒 clock skew）</li><li>比對 JWT payload 中 <code>roomCode</code> 與 query param <code>room</code> 是否一致</li><li>查詢 Redis <code>kickedPlayerIds</code>：若 <code>playerId</code> 在列表中，發送 <code>PLAYER_KICKED</code> JSON frame 後以 close code <strong>4003</strong> 關閉連線</li><li>驗證通過後回應 HTTP 101，建立 WebSocket 連線</li></ol>
+<h3>共用資料型別</h3>
+<p>以下型別在 HTTP 回應與 WS payload 中均有使用，統一於此定義：</p>
+<pre><code class="language-typescript">/** 房間玩家物件 */
+interface Player {
+  id: string;           // UUID v4
+  nickname: string;     // 1-20 字元暱稱
+  colorIndex: number;   // 0-based 顏色索引（前端調色板對應）
+  isHost: boolean;
+  isOnline: boolean;
+  joinedAt: number;     // Unix milliseconds
+  result: ResultSlot | null;  // null = 尚未揭示
+}
 
-    <h4>Error Responses</h4>
-    <table>
-      <thead><tr><th>HTTP</th><th>錯誤碼</th><th>說明</th></tr></thead>
-      <tbody>
-        <tr><td>404</td><td><code>ROOM_NOT_FOUND</code></td><td>房間不存在</td></tr>
-        <tr><td>409</td><td><code>ROOM_FULL</code></td><td>房間已達 50 人上限</td></tr>
-        <tr><td>409</td><td><code>NICKNAME_TAKEN</code></td><td>暱稱已被使用（含離線玩家）</td></tr>
-        <tr><td>409</td><td><code>ROOM_NOT_JOINABLE</code></td><td>房間狀態非 waiting（running / revealing / finished）</td></tr>
-        <tr><td>409</td><td><code>PLAYER_KICKED</code></td><td>此 playerId 已被踢除</td></tr>
-        <tr><td>429</td><td><code>RATE_LIMIT</code></td><td>超過 20 req/min/IP</td></tr>
-      </tbody>
-    </table>
+/** 完整房間物件（HTTP 端點與 ROOM_STATE_FULL 使用） */
+interface Room {
+  code: string;                        // 6 碼房間代碼
+  title: string | null;                // 可選房間名稱（UPDATE_TITLE 設定）
+  status: &quot;waiting&quot; | &quot;running&quot; | &quot;revealing&quot; | &quot;finished&quot;;
+  hostId: string;                      // UUID v4，房主 playerId
+  players: readonly Player[];
+  winnerCount: number | null;          // null = 尚未設定
+  ladder: LadderDataPublic | LadderData | null;  // null = 未生成；LadderDataPublic = revealing；LadderData = finished
+  results: readonly ResultSlot[] | null;
+  revealedCount: number;
+  revealMode: &quot;manual&quot; | &quot;auto&quot;;
+  autoRevealIntervalSec: number | null;          // null = 手動模式
+  kickedPlayerIds: readonly string[];            // 被踢玩家 UUID 列表（不對外廣播）
+  createdAt: number;                   // Unix milliseconds
+  updatedAt: number;                   // Unix milliseconds
+}</code></pre>
+<blockquote><p><strong>注意</strong>：<code>ROOM<em>STATE</code> 廣播使用 <code>Omit&lt;Room, &quot;ladder&quot; | &quot;results&quot; | &quot;kickedPlayerIds&quot;&gt;</code>，即省略梯子資料、結果與踢出名單；完整資料僅在 <code>ROOM</em>STATE_FULL</code>（unicast）中發送。<code>seed</code> 欄位在 <code>status=finished</code> 前不含於任何對外傳輸中。</p></blockquote>
+<hr>
+<h3>訊息 Envelope 格式</h3>
+<p><strong>Server → Client（ServerEnvelope）</strong></p>
+<pre><code class="language-typescript">interface ServerEnvelope&lt;T = unknown&gt; {
+  type: WsEventType;
+  ts: number;       // Unix milliseconds
+  payload: T;
+}</code></pre>
+<p><strong>Client → Server（ClientEnvelope）</strong></p>
+<pre><code class="language-typescript">interface ClientEnvelope&lt;T = unknown&gt; {
+  type: WsMsgType;
+  ts: number;       // Unix milliseconds（客戶端時間戳，用於延遲量測）
+  payload: T;
+}</code></pre>
+<h3>Heartbeat</h3>
+<p>伺服器每 <strong>30 秒</strong>發送 WebSocket Protocol-level <code>PING</code> frame，客戶端需回應 <code>PONG</code>。</p>
+<p>30 秒未收到 <code>PONG</code> → 伺服器主動關閉連線（close code 1001）。</p>
+<p>客戶端亦可發送應用層 <code>{ type: &quot;PING&quot;, ts, payload: {} }</code> 心跳，伺服器回應 <code>PONG { ts: echo }</code> 供 RTT 量測使用（非傳輸層心跳主路徑）。</p>
+<hr>
+<h3>Server → Client 事件</h3>
+<h4>ROOM_STATE</h4>
+<p>任何房間狀態變更（玩家加入/離線/踢出/<code>winnerCount</code> 變更/狀態轉換）時廣播給房間所有連線。</p>
+<pre><code class="language-typescript">type WsEventType = &quot;ROOM_STATE&quot;;
 
-    <hr>
+interface RoomStatePayload {
+  room: Omit&lt;Room, &quot;ladder&quot; | &quot;results&quot; | &quot;kickedPlayerIds&quot;&gt;;
+  onlineCount: number;
+}</code></pre>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;ROOM_STATE&quot;,
+  &quot;ts&quot;: 1745049650000,
+  &quot;payload&quot;: {
+    &quot;room&quot;: {
+      &quot;code&quot;: &quot;AB3K7X&quot;,
+      &quot;title&quot;: null,
+      &quot;status&quot;: &quot;waiting&quot;,
+      &quot;hostId&quot;: &quot;f47ac10b-58cc-4372-a567-0e02b2c3d479&quot;,
+      &quot;players&quot;: [
+        { &quot;id&quot;: &quot;f47ac10b-...&quot;, &quot;nickname&quot;: &quot;Alice&quot;, &quot;colorIndex&quot;: 0, &quot;isHost&quot;: true, &quot;isOnline&quot;: true, &quot;joinedAt&quot;: 1745049600000, &quot;result&quot;: null },
+        { &quot;id&quot;: &quot;a3bb189e-...&quot;, &quot;nickname&quot;: &quot;Bob&quot;,   &quot;colorIndex&quot;: 1, &quot;isHost&quot;: false, &quot;isOnline&quot;: true, &quot;joinedAt&quot;: 1745049630000, &quot;result&quot;: null }
+      ],
+      &quot;winnerCount&quot;: 1,
+      &quot;revealedCount&quot;: 0,
+      &quot;revealMode&quot;: &quot;manual&quot;,
+      &quot;autoRevealIntervalSec&quot;: null,
+      &quot;createdAt&quot;: 1745049600000,
+      &quot;updatedAt&quot;: 1745049650000
+    },
+    &quot;onlineCount&quot;: 2
+  }
+}</code></pre>
+<p><strong>觸發時機：</strong> 玩家加入/斷線/重連/被踢、<code>winnerCount</code> 設定、遊戲狀態轉換、<code>PLAY_AGAIN</code></p>
+<hr>
+<h4>ROOM<em>STATE</em>FULL</h4>
+<p>玩家 WebSocket 連線建立或重連時，<strong>unicast</strong> 給該連線（僅對該 session 發送）。包含完整 <code>ladder</code> 與 <code>results</code>，讓客戶端重建完整畫面。</p>
+<p><code>ladder</code> 欄位依房間狀態而異：</p>
+<ul><li><code>waiting</code> / <code>running</code>：<code>null</code>（梯子尚未生成）</li><li><code>revealing</code>：<code>LadderDataPublic</code>（省略 <code>seed</code> 與 <code>seedSource</code>，PRD AC-H03-1, NFR-05）</li><li><code>finished</code>：<code>LadderData</code>（含完整 <code>seed</code> + <code>seedSource</code> 供可審計性）</li></ul>
+<pre><code class="language-typescript">type WsEventType = &quot;ROOM_STATE_FULL&quot;;
 
-    <h3>4. DELETE /api/rooms/:code/players/:playerId — 踢出玩家</h3>
-    <p>需要 Host JWT token。僅在 <code>waiting</code> 狀態下有效。</p>
+/**
+ * LadderSegment — 梯子橫向連線節點（表示某列某兩欄之間的橫槓）。
+ */
+interface LadderSegment {
+  row: number;    // 行索引（0-based）
+  col: number;    // 左側欄索引（0-based）；橫槓連接 col 與 col+1
+}
 
-    <h4>Success Response — 204 No Content</h4>
+/**
+ * LadderDataPublic — 在 revealing 狀態發送給客戶端（省略 seed/seedSource）。
+ * 前端利用此資料自行計算路徑動畫（PRD NFR-05, MVP Option A）。
+ */
+interface LadderDataPublic {
+  rowCount: number;
+  colCount: number;
+  segments: readonly LadderSegment[];
+  // seed 與 seedSource 刻意省略 — status=finished 前不對客戶端公開
+}
 
-    <h4>Error Responses</h4>
-    <table>
-      <thead><tr><th>HTTP</th><th>錯誤碼</th><th>說明</th></tr></thead>
-      <tbody>
-        <tr><td>401</td><td><code>AUTH_INVALID_TOKEN</code></td><td>JWT 驗證失敗</td></tr>
-        <tr><td>401</td><td><code>AUTH_TOKEN_EXPIRED</code></td><td>JWT 已過期</td></tr>
-        <tr><td>403</td><td><code>PLAYER_NOT_HOST</code></td><td>操作者非房主</td></tr>
-        <tr><td>404</td><td><code>PLAYER_NOT_FOUND</code></td><td>玩家不在房間</td></tr>
-        <tr><td>409</td><td><code>INVALID_STATE</code></td><td>房間狀態非 waiting</td></tr>
-        <tr><td>409</td><td><code>CANNOT_KICK_HOST</code></td><td>不能踢除自己（Host）</td></tr>
-      </tbody>
-    </table>
+/**
+ * LadderData — 完整梯子資料，在 status=finished 時發送（含 seed 與 seedSource 供可審計性）。
+ */
+interface LadderData extends LadderDataPublic {
+  seed: number;         // 32-bit 整數，由 seedSource UUID 衍生（Murmur3 hash）
+  seedSource: string;   // UUID v4，START_GAME 時生成，status=finished 前不對外公開
+}
 
-    <hr>
+interface RoomStateFullPayload extends RoomStatePayload {
+  ladder: LadderDataPublic | LadderData | null;
+  results: readonly ResultSlot[] | null;
+  selfPlayerId: string;   // 對應此 session 的玩家 ID
+}</code></pre>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;ROOM_STATE_FULL&quot;,
+  &quot;ts&quot;: 1745049655000,
+  &quot;payload&quot;: {
+    &quot;room&quot;: { &quot;...&quot;: &quot;（同 ROOM_STATE）&quot; },
+    &quot;onlineCount&quot;: 2,
+    &quot;ladder&quot;: null,
+    &quot;results&quot;: null,
+    &quot;selfPlayerId&quot;: &quot;a3bb189e-8bf9-3888-9912-ace4e6543002&quot;
+  }
+}</code></pre>
+<p><strong>觸發時機：</strong> WS 連線成功後立即 unicast 給連線玩家（含 <code>selfPlayerId</code>）；新連線與重連均觸發</p>
+<hr>
+<h4>REVEAL_INDEX</h4>
+<p>手動或自動揭示模式下，逐一揭示單一玩家的梯子路徑與結果。</p>
+<pre><code class="language-typescript">type WsEventType = &quot;REVEAL_INDEX&quot;;
 
-    <h3>5. POST /api/rooms/:code/game/start — 開始遊戲</h3>
-    <p>需要 Host JWT token。Server 重新驗證 N ≥ 2 且 1 ≤ W ≤ N-1。</p>
+interface RevealIndexPayload {
+  playerIndex: number;    // Canvas 列索引（0-based）
+  result: ResultSlot;     // 含完整 path（單一玩家，資料量小，安全在 64KB 內）
+  revealedCount: number;  // 已揭示數量（含本次）
+  totalCount: number;     // 總玩家數
+}
 
-    <h4>Success Response — 200 OK</h4>
-    <p>回傳更新後的 Room 物件（status = "running"）。</p>
+interface ResultSlot {
+  playerIndex: number;
+  playerId: string;
+  startCol: number;
+  endCol: number;
+  isWinner: boolean;    // 僅 win/lose，無命名獎項
+  path: Array&lt;{
+    row: number;
+    col: number;
+    direction: &quot;down&quot; | &quot;left&quot; | &quot;right&quot;;
+  }&gt;;
+}</code></pre>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;REVEAL_INDEX&quot;,
+  &quot;ts&quot;: 1745050200000,
+  &quot;payload&quot;: {
+    &quot;playerIndex&quot;: 0,
+    &quot;result&quot;: {
+      &quot;playerIndex&quot;: 0,
+      &quot;playerId&quot;: &quot;f47ac10b-58cc-4372-a567-0e02b2c3d479&quot;,
+      &quot;startCol&quot;: 0,
+      &quot;endCol&quot;: 2,
+      &quot;isWinner&quot;: true,
+      &quot;path&quot;: [
+        { &quot;row&quot;: 0, &quot;col&quot;: 0, &quot;direction&quot;: &quot;down&quot; },
+        { &quot;row&quot;: 1, &quot;col&quot;: 0, &quot;direction&quot;: &quot;right&quot; },
+        { &quot;row&quot;: 1, &quot;col&quot;: 1, &quot;direction&quot;: &quot;down&quot; }
+      ]
+    },
+    &quot;revealedCount&quot;: 1,
+    &quot;totalCount&quot;: 3
+  }
+}</code></pre>
+<p><strong>觸發時機：</strong> <code>REVEAL_NEXT</code> 訊息處理後 / 自動揭示 timer 觸發</p>
+<hr>
+<h4>REVEAL_ALL</h4>
+<p>房主使用「一鍵全揭」（<code>REVEAL<em>ALL</em>TRIGGER</code>）時廣播，包含全部剩餘未揭示的路徑結果。</p>
+<p><strong>重要</strong>：REVEAL_ALL payload 使用 <code>ResultSlotPublic</code>（省略 <code>path</code> 欄位），以符合 WebSocket maxPayload 64KB 限制（N=50, rowCount=60 時完整 path 約 150KB，超出限制）。前端利用已收到的 <code>LadderDataPublic</code> 自行計算動畫路徑（PRD NFR-05, MVP Option A）。</p>
+<pre><code class="language-typescript">type WsEventType = &quot;REVEAL_ALL&quot;;
 
-    <h4>Error Responses</h4>
-    <table>
-      <thead><tr><th>HTTP</th><th>錯誤碼</th><th>說明</th></tr></thead>
-      <tbody>
-        <tr><td>400</td><td><code>INSUFFICIENT_PLAYERS</code></td><td>N &lt; 2</td></tr>
-        <tr><td>400</td><td><code>PRIZES_NOT_SET</code></td><td>winnerCount 尚未設定（null）</td></tr>
-        <tr><td>400</td><td><code>INVALID_PRIZES_COUNT</code></td><td>W ≤ 0 或 W ≥ N</td></tr>
-        <tr><td>409</td><td><code>INVALID_STATE</code></td><td>房間狀態非 waiting</td></tr>
-      </tbody>
-    </table>
+/** ResultSlotPublic — REVEAL_ALL payload 專用；省略 path 以符合 64KB 限制 */
+type ResultSlotPublic = Omit&lt;ResultSlot, &quot;path&quot;&gt;;
 
-    <hr>
+interface RevealAllPayload {
+  results: readonly ResultSlotPublic[];   // 所有剩餘未揭示玩家結果（不含 path）
+}</code></pre>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;REVEAL_ALL&quot;,
+  &quot;ts&quot;: 1745050300000,
+  &quot;payload&quot;: {
+    &quot;results&quot;: [
+      { &quot;playerIndex&quot;: 0, &quot;playerId&quot;: &quot;f47ac10b-...&quot;, &quot;startCol&quot;: 0, &quot;endCol&quot;: 2, &quot;isWinner&quot;: true },
+      { &quot;playerIndex&quot;: 1, &quot;playerId&quot;: &quot;a3bb189e-...&quot;, &quot;startCol&quot;: 1, &quot;endCol&quot;: 0, &quot;isWinner&quot;: false }
+    ]
+  }
+}</code></pre>
+<p><strong>觸發時機：</strong> <code>REVEAL<em>ALL</em>TRIGGER</code> WS 訊息 / 一鍵全揭</p>
+<p><strong>注意：</strong> REVEAL<em>ALL 後房間仍維持 <code>revealing</code> 狀態，等待 Host 另行發送 <code>END</em>GAME</code> 才轉 <code>finished</code></p>
+<hr>
+<h4>PLAYER_KICKED</h4>
+<p>房主踢出玩家時，<strong>unicast 給被踢玩家</strong>（若仍在線）；房間其他玩家透過後續 <code>ROOM_STATE</code> 廣播得知名單變更。</p>
+<pre><code class="language-typescript">type WsEventType = &quot;PLAYER_KICKED&quot;;
 
-    <h3>6–8. Game 操作端點</h3>
-    <table>
-      <thead><tr><th>端點</th><th>作用</th><th>前提狀態</th><th>成功後狀態</th></tr></thead>
-      <tbody>
-        <tr><td><code>POST /game/reveal</code></td><td>觸發揭示（next 或 all）</td><td>revealing</td><td>revealing / finished</td></tr>
-        <tr><td><code>POST /game/end</code></td><td>結束本局（所有路徑已揭曉）</td><td>revealing，revealedCount=N</td><td>finished</td></tr>
-        <tr><td><code>POST /game/play-again</code></td><td>再玩一局，pruning 離線玩家</td><td>finished</td><td>waiting</td></tr>
-      </tbody>
-    </table>
+interface PlayerKickedPayload {
+  kickedPlayerId: string;
+  reason: string;           // e.g. &quot;Kicked by host&quot;
+}</code></pre>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;PLAYER_KICKED&quot;,
+  &quot;ts&quot;: 1745049700000,
+  &quot;payload&quot;: {
+    &quot;kickedPlayerId&quot;: &quot;a3bb189e-8bf9-3888-9912-ace4e6543002&quot;,
+    &quot;reason&quot;: &quot;Kicked by host&quot;
+  }
+}</code></pre>
+<p><strong>觸發時機：</strong> <code>DELETE /api/rooms/:code/players/:playerId</code> 或 <code>KICK<em>PLAYER</code> WS 訊息成功執行後；unicast 給被踢玩家，其他玩家收到 <code>ROOM</em>STATE</code> 廣播</p>
+<hr>
+<h4>SESSION_REPLACED</h4>
+<p>同一 <code>playerId</code> 從新裝置/瀏覽器重新連線時，<strong>unicast</strong> 給舊連線。收到後客戶端應跳回首頁。</p>
+<pre><code class="language-typescript">type WsEventType = &quot;SESSION_REPLACED&quot;;
 
-    <hr>
+interface SessionReplacedPayload {
+  message: string;
+}</code></pre>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;SESSION_REPLACED&quot;,
+  &quot;ts&quot;: 1745049800000,
+  &quot;payload&quot;: {
+    &quot;message&quot;: &quot;Your session has been replaced by a new connection.&quot;
+  }
+}</code></pre>
+<p><strong>觸發時機：</strong> 相同 <code>playerId</code> 的新 WS 連線建立時，舊連線收到此事件後被強制關閉</p>
+<hr>
+<h4>HOST_TRANSFERRED</h4>
+<p>房主斷線超過 <strong>60 秒</strong> 未重連，系統自動將房主身份轉移給下一位在線玩家（按 <code>joinedAt</code> 排序）。</p>
+<pre><code class="language-typescript">type WsEventType = &quot;HOST_TRANSFERRED&quot;;
 
-    <h3>9–10. 健康檢查</h3>
-    <pre><code>// GET /health — liveness
-{ "status": "ok", "redis": "ok", "wsCount": 42, "uptime": 3600.5 }
+interface HostTransferredPayload {
+  newHostId: string;
+  reason: &quot;disconnect_timeout&quot;;
+}</code></pre>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;HOST_TRANSFERRED&quot;,
+  &quot;ts&quot;: 1745049860000,
+  &quot;payload&quot;: {
+    &quot;newHostId&quot;: &quot;b2c1d3e4-f5a6-7890-bcde-f12345678901&quot;,
+    &quot;reason&quot;: &quot;disconnect_timeout&quot;
+  }
+}</code></pre>
+<p><strong>觸發時機：</strong> 房主斷線 60 秒 grace period 結束，且無在線玩家接管前自動移交</p>
+<hr>
+<h4>PONG</h4>
+<p>回應客戶端應用層 PING 訊息，用於 RTT 量測。</p>
+<pre><code class="language-typescript">type WsEventType = &quot;PONG&quot;;
 
-// GET /ready — readiness (503 if redis = "error")
-{ "status": "ok", "redis": "ok", "wsCount": 42, "uptime": 3600.5 }</code></pre>
+interface PongPayload {
+  ts: number;   // echo of client&#x27;s PING ts，供計算往返延遲
+}</code></pre>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;PONG&quot;,
+  &quot;ts&quot;: 1745049900000,
+  &quot;payload&quot;: {
+    &quot;ts&quot;: 1745049899950
+  }
+}</code></pre>
+<p><strong>觸發時機：</strong> 收到客戶端應用層 <code>PING</code> 訊息後立即 unicast 回傳</p>
+<hr>
+<h4>ERROR</h4>
+<p>操作失敗時 <strong>unicast</strong> 給觸發操作的連線。連線保持開啟。</p>
+<pre><code class="language-typescript">type WsEventType = &quot;ERROR&quot;;
 
-    <h2>3. WebSocket 端點</h2>
+interface ErrorPayload {
+  code: string;
+  message: string;
+  requestId?: string;   // 選填，用於追蹤
+}</code></pre>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;ERROR&quot;,
+  &quot;ts&quot;: 1745049750000,
+  &quot;payload&quot;: {
+    &quot;code&quot;: &quot;INSUFFICIENT_PLAYERS&quot;,
+    &quot;message&quot;: &quot;At least 2 players are required to start the game.&quot;
+  }
+}</code></pre>
+<p><strong>觸發時機：</strong> 任何 Client→Server 訊息操作失敗（權限不足、狀態不符、驗證失敗等）</p>
+<hr>
+<h3>Client → Server 訊息</h3>
+<blockquote><p><strong>注意</strong>：遊戲控制操作（START<em>GAME、BEGIN</em>REVEAL、END<em>GAME、PLAY</em>AGAIN）同時支援 WS 訊息（即時）和 HTTP REST（向後相容）。前端主要使用 WS 路徑；HTTP 路徑供 CLI/工具使用或 WS 不可用時降級。</p></blockquote>
+<h4>START_GAME</h4>
+<p>觸發遊戲開始。僅 host、<code>waiting</code> 狀態有效。後端生成 <code>seedSource</code> 並計算 <code>rowCount</code>，但<strong>不生成梯子</strong>（延遲至 BEGIN_REVEAL）。</p>
+<pre><code class="language-typescript">type WsMsgType = &quot;START_GAME&quot;;
+// payload: {}（空物件）</code></pre>
+<pre><code class="language-json">{ &quot;type&quot;: &quot;START_GAME&quot;, &quot;ts&quot;: 1745050000000, &quot;payload&quot;: {} }</code></pre>
+<p><strong>驗證：</strong> JWT <code>role === &quot;host&quot;</code> + Redis <code>room.hostId</code> 比對；狀態必須為 <code>waiting</code>；N &gt;= 2；1 &lt;= W &lt;= N-1</p>
+<p><strong>成功後：</strong> 廣播 <code>ROOM_STATE</code>（<code>status: &quot;running&quot;</code>, <code>rowCount</code>）；<code>seed</code>/<code>ladder</code> 不廣播</p>
+<hr>
+<h4>BEGIN_REVEAL</h4>
+<p>開始揭示階段。房主在 <code>running</code> 狀態發送，後端在此時原子生成梯子（<code>GenerateLadder</code> + <code>ComputeResults</code>），房間轉移至 <code>revealing</code>。</p>
+<pre><code class="language-typescript">type WsMsgType = &quot;BEGIN_REVEAL&quot;;
+// payload: {}</code></pre>
+<pre><code class="language-json">{ &quot;type&quot;: &quot;BEGIN_REVEAL&quot;, &quot;ts&quot;: 1745050100000, &quot;payload&quot;: {} }</code></pre>
+<p><strong>驗證：</strong> host only；狀態必須為 <code>running</code></p>
+<p><strong>成功後：</strong> 廣播 <code>ROOM_STATE</code>（<code>status: &quot;revealing&quot;</code>）；ladder 在 Redis 已生成但 <code>seed</code> 不對客戶端公開</p>
+<hr>
+<h4>REVEAL_NEXT</h4>
+<p>手動模式逐一揭示下一位玩家。伺服器以 <code>revealedCount</code> 決定下一個揭示索引，payload 不含 index。</p>
+<pre><code class="language-typescript">type WsMsgType = &quot;REVEAL_NEXT&quot;;
+// payload: {}</code></pre>
+<pre><code class="language-json">{ &quot;type&quot;: &quot;REVEAL_NEXT&quot;, &quot;ts&quot;: 1745050200000, &quot;payload&quot;: {} }</code></pre>
+<p><strong>驗證：</strong> host only；狀態必須為 <code>revealing</code>；<code>revealedCount &lt; totalCount</code>（否則回傳 ERROR <code>INVALID_STATE</code>）</p>
+<p><strong>成功後：</strong> 廣播 <code>REVEAL<em>INDEX</code>；<strong>不自動轉入 <code>finished</code></strong>（需另行 END</em>GAME）</p>
+<hr>
+<h4>REVEAL<em>ALL</em>TRIGGER</h4>
+<p>一鍵揭示所有剩餘玩家路徑。</p>
+<pre><code class="language-typescript">type WsMsgType = &quot;REVEAL_ALL_TRIGGER&quot;;
+// payload: {}</code></pre>
+<pre><code class="language-json">{ &quot;type&quot;: &quot;REVEAL_ALL_TRIGGER&quot;, &quot;ts&quot;: 1745050250000, &quot;payload&quot;: {} }</code></pre>
+<p><strong>驗證：</strong> host only；狀態必須為 <code>revealing</code></p>
+<p><strong>成功後：</strong> 廣播 <code>REVEAL<em>ALL</code>（含所有剩餘路徑，使用 <code>ResultSlotPublic</code> 省略 path）；房間<strong>仍維持 <code>revealing</code> 狀態</strong>，等待 Host 另行發送 END</em>GAME</p>
+<hr>
+<h4>END_GAME</h4>
+<p>Host 在所有路徑揭示完畢後手動觸發本局結束。房間從 <code>revealing</code> 轉為 <code>finished</code>。<code>seed</code> 在此時首次對客戶端公開。</p>
+<pre><code class="language-typescript">type WsMsgType = &quot;END_GAME&quot;;
+// payload: {}</code></pre>
+<pre><code class="language-json">{ &quot;type&quot;: &quot;END_GAME&quot;, &quot;ts&quot;: 1745050350000, &quot;payload&quot;: {} }</code></pre>
+<p><strong>驗證：</strong> host only；狀態必須為 <code>revealing</code>；<code>revealedCount === totalCount</code>（否則 <code>INVALID_STATE</code>）</p>
+<p><strong>成功後：</strong> 廣播 <code>ROOM_STATE</code>（<code>status: &quot;finished&quot;</code>，含 <code>seed</code>、完整 <code>results[]</code>）；Redis TTL 延長至 1 小時</p>
+<hr>
+<h4>PLAY_AGAIN</h4>
+<p>遊戲結束後重置房間。取代舊版 <code>RESET_ROOM</code>。離線玩家被移除，<code>kickedPlayerIds</code> 清空，<code>winnerCount</code> 若 &gt;= 新玩家數則重置為 null。</p>
+<pre><code class="language-typescript">type WsMsgType = &quot;PLAY_AGAIN&quot;;
+// payload: {}</code></pre>
+<pre><code class="language-json">{ &quot;type&quot;: &quot;PLAY_AGAIN&quot;, &quot;ts&quot;: 1745050400000, &quot;payload&quot;: {} }</code></pre>
+<p><strong>驗證：</strong> host only；狀態必須為 <code>finished</code>；在線玩家 &gt;= 2</p>
+<p><strong>成功後：</strong> 廣播 <code>ROOM_STATE</code>（<code>status: &quot;waiting&quot;</code>）；<code>kickedPlayerIds</code> 清空（被踢者可用新 playerId 重新加入）</p>
+<hr>
+<h4>SET<em>REVEAL</em>MODE</h4>
+<p>切換手動/自動揭示模式。揭示進行中可隨時切換。</p>
+<pre><code class="language-typescript">type WsMsgType = &quot;SET_REVEAL_MODE&quot;;
 
-    <h3>連線</h3>
-    <pre><code>WSS /ws?room={code}&amp;token={sessionToken}</code></pre>
-    <p>Server Upgrade 階段驗證 JWT token，失敗直接 403。被踢玩家以 close code <code>4003</code> 拒絕。</p>
+interface SetRevealModePayload {
+  mode: &quot;manual&quot; | &quot;auto&quot;;
+  intervalSec?: number;   // mode === &quot;auto&quot; 時必填，範圍 1-30（整數秒）
+}</code></pre>
+<pre><code class="language-json">{ &quot;type&quot;: &quot;SET_REVEAL_MODE&quot;, &quot;ts&quot;: 1745050150000, &quot;payload&quot;: { &quot;mode&quot;: &quot;auto&quot;, &quot;intervalSec&quot;: 2 } }</code></pre>
+<p><strong>驗證：</strong> host only；狀態必須為 <code>revealing</code>；<code>mode === &quot;auto&quot;</code> 時 <code>intervalSec</code> 必填且 1-30</p>
+<p><strong>成功後：</strong> 廣播 <code>ROOM_STATE</code>（含更新的 <code>revealMode</code>、<code>autoRevealIntervalSec</code>）</p>
+<hr>
+<h4>KICK_PLAYER</h4>
+<p>踢出指定玩家。等同呼叫 <code>DELETE /api/rooms/:code/players/:playerId</code>。</p>
+<pre><code class="language-typescript">type WsMsgType = &quot;KICK_PLAYER&quot;;
 
-    <h3>Server → Client 事件</h3>
-    <table>
-      <thead><tr><th>事件</th><th>類型</th><th>說明</th></tr></thead>
-      <tbody>
-        <tr><td><code>ROOM_STATE</code></td><td>廣播</td><td>房間狀態摘要（玩家加入/離線/踢出/中獎名額變更）</td></tr>
-        <tr><td><code>ROOM_STATE_FULL</code></td><td>unicast</td><td>連線後完整快照（含 ladder + results + selfPlayerId）</td></tr>
-        <tr><td><code>REVEAL_INDEX</code></td><td>廣播</td><td>單一玩家路徑揭示（含 path、result、revealedCount）</td></tr>
-        <tr><td><code>REVEAL_ALL</code></td><td>廣播</td><td>全部剩餘路徑揭示（path 省略，64KB 限制）</td></tr>
-        <tr><td><code>PLAYER_KICKED</code></td><td>unicast</td><td>推送給被踢玩家（若仍在線）</td></tr>
-        <tr><td><code>SESSION_REPLACED</code></td><td>unicast</td><td>同一 playerId 從新裝置登入，推送給被替換的舊連線</td></tr>
-        <tr><td><code>HOST_TRANSFERRED</code></td><td>廣播</td><td>主持人 60s 斷線後自動移交（Post-MVP）</td></tr>
-        <tr><td><code>PONG</code></td><td>unicast</td><td>回應客戶端 PING，payload: <code>{ ts: number }</code></td></tr>
-        <tr><td><code>ERROR</code></td><td>unicast</td><td>操作失敗，<code>{ code, message, requestId? }</code></td></tr>
-      </tbody>
-    </table>
+interface KickPlayerPayload {
+  targetPlayerId: string;   // UUID v4
+}</code></pre>
+<pre><code class="language-json">{ &quot;type&quot;: &quot;KICK_PLAYER&quot;, &quot;ts&quot;: 1745049700000, &quot;payload&quot;: { &quot;targetPlayerId&quot;: &quot;a3bb189e-8bf9-3888-9912-ace4e6543002&quot; } }</code></pre>
+<p><strong>驗證：</strong> host only；狀態必須為 <code>waiting</code>；不可踢自己（房主）</p>
+<hr>
+<h4>PING</h4>
+<p>應用層心跳，伺服器回應 <code>PONG { ts: echo }</code> 供 RTT 量測（傳輸層心跳由 ws 內建 30s ping/pong 處理）。</p>
+<pre><code class="language-typescript">type WsMsgType = &quot;PING&quot;;
+// payload: {}</code></pre>
+<pre><code class="language-json">{ &quot;type&quot;: &quot;PING&quot;, &quot;ts&quot;: 1745049600000, &quot;payload&quot;: {} }</code></pre>
+<hr>
+<h4>UPDATE<em>WINNER</em>COUNT</h4>
+<p>更新中獎名額。Host only，<code>waiting</code> 狀態限定。</p>
+<pre><code class="language-typescript">type WsMsgType = &quot;UPDATE_WINNER_COUNT&quot;;
 
-    <h3>Client → Server 訊息</h3>
-    <table>
-      <thead><tr><th>訊息</th><th>權限</th><th>前提狀態</th><th>說明</th></tr></thead>
-      <tbody>
-        <tr><td><code>START_GAME</code></td><td>Host</td><td>waiting</td><td>開始遊戲</td></tr>
-        <tr><td><code>BEGIN_REVEAL</code></td><td>Host</td><td>running</td><td>開始揭曉（原子生成 ladderMap）</td></tr>
-        <tr><td><code>REVEAL_NEXT</code></td><td>Host</td><td>revealing</td><td>手動揭示下一位</td></tr>
-        <tr><td><code>REVEAL_ALL_TRIGGER</code></td><td>Host</td><td>revealing</td><td>一鍵全揭</td></tr>
-        <tr><td><code>END_GAME</code></td><td>Host</td><td>revealing（所有路徑已揭曉）</td><td>結束本局，seed 首次公開</td></tr>
-        <tr><td><code>PLAY_AGAIN</code></td><td>Host</td><td>finished</td><td>再玩一局</td></tr>
-        <tr><td><code>SET_REVEAL_MODE</code></td><td>Host</td><td>revealing</td><td>切換手動/自動（mode + intervalSec）</td></tr>
-        <tr><td><code>KICK_PLAYER</code></td><td>Host</td><td>waiting</td><td>踢除指定玩家</td></tr>
-        <tr><td><code>UPDATE_TITLE</code></td><td>Host</td><td>waiting</td><td>更新房間名稱（0-50 chars）</td></tr>
-        <tr><td><code>UPDATE_WINNER_COUNT</code></td><td>Host</td><td>waiting</td><td>更新中獎名額（1 ≤ W ≤ N-1）</td></tr>
-        <tr><td><code>PING</code></td><td>All</td><td>—</td><td>應用層心跳 / RTT 量測</td></tr>
-      </tbody>
-    </table>
+interface UpdateWinnerCountPayload {
+  winnerCount: number;  // 1 &lt;= winnerCount &lt;= playerCount-1
+}</code></pre>
+<pre><code class="language-json">{ &quot;type&quot;: &quot;UPDATE_WINNER_COUNT&quot;, &quot;ts&quot;: 1745049620000, &quot;payload&quot;: { &quot;winnerCount&quot;: 2 } }</code></pre>
+<p><strong>驗證：</strong> host only；<code>waiting</code> 狀態；1 &lt;= winnerCount &lt;= playerCount-1</p>
+<p><strong>成功後：</strong> 廣播 <code>ROOM_STATE</code>（含更新後 winnerCount）</p>
+<hr>
+<h4>UPDATE_TITLE</h4>
+<p>更新房間名稱。Host only，<code>waiting</code> 狀態限定。</p>
+<pre><code class="language-typescript">type WsMsgType = &quot;UPDATE_TITLE&quot;;
 
-    <h3>訊息信封格式</h3>
-    <pre><code>// Server → Client
-{ "type": "ROOM_STATE", "ts": 1745049600000, "payload": { ... } }
+interface UpdateTitlePayload {
+  title: string;  // 0-50 字元（空字串代表清除）
+}</code></pre>
+<pre><code class="language-json">{ &quot;type&quot;: &quot;UPDATE_TITLE&quot;, &quot;ts&quot;: 1745049625000, &quot;payload&quot;: { &quot;title&quot;: &quot;Alice 的遊戲&quot; } }</code></pre>
+<p><strong>驗證：</strong> host only；<code>waiting</code> 狀態；0-50 字元</p>
+<p><strong>成功後：</strong> 廣播 <code>ROOM_STATE</code>（含更新後 title）</p>
+<hr>
+<h2>4. 錯誤碼完整參照</h2>
+<table>
+<tr><th>錯誤碼</th><th>HTTP 狀態</th><th>WS close code</th><th>說明</th><th>重試建議</th></tr>
+<tr><td><code>ROOM<em>NOT</em>FOUND</code></td><td>404</td><td>—</td><td>房間不存在或 TTL 過期</td><td>不重試，引導用戶重新確認代碼</td></tr>
+<tr><td><code>ROOM_FULL</code></td><td>409</td><td>—</td><td>已達 50 人上限</td><td>不重試</td></tr>
+<tr><td><code>ROOM<em>NOT</em>ACCEPTING</code></td><td>409</td><td>—</td><td>房間非 <code>waiting</code> 狀態，不再接受玩家加入</td><td>等待房間重置後重試</td></tr>
+<tr><td><code>NICKNAME_TAKEN</code></td><td>409</td><td>—</td><td>暱稱在此房間已被使用</td><td>換暱稱後重試</td></tr>
+<tr><td><code>PLAYER<em>NOT</em>FOUND</code></td><td>404</td><td>—</td><td>目標玩家不存在此房間</td><td>不重試</td></tr>
+<tr><td><code>PLAYER<em>NOT</em>HOST</code></td><td>403</td><td>—</td><td>操作需要房主權限</td><td>不重試，檢查身份</td></tr>
+<tr><td><code>AUTH<em>INVALID</em>TOKEN</code></td><td>401</td><td>4001</td><td>JWT 無效（格式錯誤或簽名不符）</td><td>重新加入房間取得新 token</td></tr>
+<tr><td><code>AUTH<em>TOKEN</em>EXPIRED</code></td><td>401</td><td>4001</td><td>JWT 已過期（TTL 6 小時）；WS Upgrade 階段以 4001 拒絕</td><td>重新加入房間取得新 token</td></tr>
+<tr><td><code>PLAYER_KICKED</code></td><td>—</td><td>4003</td><td>玩家已被踢出，WS Upgrade 階段拒絕</td><td>不重試（被踢出狀態持續至房間 reset）</td></tr>
+<tr><td><code>SESSION_REPLACED</code></td><td>—</td><td>4002</td><td>同一 playerId 從新連線登入，舊連線被強制關閉</td><td>不重試，引導用戶重新加入</td></tr>
+<tr><td><code>INSUFFICIENT_PLAYERS</code></td><td>400</td><td>—</td><td>玩家數 N &lt; 2，無法開始遊戲</td><td>等待更多玩家加入後重試</td></tr>
+<tr><td><code>INSUFFICIENT<em>ONLINE</em>PLAYERS</code></td><td>400</td><td>—</td><td>再玩一局時在線玩家 &lt; 2</td><td>等待玩家上線後重試</td></tr>
+<tr><td><code>PRIZES<em>NOT</em>SET</code></td><td>400</td><td>—</td><td><code>winnerCount</code> 尚未設定</td><td>設定中獎名額後重試</td></tr>
+<tr><td><code>INVALID<em>PRIZES</em>COUNT</code></td><td>400</td><td>—</td><td><code>winnerCount &lt; 1</code> 或 <code>&gt;= N</code>（需 1 &lt;= W &lt;= N-1）</td><td>修正數值後重試</td></tr>
+<tr><td><code>INVALID_STATE</code></td><td>409</td><td>—</td><td>操作不符合當前房間狀態</td><td>確認目前狀態後重試</td></tr>
+<tr><td><code>CANNOT<em>KICK</em>HOST</code></td><td>400</td><td>—</td><td>踢除操作目標為 Host 本身</td><td>不重試</td></tr>
+<tr><td><code>INVALID_NICKNAME</code></td><td>400</td><td>—</td><td>暱稱格式不合法（長度超限、含禁止字元）</td><td>修正暱稱後重試</td></tr>
+<tr><td><code>INVALID<em>AUTO</em>REVEAL_INTERVAL</code></td><td>400</td><td>—</td><td>SET<em>REVEAL</em>MODE intervalSec 不合法（非 1-30 整數）</td><td>修正值後重試</td></tr>
+<tr><td><code>INVALID<em>REVEAL</em>MODE</code></td><td>400</td><td>—</td><td>POST /game/reveal 的 <code>mode</code> 欄位不合法（非 <code>&quot;next&quot;</code> / <code>&quot;all&quot;</code>）</td><td>修正值後重試</td></tr>
+<tr><td><code>SYS<em>INTERNAL</em>ERROR</code></td><td>500</td><td>—</td><td>非預期的伺服器內部錯誤</td><td>可帶 <code>requestId</code> 重試一次；持續失敗請聯繫支援</td></tr>
+<tr><td><code>RATE_LIMIT</code></td><td>429</td><td>4029</td><td>超過速率限制（WS: 60 msg/min/conn）</td><td>等待 <code>Retry-After</code> 秒數後重試</td></tr>
+</table>
+<blockquote><p><strong>WS 訊息層錯誤（不關閉連線）：</strong></p></blockquote>
+<blockquote><p>- <code>WS<em>INVALID</em>MSG</code>：JSON parse 失敗</p></blockquote>
+<blockquote><p>- <code>WS<em>UNKNOWN</em>TYPE</code>：未知的 <code>type</code> 欄位</p></blockquote>
+<blockquote><p>- <code>AUTH<em>NOT</em>HOST</code>：非 host 發送 host-only 訊息</p></blockquote>
+<blockquote><p>- <code>KICK<em>NOT</em>ALLOWED<em>IN</em>STATE</code>：在非 waiting 狀態嘗試踢人（<code>KICK_PLAYER</code> 限 waiting）</p></blockquote>
+<hr>
+<h2>5. JWT 規格</h2>
+<h3>算法與密鑰</h3>
+<table>
+<tr><th>屬性</th><th>規格</th></tr>
+<tr><td>算法</td><td>HS256（HMAC-SHA256，RFC 7519）</td></tr>
+<tr><td>密鑰來源</td><td>環境變數 <code>JWT_SECRET</code>，最少 256-bit（32 bytes）隨機字串</td></tr>
+<tr><td>庫</td><td><code>jose</code>（Node.js）— 不使用 <code>jsonwebtoken</code> 以符合 Edge Runtime 相容性</td></tr>
+</table>
+<h3>Payload 結構</h3>
+<pre><code class="language-typescript">interface JwtPayload {
+  playerId: string;              // UUID v4
+  roomCode: string;              // 6 碼房間代碼
+  role: &quot;host&quot; | &quot;player&quot;;      // 身份角色
+  exp: number;                   // Unix seconds（簽發時間 + 21600）
+  iat: number;                   // 簽發時間 Unix seconds
+}</code></pre>
+<p><strong>範例 Payload（decoded）：</strong></p>
+<pre><code class="language-json">{
+  &quot;playerId&quot;: &quot;f47ac10b-58cc-4372-a567-0e02b2c3d479&quot;,
+  &quot;roomCode&quot;: &quot;AB3K7X&quot;,
+  &quot;role&quot;: &quot;host&quot;,
+  &quot;iat&quot;: 1745049600,
+  &quot;exp&quot;: 1745071200
+}</code></pre>
+<h3>TTL 與 Clock Skew</h3>
+<table>
+<tr><th>屬性</th><th>值</th></tr>
+<tr><td>TTL</td><td>6 小時（21600 秒）</td></tr>
+<tr><td>Clock Skew 容忍</td><td>30 秒（驗證時允許 <code>exp</code> 提前 30 秒過期）</td></tr>
+</table>
+<h3>雙重驗證策略</h3>
+<p>JWT 驗證通過後，host 操作仍需比對 Redis <code>room.hostId === playerId</code>，防止 JWT 竊取後的越權攻擊。</p>
+<hr>
+<h2>6. 請求範例（curl）</h2>
+<h3>1. 建立房間</h3>
+<pre><code class="language-bash">curl -X POST https://api.ladder-room.online/api/rooms \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+    &quot;hostNickname&quot;: &quot;Alice&quot;,
+    &quot;winnerCount&quot;: 1
+  }&#x27;</code></pre>
+<h3>2. 查詢房間摘要</h3>
+<pre><code class="language-bash">curl https://api.ladder-room.online/api/rooms/AB3K7X</code></pre>
+<h3>3. 加入房間</h3>
+<pre><code class="language-bash">curl -X POST https://api.ladder-room.online/api/rooms/AB3K7X/players \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+    &quot;nickname&quot;: &quot;Bob&quot;
+  }&#x27;</code></pre>
+<h3>4. 踢出玩家（房主操作）</h3>
+<pre><code class="language-bash">curl -X DELETE \
+  https://api.ladder-room.online/api/rooms/AB3K7X/players/a3bb189e-8bf9-3888-9912-ace4e6543002 \
+  -H &quot;Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot;</code></pre>
+<h3>5. 開始遊戲（房主操作）</h3>
+<pre><code class="language-bash">curl -X POST https://api.ladder-room.online/api/rooms/AB3K7X/game/start \
+  -H &quot;Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{}&#x27;</code></pre>
+<h3>6. 揭示結果（房主操作）</h3>
+<pre><code class="language-bash">curl -X POST https://api.ladder-room.online/api/rooms/AB3K7X/game/reveal \
+  -H &quot;Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{&quot;mode&quot;:&quot;next&quot;}&#x27;</code></pre>
+<h3>7. 結束本局（房主操作）</h3>
+<pre><code class="language-bash">curl -X POST https://api.ladder-room.online/api/rooms/AB3K7X/game/end \
+  -H &quot;Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{}&#x27;</code></pre>
+<h3>8. 再玩一局（房主操作）</h3>
+<pre><code class="language-bash">curl -X POST https://api.ladder-room.online/api/rooms/AB3K7X/game/play-again \
+  -H &quot;Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{}&#x27;</code></pre>
+<h3>9. 健康檢查</h3>
+<pre><code class="language-bash">curl https://api.ladder-room.online/health</code></pre>
+<h3>WebSocket 連線範例（wscat）</h3>
+<pre><code class="language-bash"># 建立 WS 連線（需先取得 token）
+wscat -c &quot;wss://api.ladder-room.online/ws?room=AB3K7X&amp;token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot;
 
-// Client → Server
-{ "type": "START_GAME", "ts": 1745049600000, "payload": {} }
+# 連線後發送 START_GAME
+&gt; {&quot;type&quot;:&quot;START_GAME&quot;,&quot;ts&quot;:1745050000000,&quot;payload&quot;:{}}
 
-// SET_REVEAL_MODE 範例
-{ "type": "SET_REVEAL_MODE", "ts": 1745050000000,
-  "payload": { "mode": "auto", "intervalSec": 5 } }</code></pre>
+# 發送 BEGIN_REVEAL（此時後端才生成梯子）
+&gt; {&quot;type&quot;:&quot;BEGIN_REVEAL&quot;,&quot;ts&quot;:1745050100000,&quot;payload&quot;:{}}
 
-    <h2>4. JWT 規格</h2>
-    <table>
-      <thead><tr><th>欄位</th><th>值</th></tr></thead>
-      <tbody>
-        <tr><td>Algorithm</td><td>HS256</td></tr>
-        <tr><td>Library</td><td>jose（Web Crypto API 相容）</td></tr>
-        <tr><td>Payload</td><td><code>{ playerId, roomCode, role: "host" | "player", iat, exp }</code></td></tr>
-        <tr><td>TTL</td><td>6 小時（exp = iat + 21600）</td></tr>
-        <tr><td>驗證時機</td><td>WS Upgrade 握手、HTTP preHandler</td></tr>
-        <tr><td>重驗 exp</td><td>否（WS 連線建立後不重驗；MVP 安全取捨）</td></tr>
-      </tbody>
-    </table>
+# 逐一揭示
+&gt; {&quot;type&quot;:&quot;REVEAL_NEXT&quot;,&quot;ts&quot;:1745050200000,&quot;payload&quot;:{}}
 
-    <h2>5. 錯誤碼完整列表</h2>
-    <table>
-      <thead><tr><th>錯誤碼</th><th>HTTP / WS</th><th>說明</th></tr></thead>
-      <tbody>
-        <tr><td><code>ROOM_NOT_FOUND</code></td><td>404</td><td>房間碼不存在或已過期</td></tr>
-        <tr><td><code>ROOM_FULL</code></td><td>409</td><td>房間已達 50 人上限</td></tr>
-        <tr><td><code>ROOM_NOT_JOINABLE</code></td><td>409</td><td>房間狀態非 waiting</td></tr>
-        <tr><td><code>ROOM_FINISHED</code></td><td>WS</td><td>finished 狀態下無 playerId 訪問</td></tr>
-        <tr><td><code>NICKNAME_TAKEN</code></td><td>409</td><td>暱稱已被使用</td></tr>
-        <tr><td><code>INVALID_NICKNAME</code></td><td>400</td><td>暱稱格式不合法</td></tr>
-        <tr><td><code>PLAYER_KICKED</code></td><td>409 / WS 4003</td><td>玩家已被踢除（playerId 在 kickedPlayerIds）</td></tr>
-        <tr><td><code>PLAYER_NOT_FOUND</code></td><td>404</td><td>玩家不在房間</td></tr>
-        <tr><td><code>PLAYER_NOT_IN_ROOM</code></td><td>WS</td><td>playerId 不在 players 陣列且不在 kickedPlayerIds</td></tr>
-        <tr><td><code>CANNOT_KICK_HOST</code></td><td>409</td><td>不能踢除自己（Host）</td></tr>
-        <tr><td><code>PLAYER_NOT_HOST</code></td><td>403</td><td>操作者非房主</td></tr>
-        <tr><td><code>INVALID_STATE</code></td><td>409</td><td>房間狀態不符合操作要求</td></tr>
-        <tr><td><code>INSUFFICIENT_PLAYERS</code></td><td>400</td><td>N &lt; 2</td></tr>
-        <tr><td><code>PRIZES_NOT_SET</code></td><td>400</td><td>winnerCount 尚未設定</td></tr>
-        <tr><td><code>INVALID_PRIZES_COUNT</code></td><td>400</td><td>W ≤ 0 或 W ≥ N</td></tr>
-        <tr><td><code>INVALID_AUTO_REVEAL_INTERVAL</code></td><td>WS</td><td>intervalSec 缺少或不合法（mode=auto 時）</td></tr>
-        <tr><td><code>TITLE_UPDATE_NOT_ALLOWED_IN_STATE</code></td><td>WS</td><td>非 waiting 狀態下更新 title</td></tr>
-        <tr><td><code>WINNER_COUNT_INVALID_AT_START</code></td><td>WS / 400</td><td>START_GAME 時 W 驗證失敗（含 W=null）</td></tr>
-        <tr><td><code>ROLLBACK_TIMEOUT</code></td><td>WS</td><td>running 狀態 10 秒逾時，回退至 waiting</td></tr>
-        <tr><td><code>ROLLBACK_ERROR</code></td><td>WS</td><td>原子寫入拋出異常，回退至 waiting</td></tr>
-        <tr><td><code>AUTH_INVALID_TOKEN</code></td><td>401</td><td>JWT 驗證失敗</td></tr>
-        <tr><td><code>AUTH_TOKEN_EXPIRED</code></td><td>401</td><td>JWT 已過期</td></tr>
-        <tr><td><code>SYS_REDIS_ERROR</code></td><td>503 / WS</td><td>Redis 連線失敗</td></tr>
-        <tr><td><code>RATE_LIMIT</code></td><td>429</td><td>超過速率限制</td></tr>
-      </tbody>
-    </table>
+# 切換自動揭示（每 2 秒）
+&gt; {&quot;type&quot;:&quot;SET_REVEAL_MODE&quot;,&quot;ts&quot;:1745050210000,&quot;payload&quot;:{&quot;mode&quot;:&quot;auto&quot;,&quot;intervalSec&quot;:2}}
 
-    <h2>6. Rate Limiting</h2>
-    <table>
-      <thead><tr><th>端點</th><th>限制</th></tr></thead>
-      <tbody>
-        <tr><td><code>POST /api/rooms</code></td><td>10 req/min/IP</td></tr>
-        <tr><td><code>POST /api/rooms/:code/players</code></td><td>20 req/min/IP</td></tr>
-        <tr><td>其他 HTTP 端點</td><td>100 req/min/IP</td></tr>
-        <tr><td>WebSocket 訊息</td><td>60 msg/min/連線（WsSession 層）</td></tr>
-      </tbody>
-    </table>
+# 一鍵全揭（房間仍維持 revealing，需再發 END_GAME）
+&gt; {&quot;type&quot;:&quot;REVEAL_ALL_TRIGGER&quot;,&quot;ts&quot;:1745050250000,&quot;payload&quot;:{}}
 
-    <h2>7. cURL 範例</h2>
-    <pre><code># 建立房間
-curl -X POST http://localhost:3000/api/rooms \
-  -H "Content-Type: application/json" \
-  -d '{"hostNickname":"Alice","winnerCount":2}'
+# 結束本局（所有路徑揭曉後，seed 此時公開）
+&gt; {&quot;type&quot;:&quot;END_GAME&quot;,&quot;ts&quot;:1745050350000,&quot;payload&quot;:{}}
 
-# 加入房間
-curl -X POST http://localhost:3000/api/rooms/AB3K7X/players \
-  -H "Content-Type: application/json" \
-  -d '{"nickname":"Bob"}'
-
-# 踢出玩家（需 JWT）
-curl -X DELETE http://localhost:3000/api/rooms/AB3K7X/players/&lt;playerId&gt; \
-  -H "Authorization: Bearer &lt;token&gt;"
-
-# 開始遊戲
-curl -X POST http://localhost:3000/api/rooms/AB3K7X/game/start \
-  -H "Authorization: Bearer &lt;token&gt;"
-
-# 健康檢查
-curl http://localhost:3000/health</code></pre>
-  </main>
-</div>
-
-<script src="assets/app.js"></script>
+# 再玩一局
+&gt; {&quot;type&quot;:&quot;PLAY_AGAIN&quot;,&quot;ts&quot;:1745050400000,&quot;payload&quot;:{}}</code></pre>
+<hr>
+<p><em>API.md 版本：v1.2</em></p>
+<p><em>生成時間：2026-04-19</em></p>
+<p><em>修訂時間：2026-04-19（STEP-07 devsop-autodev 與 EDD v1.3 對齊）</em></p>
+<p><em>修訂重點（v1.1 vs v1.0）：</em></p>
+<p><em>1. 新增 POST /game/end 端點（END_GAME）、更名 /game/reset → /game/play-again</em></p>
+<p><em>2. START<em>GAME 回應修正：ladder=null（梯子延遲至 BEGIN</em>REVEAL 生成）</em></p>
+<p><em>3. REVEAL_ALL payload 改用 ResultSlotPublic（省略 path，符合 64KB 限制）</em></p>
+<p><em>4. ROOM<em>STATE</em>FULL 新增 LadderDataPublic 說明（revealing 時省略 seed/seedSource）</em></p>
+<p><em>5. WS RESET<em>ROOM 替換為 END</em>GAME + PLAY<em>AGAIN；新增 UPDATE</em>WINNER<em>COUNT / UPDATE</em>TITLE</em></p>
+<p><em>6. PING 說明修正：伺服器回應 PONG（RTT 量測）；新增 PONG 事件文件</em></p>
+<p><em>7. REVEAL<em>NEXT / REVEAL</em>ALL<em>TRIGGER 說明：不自動轉 finished，需另行 END</em>GAME</em></p>
+<p><em>基於 EDD v1.3 + PRD v1.3（Ladder Room Online）</em></p>
+<p><em>修訂重點（v1.2 — STEP-09 API Review Round 1）：</em></p>
+<p><em>1. POST /game/reveal 成功回應新增完整 JSON 範例，補充 400 INVALID<em>REVEAL</em>MODE 錯誤碼</em></p>
+<p><em>2. GET /ready 從 GET /health 合併區塊拆分，新增獨立 ReadyResponse schema 與 503 錯誤回應</em></p>
+<p><em>3. ROOM<em>STATE</em>FULL 新增 LadderSegment 介面定義，正式定義 LadderData（含 seed/seedSource）</em></p>
+<p><em>4. AUTH<em>TOKEN</em>EXPIRED 補充 WS close code 4001（WS Upgrade 階段過期 token 以 4001 拒絕）</em></p>
+<p><em>5. Section 4 錯誤碼表新增 INVALID<em>REVEAL</em>MODE 條目</em></p></main>
+  </div>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({startOnLoad:true,theme:'default',
+      flowchart:{curve:'basis',nodeSpacing:60,rankSpacing:80},
+      er:{layoutDirection:'TD',minEntityWidth:100,fontSize:12},
+      sequence:{actorMargin:60,messageMargin:30}});
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="assets/app.js"></script>
 </body>
 </html>
