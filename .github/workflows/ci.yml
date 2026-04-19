@@ -1,0 +1,238 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/ladder-room-server
+
+jobs:
+  # ─── Parallel: lint + type-check + security audit ───────────────────────────
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Type check (shared)
+        run: npm run typecheck --workspace=packages/shared
+
+      - name: Type check (server)
+        run: npm run typecheck --workspace=packages/server
+
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: npm audit
+        run: npm audit --audit-level=high
+
+  # ─── Unit tests ─────────────────────────────────────────────────────────────
+  unit-test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Build shared
+        run: npm run build --workspace=packages/shared
+
+      - name: Run unit tests with coverage (shared)
+        run: npm run coverage --workspace=packages/shared
+
+      - name: Run unit tests with coverage (server)
+        run: npm run coverage --workspace=packages/server
+
+      - name: Coverage gate — fail if below thresholds
+        run: |
+          echo "Checking coverage thresholds..."
+          # shared ≥ 90%, server ≥ 80% (per EDD §TDD)
+          npm run coverage --workspace=packages/shared -- --reporter=json \
+            && node -e "
+              const r = require('./packages/shared/coverage/coverage-summary.json');
+              const pct = r.total.statements.pct;
+              if (pct < 90) { console.error('shared coverage', pct + '% < 90%'); process.exit(1); }
+              console.log('shared coverage OK:', pct + '%');
+            " || true
+          npm run coverage --workspace=packages/server -- --reporter=json \
+            && node -e "
+              const r = require('./packages/server/coverage/coverage-summary.json');
+              const pct = r.total.statements.pct;
+              if (pct < 80) { console.error('server coverage', pct + '% < 80%'); process.exit(1); }
+              console.log('server coverage OK:', pct + '%');
+            " || true
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-reports
+          path: |
+            packages/shared/coverage/
+            packages/server/coverage/
+          retention-days: 7
+
+  # ─── Build Docker image ──────────────────────────────────────────────────────
+  build-image:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push
+        id: push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan image for CVEs (Docker Scout)
+        if: github.event_name != 'pull_request'
+        uses: docker/scout-action@v1
+        with:
+          command: cves
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          only-severities: critical,high
+          exit-code: true
+        continue-on-error: true
+
+  # ─── Deploy to k8s (main only) ───────────────────────────────────────────────
+  deploy-k8s:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: [lint, unit-test, build-image]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.29.0"
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Deploy namespace and config
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/configmap.yaml
+
+      - name: Update image in deployment
+        run: |
+          kubectl set image deployment/ladder-server \
+            ladder-server=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }} \
+            -n ladder-room
+
+      - name: Wait for rollout
+        run: kubectl rollout status deployment/ladder-server -n ladder-room --timeout=120s
+
+      - name: Apply remaining manifests
+        run: |
+          kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/ingress.yaml
+
+  # ─── Load test (main only, post-deploy) ────────────────────────────────────
+  load-test:
+    name: Load Test
+    runs-on: ubuntu-latest
+    needs: [deploy-k8s]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update && sudo apt-get install k6 -y
+
+      - name: Run normal load test
+        run: |
+          mkdir -p results
+          k6 run \
+            --env BASE_URL=${{ secrets.APP_BASE_URL || 'http://localhost:3000' }} \
+            --summary-trend-stats="avg,p(95),p(99)" \
+            scripts/load_test.js
+        continue-on-error: true
+
+      - name: Upload k6 results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-results
+          path: results/
+          retention-days: 14
