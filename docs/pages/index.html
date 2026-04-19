@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>首頁 — Ladder Room Online</title>
+  <title>首頁 — 爬樓梯抽獎 Ladder Room</title>
   <link rel="stylesheet" href="assets/style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,7 +11,7 @@
 </head>
 <body>
   <header class="topbar">
-    <a href="index.html" class="topbar__title">Ladder Room Online</a>
+    <a href="index.html" class="topbar__title">🪜 Ladder Room</a>
     <div class="topbar__controls">
       <div class="search-wrap">
         <input class="search-input" type="search" placeholder="搜尋文件...">
@@ -25,131 +25,40 @@
     <div class="sidebar__section">
       <div class="sidebar__label">文件</div>
       <a class="sidebar__link" href="index.html">🏠 首頁</a>
-      <a class="sidebar__link" href="pdd.html">📋 產品設計文件 (PDD)</a>
-      <a class="sidebar__link" href="prd.html">📝 產品需求文件 (PRD)</a>
-      <a class="sidebar__link" href="edd.html">🏗️ 工程設計文件 (EDD)</a>
-      <a class="sidebar__link" href="arch.html">🧩 架構設計 (ARCH)</a>
-      <a class="sidebar__link" href="api.html">🔌 API 文件</a>
-      <a class="sidebar__link" href="schema.html">🗄️ Schema 文件</a>
-      <a class="sidebar__link" href="design.html">🎨 UI 設計規格</a>
-      <a class="sidebar__link" href="bdd.html">🧪 BDD Scenarios</a>
+      <a class="sidebar__link" href="pdd.html">📋 PDD</a>
+      <a class="sidebar__link" href="prd.html">📝 PRD</a>
+      <a class="sidebar__link" href="edd.html">🏗️ EDD</a>
+      <a class="sidebar__link" href="arch.html">🧩 ARCH</a>
+      <a class="sidebar__link" href="api.html">🔌 API</a>
+      <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
+      <a class="sidebar__link" href="design.html">🎨 Design</a>
+      <a class="sidebar__link" href="bdd.html">🧪 BDD</a>
     </div>
   </nav>
 
   <main class="content">
-    <h1>Ladder Room Online 文件中心</h1>
-    <p>基於 LINE 爬樓梯玩法的 <strong>HTML5 線上多人互動抽獎遊戲</strong>。玩家從不同地點使用瀏覽器進入同一個 Room，主持人建立房間並掌控揭曉節奏，Mulberry32 PRNG 算法確保每局結果在所有客戶端 100% 一致。</p>
+    <h1>🪜 爬樓梯抽獎 — Ladder Room Online</h1>
+    <p>WebSocket 多人實時爬樓梯抽獎系統，最多 50 人同時參與。主持人建立房間並掌控揭曉節奏，玩家透過 6 碼房間碼加入並即時觀看路徑動畫；Mulberry32 PRNG 算法確保每局結果在所有客戶端 100% 一致，消除舞弊疑慮，適用於團隊抽獎、課堂點名、活動互動等場景。</p>
 
-    <h2>技術棧</h2>
-    <div class="stack-grid">
-      <div class="stack-card">
-        <span class="stack-card__label">Runtime</span>
-        <span class="stack-card__value">Node.js 20</span>
-        <span class="stack-card__note">LTS</span>
-      </div>
-      <div class="stack-card">
-        <span class="stack-card__label">語言</span>
-        <span class="stack-card__value">TypeScript</span>
-        <span class="stack-card__note">strict mode，前後端共用</span>
-      </div>
-      <div class="stack-card">
-        <span class="stack-card__label">HTTP Server</span>
-        <span class="stack-card__value">Fastify</span>
-        <span class="stack-card__note">REST API /api/*</span>
-      </div>
-      <div class="stack-card">
-        <span class="stack-card__label">WebSocket</span>
-        <span class="stack-card__value">ws (原生)</span>
-        <span class="stack-card__note">maxPayload: 65536</span>
-      </div>
-      <div class="stack-card">
-        <span class="stack-card__label">狀態 / 快取</span>
-        <span class="stack-card__value">Redis</span>
-        <span class="stack-card__note">原子操作 + Pub/Sub</span>
-      </div>
-      <div class="stack-card">
-        <span class="stack-card__label">前端</span>
-        <span class="stack-card__value">Vanilla TS + Vite</span>
-        <span class="stack-card__note">HTML5 Canvas，零框架</span>
-      </div>
-      <div class="stack-card">
-        <span class="stack-card__label">測試</span>
-        <span class="stack-card__value">Vitest + Playwright</span>
-        <span class="stack-card__note">Unit / Integration / E2E</span>
-      </div>
-      <div class="stack-card">
-        <span class="stack-card__label">CI/CD</span>
-        <span class="stack-card__value">GitHub Actions</span>
-        <span class="stack-card__note">lint → test → build → deploy</span>
-      </div>
+    <div class="stack-grid" style="margin-top:2rem">
+      <div class="stack-card"><div class="stack-card__label">Runtime</div><div class="stack-card__value">Node.js 20 LTS</div></div>
+      <div class="stack-card"><div class="stack-card__label">語言</div><div class="stack-card__value">TypeScript</div><div class="stack-card__note">strict mode，前後端共用</div></div>
+      <div class="stack-card"><div class="stack-card__label">HTTP Server</div><div class="stack-card__value">Fastify</div></div>
+      <div class="stack-card"><div class="stack-card__label">WebSocket</div><div class="stack-card__value">ws（原生）</div></div>
+      <div class="stack-card"><div class="stack-card__label">狀態儲存</div><div class="stack-card__value">Redis</div><div class="stack-card__note">原子操作、Pub/Sub</div></div>
+      <div class="stack-card"><div class="stack-card__label">前端</div><div class="stack-card__value">Vanilla TS + Vite</div><div class="stack-card__note">HTML5 Canvas，零框架</div></div>
     </div>
 
-    <h2>文件導覽</h2>
     <div class="index-grid">
-      <a class="index-card" href="pdd.html">
-        <span class="index-card__icon">📋</span>
-        <span class="index-card__title">產品設計文件 (PDD)</span>
-        <span class="index-card__desc">v2.2 — 產品目標、核心玩法規則、角色定義、房間狀態機、防作弊需求</span>
-      </a>
-      <a class="index-card" href="prd.html">
-        <span class="index-card__icon">📝</span>
-        <span class="index-card__title">產品需求文件 (PRD)</span>
-        <span class="index-card__desc">v1.3 — User Stories、驗收標準 (AC)、功能需求 (FR)、非功能需求 (NFR)</span>
-      </a>
-      <a class="index-card" href="edd.html">
-        <span class="index-card__icon">🏗️</span>
-        <span class="index-card__title">工程設計文件 (EDD)</span>
-        <span class="index-card__desc">v1.3 — Clean Architecture 分層、技術選型、Mermaid 系統架構圖</span>
-      </a>
-      <a class="index-card" href="arch.html">
-        <span class="index-card__icon">🧩</span>
-        <span class="index-card__title">架構設計 (ARCH)</span>
-        <span class="index-card__desc">v1.2 — 模組職責、設計決策、DI 策略、JWT 認證機制</span>
-      </a>
-      <a class="index-card" href="api.html">
-        <span class="index-card__icon">🔌</span>
-        <span class="index-card__title">API 文件</span>
-        <span class="index-card__desc">v1.1 — HTTP REST 端點、WebSocket 事件規格、錯誤碼清單</span>
-      </a>
-      <a class="index-card" href="schema.html">
-        <span class="index-card__icon">🗄️</span>
-        <span class="index-card__title">Schema 文件</span>
-        <span class="index-card__desc">v1.1 — Redis Key Schema、房間物件 JSON 結構、TTL 策略</span>
-      </a>
-      <a class="index-card" href="design.html">
-        <span class="index-card__icon">🎨</span>
-        <span class="index-card__title">UI 設計規格 (DESIGN)</span>
-        <span class="index-card__desc">v1.1 — 設計 Token、頁面清單、Canvas 渲染規格、元件設計</span>
-      </a>
-      <a class="index-card" href="bdd.html">
-        <span class="index-card__icon">🧪</span>
-        <span class="index-card__title">BDD Scenarios</span>
-        <span class="index-card__desc">11 個 Feature Files — 房間生命週期、遊戲流程、玩家管理、重連機制</span>
-      </a>
+      <a class="index-card" href="pdd.html"><span class="index-card__icon">📋</span><span class="index-card__title">PDD — 產品設計</span><span class="index-card__desc">產品目標、功能範圍、驗收標準</span></a>
+      <a class="index-card" href="prd.html"><span class="index-card__icon">📝</span><span class="index-card__title">PRD — 產品需求</span><span class="index-card__desc">User Stories、AC、非功能需求</span></a>
+      <a class="index-card" href="edd.html"><span class="index-card__icon">🏗️</span><span class="index-card__title">EDD — 工程設計</span><span class="index-card__desc">架構、技術選型、Mermaid 圖表</span></a>
+      <a class="index-card" href="arch.html"><span class="index-card__icon">🧩</span><span class="index-card__title">ARCH — 系統架構</span><span class="index-card__desc">元件設計、資料流、部署架構</span></a>
+      <a class="index-card" href="api.html"><span class="index-card__icon">🔌</span><span class="index-card__title">API 文件</span><span class="index-card__desc">Endpoints、WebSocket Events、Error Codes</span></a>
+      <a class="index-card" href="schema.html"><span class="index-card__icon">🗄️</span><span class="index-card__title">Schema 文件</span><span class="index-card__desc">Redis 資料結構、ER 圖、Lua Scripts</span></a>
+      <a class="index-card" href="design.html"><span class="index-card__icon">🎨</span><span class="index-card__title">UI Design</span><span class="index-card__desc">介面規範、Canvas 座標系、錯誤處理</span></a>
+      <a class="index-card" href="bdd.html"><span class="index-card__icon">🧪</span><span class="index-card__title">BDD Scenarios</span><span class="index-card__desc">Gherkin Feature Files、驗收測試</span></a>
     </div>
-
-    <section class="health-dashboard">
-      <h2>📊 專案健康狀態</h2>
-      <div class="metrics-grid">
-        <div class="metric">
-          <div class="metric-label">文件對齊問題</div>
-          <div class="metric-value">72</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">CRITICAL 問題</div>
-          <div class="metric-value">7</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">HIGH 問題</div>
-          <div class="metric-value">30</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">已完成 STEP</div>
-          <div class="metric-value">19/20</div>
-        </div>
-      </div>
-      <p class="health-note">由 devsop-align-check 自動生成（2026-04-19 第二次掃描）；vs 上次掃描 99 個 → 已修復 27 個</p>
-    </section>
   </main>
 
   <script type="module">
