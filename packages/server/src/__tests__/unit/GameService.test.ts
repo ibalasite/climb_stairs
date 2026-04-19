@@ -334,7 +334,7 @@ describe('GameService', () => {
       );
     });
 
-    it('removes kicked player from the room players list', async () => {
+    it('removes kicked player from the room players list and records the kick', async () => {
       const players = [
         makePlayer({ id: 'player-1', isHost: true }),
         makePlayer({ id: 'player-2', isHost: false, nickname: 'Bob', colorIndex: 1 }),
@@ -345,6 +345,7 @@ describe('GameService', () => {
       const room = await svc.kickPlayer('ABCD12', 'player-1', 'player-2');
       expect(room.players).toHaveLength(1);
       expect(room.players[0]?.id).toBe('player-1');
+      expect(repo.addKickedPlayer).toHaveBeenCalledWith('ABCD12', 'player-2');
     });
 
     it('throws PLAYER_NOT_FOUND when target does not exist', async () => {
