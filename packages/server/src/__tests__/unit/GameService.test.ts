@@ -148,6 +148,7 @@ describe('GameService', () => {
       expect(room.results).not.toBeNull();
       expect(room.results).toHaveLength(2);
     });
+
   });
 
   // ── beginReveal ────────────────────────────────────────────────────────────
