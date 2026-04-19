@@ -1,9 +1,9 @@
 # ARCH — Ladder Room Online Architecture Design Document
 
-> Version: v1.1
+> Version: v1.2
 > Date: 2026-04-19
-> Revised: 2026-04-19 (Arch Review Round 1)
-> Based on: EDD v1.1, PRD v1.1, PDD v2.1
+> Revised: 2026-04-19 (STEP-07: aligned with EDD v1.3)
+> Based on: EDD v1.3, PRD v1.3, PDD v2.2
 
 ---
 
@@ -93,7 +93,7 @@ graph LR
 | `presentation/routes/players.ts` | 處理玩家 HTTP 路由（POST /rooms/:code/players、DELETE /rooms/:code/players/:id） |
 | `presentation/schemas/` | 定義 Fastify AJV JSON Schema，對所有 HTTP 請求/回應做格式驗證 |
 | `application/services/RoomService.ts` | 協調房間建立、加入、踢出等業務流程，呼叫 RoomRepository 並發布 ROOM_STATE 廣播 |
-| `application/services/GameService.ts` | 協調遊戲開局（START_GAME）、開始揭示（BEGIN_REVEAL，`running → revealing`）、逐一揭示（REVEAL_NEXT）、全揭（REVEAL_ALL_TRIGGER）、結束、重置流程，呼叫 GenerateLadder/ComputeResults 並觸發廣播 |
+| `application/services/GameService.ts` | 協調遊戲開局（START_GAME，僅生成 seedSource，不生成梯子）、開始揭示（BEGIN_REVEAL，`running → revealing`，**此時才原子生成 LadderData + ResultSlots**）、逐一揭示（REVEAL_NEXT）、全揭（REVEAL_ALL_TRIGGER）、結束（END_GAME，`revealing → finished`，seed 首次公開）、再玩一局（PLAY_AGAIN，取代 RESET_ROOM）流程，呼叫 GenerateLadder/ComputeResults 並觸發廣播 |
 | `application/handlers/WsMessageHandler.ts` | 解析 ClientEnvelope，驗證 JWT role，分派至對應 Service 方法 |
 | `application/handlers/PubSubHandler.ts` | 訂閱 Redis `room:*:events` 頻道，將收到的 PubSubMessage 轉發至房間內所有本地 WsSession |
 | `infrastructure/redis/RedisClient.ts` | 建立並匯出 ioredis 單例（含連線重試設定） |
@@ -279,13 +279,20 @@ const svc = new GameService(mockRepo, mockPubSub);
 
 ```
 Redis Keys:
-  room:{code}               → Room JSON（含 players、ladder、results、kickedPlayerIds、revealedCount）
+  room:{code}               → Room JSON（含 players、kickedPlayerIds、revealedCount 快照）
+  room:{code}:ladder        → LadderData JSON（含 seed、seedSource、segments、results）；
+                              BEGIN_REVEAL 時才創建，START_GAME 時不存在
   room:{code}:revealedCount → Integer，INCR 原子遞增（唯一計數真相來源）
 
 Key TTL:
-  waiting 房間   → 24h（EXPIRE，玩家活動時 EXPIRE 重置）
-  finished 房間  → 1h（REVEAL_ALL 觸發後 EXPIRE 更新）
-  最後一人斷線   → 5 分鐘（close event 原子設定 EXPIRE 300）
+  waiting / running 房間 → 24h（EXPIRE，玩家活動時 EXPIRE 重置）
+  finished 房間          → 1h（END_GAME 觸發後 EXPIRE 更新）
+  最後一人斷線           → 5 分鐘（close event 原子設定 EXPIRE 300）
+
+安全邊界（seed 公開時機）：
+  status=waiting/running  → seed 不存在（尚未生成）
+  status=revealing        → seed 存在於 Redis，但 ROOM_STATE_FULL 以 LadderDataPublic（省略 seed）傳送客戶端
+  status=finished         → seed 首次對客戶端公開（含於 ROOM_STATE 廣播，PRD AC-H03-1, NFR-05）
 ```
 
 **`revealedCount` 雙欄位說明（一致性關鍵）：**
@@ -320,10 +327,12 @@ Pod 本地記憶體（重啟後消失）：
 
 | 操作 | 一致性機制 |
 |------|-----------|
-| START_GAME | WATCH + MULTI/EXEC；EXEC null → 重試最多 3 次；同時 DEL revealedCount key |
-| RESET_ROOM | WATCH + MULTI/EXEC 原子更新整包 Room JSON |
+| START_GAME | WATCH + MULTI/EXEC；EXEC null → 重試最多 3 次；同時 DEL revealedCount key；**不生成梯子，不廣播 seed** |
+| BEGIN_REVEAL | Lua Script 原子執行：GenerateLadder/ComputeResults 在應用層計算，Lua 原子寫入 ladder/results/status=revealing；同時 DEL revealedCount key |
+| END_GAME | WATCH + MULTI/EXEC：status → finished；成功後廣播含 seed 的 ROOM_STATE；Redis TTL 延長至 1h |
+| PLAY_AGAIN（取代 RESET_ROOM） | WATCH + MULTI/EXEC 原子更新整包 Room JSON；清空 ladder/kickedPlayerIds/revealedCount |
 | REVEAL_NEXT（revealedCount 遞增） | 先 INCR 取得 newCount，再 WATCH + MULTI/EXEC 將 newCount 寫入 Room JSON 並 PUBLISH；三步操作確保 JSON 與 INCR key 同步（若 EXEC null 則重試，最多 3 次） |
-| ROOM_STATE_FULL（重連） | GameService 以 GET room:{code}:revealedCount 取最新值覆蓋 Room JSON 的快照後再組裝 payload |
+| ROOM_STATE_FULL（重連） | GameService 以 GET room:{code}:revealedCount 取最新值覆蓋 Room JSON 的快照後再組裝 payload；revealing 狀態回傳 LadderDataPublic（省略 seed） |
 | 玩家加入/離線 | 以 Room JSON 整包 SET，配合 WATCH 防止 lost update |
 
 ---
@@ -517,7 +526,12 @@ services:
 
 ---
 
-*ARCH 版本：v1.1*
+*ARCH 版本：v1.2*
 *生成時間：2026-04-19*
 *修訂時間：2026-04-19（Arch Review Round 1：P1 × 3 修正、P2 × 9 修正）*
-*基於 EDD v1.1 | PRD v1.1 | PDD v2.1*
+*修訂時間：2026-04-19（STEP-07：與 EDD v1.3 對齊）*
+*修訂重點（v1.2 vs v1.1）：*
+*1. GameService 職責描述更新：BEGIN_REVEAL 才原子生成 LadderData，END_GAME 新增，PLAY_AGAIN 取代 RESET_ROOM*
+*2. Redis Key Schema 補充 room:{code}:ladder 說明（BEGIN_REVEAL 時才創建）及 seed 公開時機安全邊界*
+*3. 一致性保證表新增 BEGIN_REVEAL（Lua Script）、END_GAME、PLAY_AGAIN；ROOM_STATE_FULL 說明 LadderDataPublic*
+*基於 EDD v1.3 | PRD v1.3 | PDD v2.2*
