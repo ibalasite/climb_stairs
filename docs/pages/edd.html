@@ -1097,6 +1097,38 @@ EXEC
 <tr><td>5 次重連失敗</td><td>顯示「無法連線」，停止重連，手動重試按鈕</td></tr>
 </table>
 <hr>
+<h2>Client-Side Storage 規格</h2>
+<h3>localStorage Keys</h3>
+<table>
+<tr><th>Key</th><th>型別</th><th>用途</th><th>生命週期</th></tr>
+<tr><td><code>playerId</code></td><td><code>string</code> (UUID v4)</td><td>玩家身份識別，用於斷線重連</td><td>永久（手動清除或被踢除後失效）</td></tr>
+<tr><td><code>ladder_last_nickname</code></td><td><code>string</code> (1-20 chars)</td><td>記憶上次使用的暱稱，下次加入時自動預填</td><td>永久（每次成功加入時更新）</td></tr>
+</table>
+<h3>ladder_last_nickname 操作規格</h3>
+<p><strong>寫入時機</strong>：玩家 WebSocket JOIN_ROOM 握手成功（收到 <code>ROOM_STATE</code> 廣播，自己出現在 players 列表）後立即寫入：</p>
+<pre><code class="language-ts">localStorage.setItem(&#x27;ladder_last_nickname&#x27;, nickname)</code></pre>
+<p><strong>讀取時機</strong>：Join 頁面（/#/ 或 / 路由）DOMContentLoaded 事件觸發時：</p>
+<pre><code class="language-ts">const saved = localStorage.getItem(&#x27;ladder_last_nickname&#x27;)
+if (saved) nicknameInput.value = saved</code></pre>
+<p><strong>優先順序</strong>：URL param <code>?room=</code> 優先覆蓋 room code 欄位；localStorage nickname 優先填入暱稱欄位（使用者仍可手動覆蓋）。</p>
+<h3>邀請連結規格</h3>
+<p><strong>格式</strong>：<code>{window.location.origin}/?room={roomCode}</code></p>
+<p><strong>生成邏輯</strong>（client-side only，無後端變更）：</p>
+<pre><code class="language-ts">const inviteUrl = `${window.location.origin}/?room=${roomCode}`</code></pre>
+<p><strong>複製機制</strong>：</p>
+<ol><li>優先使用 <code>navigator.clipboard.writeText(inviteUrl)</code>（需 HTTPS 或 localhost）</li><li>Fallback：建立 <code>&lt;input&gt;</code> 元素，設值後 <code>.select()</code> + <code>document.execCommand(&#x27;copy&#x27;)</code>；若 execCommand 也失敗，顯示包含 URL 的文字框供手動複製</li></ol>
+<p><strong>UI 反饋</strong>：</p>
+<ul><li>複製成功：按鈕文字短暫改為「已複製！」（1500ms 後恢復）</li><li>Fallback 觸發：顯示可全選的 <code>&lt;input&gt;</code> 文字框</li></ul>
+<h3>LocalStorageService 模組</h3>
+<p>新增 <code>packages/client/src/state/LocalStorageService.ts</code>：</p>
+<pre><code class="language-ts">export const LocalStorageService = {
+  getNickname(): string { return localStorage.getItem(&#x27;ladder_last_nickname&#x27;) ?? &#x27;&#x27; },
+  setNickname(v: string): void { localStorage.setItem(&#x27;ladder_last_nickname&#x27;, v) },
+  getPlayerId(): string { return localStorage.getItem(&#x27;playerId&#x27;) ?? &#x27;&#x27; },
+  setPlayerId(v: string): void { localStorage.setItem(&#x27;playerId&#x27;, v) },
+  clearPlayerId(): void { localStorage.removeItem(&#x27;playerId&#x27;) },
+}</code></pre>
+<hr>
 <p><em>EDD 版本：v1.4</em></p>
 <p><em>生成時間：2026-04-19（STEP-06 devsop-autodev EDD Review 修訂）</em></p>
 <p><em>修訂重點（v1.3 vs v1.2）：</em></p>
@@ -1118,7 +1150,10 @@ EXEC
 <p><em>15. 本機開發工具：新增 <code>scripts/dev-k8s.sh [up|down|restart|logs]</code> 一鍵啟動腳本，統一管理 docker build + kubectl apply 完整流程；存取 http://ladder.local（需 /etc/hosts: 127.0.0.1 ladder.local）</em></p>
 <p><em>16. Docker image 策略：Dockerfile（server）維持 Distroless Node.js；新增 Dockerfile.client（Nginx 1.27-alpine）多階段建構；兩者均 imagePullPolicy: Never（本機 image，不從 registry pull）</em></p>
 <p><em>17. Ingress 控制器：更正為 Traefik（Rancher Desktop 內建，ingressClassName: traefik）；保留 NGINX 備選設定（已註解）</em></p>
-<p><em>基於 PDD v2.2 + PRD v1.3（Ladder Room Online）</em></p></main>
+<p><em>基於 PDD v2.2 + PRD v1.3（Ladder Room Online）</em></p>
+<h2>變更追蹤</h2>
+<h3>ECR-20260420-001：HOST copy 邀請 link（含 6 碼房號）+ localStorage 暱稱記憶，一鍵加入</h3>
+<ul><li><strong>狀態</strong>：✅ DONE</li><li><strong>分類</strong>：ECR / 需求面</li><li><strong>日期</strong>：2026-04-20</li><li><strong>描述</strong>：HOST 開好房間後可 COPY 邀請 link（含 6 碼房號），受邀者點 link 自動帶入房號，名字欄位自動帶入上次輸入過的名字，一鍵加入。</li><li><strong>影響範圍</strong>：§localStorage 規格（新增 ladder_last_nickname key）、§Client 架構（新增 LocalStorageService）</li><li><strong>修正/實作內容</strong>：新增 Client-Side Storage 規格章節（ladder_last_nickname + 邀請連結規格 + LocalStorageService 模組設計）</li><li><strong>commit</strong>：70b1e66</li></ul></main>
   </div>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';

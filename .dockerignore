@@ -1,4 +1,4 @@
-node_modules
+# node_modules excluded for production Dockerfile; Dockerfile.local copies them
 **/node_modules
 dist
 **/dist

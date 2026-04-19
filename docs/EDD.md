@@ -13,9 +13,11 @@
 | Monorepo 結構 | npm workspaces | `packages/shared`、`packages/server`、`packages/client` |
 | 測試 | Vitest | Unit（70%）＋Integration（20%，testcontainers）＋E2E（10%，Playwright） |
 | CI/CD | GitHub Actions | lint → audit → test → build → e2e → deploy |
-| 容器 | Docker（Distroless Node.js 20） | 多階段建構 |
-| 編排 | Kubernetes（HPA）+ Nginx Ingress | sticky session，Post-MVP 多 Pod |
-| 靜態部署 | GitHub Pages | Vite 建構產物，bundle < 150KB gzip |
+| 容器 | Docker（Distroless Node.js 20 / Nginx 1.27-alpine） | 多階段建構；server + client 各自獨立 image |
+| 編排 | Kubernetes（HPA）+ Traefik Ingress | sticky session，Post-MVP 多 Pod |
+| 前端部署（本機） | Nginx Pod（ladder-client:local） | `Dockerfile.client` 建構，`imagePullPolicy: Never` |
+| 前端部署（生產） | GitHub Pages CDN | Vite 建構產物，bundle < 150KB gzip |
+| 本機開發 | `./scripts/dev-k8s.sh [up\|down\|restart\|logs]` | 一鍵啟動完整 k8s 環境，http://ladder.local |
 
 **client_type**: `web`（瀏覽器端，HTML5 Canvas + Vanilla TypeScript）
 
@@ -139,15 +141,19 @@ graph TD
         TS --> WSClient
     end
 
-    subgraph Ingress["Nginx Ingress"]
+    subgraph Ingress["Traefik Ingress"]
         NginxHTTP["HTTP /api/*"]
         NginxWS["WebSocket /ws"]
-        NginxStatic["Static /"]
-        NginxStatic --> Pages["GitHub Pages CDN"]
+        NginxStatic["Static / (catch-all)"]
     end
 
-    subgraph K8sCluster["Kubernetes Cluster"]
-        SVC["Service ClusterIP"]
+    subgraph K8sCluster["Kubernetes Cluster (ladder-room)"]
+        SVC["Service: ladder-server-service"]
+        ClientSVC["Service: ladder-client-service"]
+
+        subgraph ClientPod["Client Pod"]
+            NginxPod["Nginx 1.27-alpine\nladder-client:local\nSPA static files"]
+        end
 
         subgraph Pods["Fastify Pods (HPA: 2-10)"]
             Pod1["Pod-1 Fastify+ws"]
@@ -156,6 +162,7 @@ graph TD
 
         SVC --> Pod1
         SVC --> Pod2
+        ClientSVC --> NginxPod
 
         subgraph Redis["Redis StatefulSet"]
             RedisMaster["Redis Master"]
@@ -176,6 +183,7 @@ graph TD
     TS --> |"HTTPS /api"| NginxHTTP
     NginxHTTP --> |"sticky session"| SVC
     NginxWS --> |"sticky session"| SVC
+    NginxStatic --> ClientSVC
 ```
 
 ---
@@ -250,10 +258,18 @@ graph TD
             ING["Ingress nginx\naffinity: cookie\nwebsocket-services: server-svc"]
         end
 
+        subgraph ClientLayer["Client Layer"]
+            CDEP["Deployment: ladder-client\nreplicas: 1\nimage: ladder-client:local\nimagePullPolicy: Never"]
+            CPOD["Nginx Pod port:80\nSPA static files"]
+            CSVC["Service: ladder-client-service\nClusterIP port:80"]
+            CDEP --> CPOD
+            CSVC --> CPOD
+        end
+
         subgraph AppLayer["Application Layer"]
-            DEP["Deployment: ladder-server\nreplicas: 2 min\nimage: distroless/nodejs20"]
-            POD1["Pod-1 server:latest port:3000"]
-            POD2["Pod-2 server:latest port:3000"]
+            DEP["Deployment: ladder-server\nreplicas: 2 min\nimage: distroless/nodejs20\nimagePullPolicy: Never"]
+            POD1["Pod-1 Fastify+ws port:3000"]
+            POD2["Pod-2 Fastify+ws port:3000"]
             DEP --> POD1
             DEP --> POD2
             HPA["HPA minReplicas:2 maxReplicas:10\nmetric: ws_connections target:200"]
@@ -261,7 +277,7 @@ graph TD
         end
 
         subgraph ServiceLayer["Service Layer"]
-            SVC["Service: server-svc\nClusterIP port:80->3000"]
+            SVC["Service: ladder-server-service\nClusterIP port:80->3000"]
         end
 
         subgraph StatefulLayer["Redis"]
@@ -279,7 +295,8 @@ graph TD
             SEC["Secret JWT_SECRET REDIS_PASSWORD"]
         end
 
-        ING --> SVC
+        ING --> |"/api /ws /health /ready"| SVC
+        ING --> |"/ catch-all"| CSVC
         SVC --> POD1
         SVC --> POD2
         POD1 --> RSVC
@@ -290,8 +307,6 @@ graph TD
         POD2 --> CM
         POD2 --> SEC
     end
-
-    GHP["GitHub Pages Static Client"] --> ING
 ```
 
 ---
@@ -1216,7 +1231,63 @@ EXEC
 
 ---
 
-*EDD 版本：v1.3*
+## Client-Side Storage 規格
+
+### localStorage Keys
+
+| Key | 型別 | 用途 | 生命週期 |
+|-----|------|------|---------|
+| `playerId` | `string` (UUID v4) | 玩家身份識別，用於斷線重連 | 永久（手動清除或被踢除後失效） |
+| `ladder_last_nickname` | `string` (1-20 chars) | 記憶上次使用的暱稱，下次加入時自動預填 | 永久（每次成功加入時更新） |
+
+### ladder_last_nickname 操作規格
+
+**寫入時機**：玩家 WebSocket JOIN_ROOM 握手成功（收到 `ROOM_STATE` 廣播，自己出現在 players 列表）後立即寫入：
+```ts
+localStorage.setItem('ladder_last_nickname', nickname)
+```
+
+**讀取時機**：Join 頁面（/#/ 或 / 路由）DOMContentLoaded 事件觸發時：
+```ts
+const saved = localStorage.getItem('ladder_last_nickname')
+if (saved) nicknameInput.value = saved
+```
+
+**優先順序**：URL param `?room=` 優先覆蓋 room code 欄位；localStorage nickname 優先填入暱稱欄位（使用者仍可手動覆蓋）。
+
+### 邀請連結規格
+
+**格式**：`{window.location.origin}/?room={roomCode}`
+
+**生成邏輯**（client-side only，無後端變更）：
+```ts
+const inviteUrl = `${window.location.origin}/?room=${roomCode}`
+```
+
+**複製機制**：
+1. 優先使用 `navigator.clipboard.writeText(inviteUrl)`（需 HTTPS 或 localhost）
+2. Fallback：建立 `<input>` 元素，設值後 `.select()` + `document.execCommand('copy')`；若 execCommand 也失敗，顯示包含 URL 的文字框供手動複製
+
+**UI 反饋**：
+- 複製成功：按鈕文字短暫改為「已複製！」（1500ms 後恢復）
+- Fallback 觸發：顯示可全選的 `<input>` 文字框
+
+### LocalStorageService 模組
+
+新增 `packages/client/src/state/LocalStorageService.ts`：
+```ts
+export const LocalStorageService = {
+  getNickname(): string { return localStorage.getItem('ladder_last_nickname') ?? '' },
+  setNickname(v: string): void { localStorage.setItem('ladder_last_nickname', v) },
+  getPlayerId(): string { return localStorage.getItem('playerId') ?? '' },
+  setPlayerId(v: string): void { localStorage.setItem('playerId', v) },
+  clearPlayerId(): void { localStorage.removeItem('playerId') },
+}
+```
+
+---
+
+*EDD 版本：v1.4*
 *生成時間：2026-04-19（STEP-06 devsop-autodev EDD Review 修訂）*
 *修訂重點（v1.3 vs v1.2）：*
 *1. 安全修正（關鍵）：引入 LadderDataPublic（省略 seed）於 revealing 狀態；LadderData（含 seed）僅於 finished 時發送（PRD AC-H03-1, NFR-05）*
@@ -1231,4 +1302,21 @@ EXEC
 *10. PING/PONG 補充：ws 內建心跳（30s）為主路徑；應用層 PONG 用於 RTT 量測*
 *11. REVEAL_ALL_TRIGGER：明確 revealedCount = totalCount 原子 SET 語意*
 *12. BDD AC-ROOM-001：更正為 winnerCount 參數（非舊版 prizes 陣列）*
+*修訂重點（v1.4 vs v1.3）：*
+*13. 前端部署架構重構：新增 Nginx Pod（ladder-client:local）作為本機 k8s 開發模式的靜態檔案服務，取代原 GitHub Pages 僅選項設計；兩者並存（本機 Nginx Pod / 生產 GitHub Pages）*
+*14. Ingress 路由補充：新增 `path: /`（catch-all）→ ladder-client-service 路由規則；Traefik sticky session 僅對 /ws /api 路徑生效*
+*15. 本機開發工具：新增 `scripts/dev-k8s.sh [up|down|restart|logs]` 一鍵啟動腳本，統一管理 docker build + kubectl apply 完整流程；存取 http://ladder.local（需 /etc/hosts: 127.0.0.1 ladder.local）*
+*16. Docker image 策略：Dockerfile（server）維持 Distroless Node.js；新增 Dockerfile.client（Nginx 1.27-alpine）多階段建構；兩者均 imagePullPolicy: Never（本機 image，不從 registry pull）*
+*17. Ingress 控制器：更正為 Traefik（Rancher Desktop 內建，ingressClassName: traefik）；保留 NGINX 備選設定（已註解）*
 *基於 PDD v2.2 + PRD v1.3（Ladder Room Online）*
+
+## 變更追蹤
+
+### ECR-20260420-001：HOST copy 邀請 link（含 6 碼房號）+ localStorage 暱稱記憶，一鍵加入
+- **狀態**：✅ DONE
+- **分類**：ECR / 需求面
+- **日期**：2026-04-20
+- **描述**：HOST 開好房間後可 COPY 邀請 link（含 6 碼房號），受邀者點 link 自動帶入房號，名字欄位自動帶入上次輸入過的名字，一鍵加入。
+- **影響範圍**：§localStorage 規格（新增 ladder_last_nickname key）、§Client 架構（新增 LocalStorageService）
+- **修正/實作內容**：新增 Client-Side Storage 規格章節（ladder_last_nickname + 邀請連結規格 + LocalStorageService 模組設計）
+- **commit**：70b1e66

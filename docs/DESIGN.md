@@ -136,6 +136,16 @@
 - 即時 character count 提示（`x / 20`）
 - 前端驗證失敗：inline 錯誤（不 submit）
 
+#### NicknameInput 自動預填行為
+- 頁面載入時：讀取 localStorage `ladder_last_nickname`，若有值則自動預填暱稱欄位
+- 顯示提示文字（placeholder）：「輸入暱稱（上次：{savedNickname}）」或直接預填值
+- 使用者可手動清除或修改預填值
+
+#### URL Param 預填行為（已存在，補充說明）
+- URL `?room=XXXXXX` 參數自動預填 Room Code 欄位（既有功能）
+- 當 Room Code 與暱稱均有值（URL param + localStorage）時，「加入」按鈕立即啟用（無需手動觸發驗證）
+- 此組合創造「一鍵加入」體驗：收到邀請連結的回頭客，點連結即可直接按「加入」
+
 **ActionButton（主要）**
 - 高度 48px（觸控最小目標）
 - 全寬於 mobile
@@ -201,6 +211,15 @@
 **RoomCodeDisplay**
 - 大字顯示 6 碼（`var(--text-2xl)`，等寬字體或字母間距加大）
 - [複製] 按鈕：點擊後短暫改為「已複製 ✓」（1.5s 後復原）
+
+#### CopyInviteLink 元件
+- 位置：等待大廳，房間碼顯示行右側或下方
+- 顯示：「複製邀請連結」按鈕（次要按鈕樣式）
+- 邀請 URL 格式：`{origin}/?room={roomCode}`（顯示在按鈕旁，truncated 至 40 字元後加 ...）
+- 點擊行為：
+  - 成功：按鈕文字 1.5 秒顯示「✓ 已複製！」後恢復
+  - Clipboard API 不可用：顯示包含完整 URL 的 `<input>` 文字框（已 focus + select）
+- 僅在 room status = `waiting` 時顯示
 
 **PlayerList**
 - 每個 PlayerItem：頭像占位符（首字母圓形背景）+ 暱稱 + 狀態 badge
@@ -615,3 +634,14 @@ WebSocket 連線中斷
 *生成時間：2026-04-19*
 *基於 PRD v1.3 · ARCH v1.2 · EDD v1.3 · API v1.1*
 *STEP-07c Round 1 Design Review：補全遺漏 WS 事件映射、Canvas 座標系與大人數橫捲規格、錯誤碼 Toast 映射、觸控手勢與 RoomTTL 失效流程*
+
+## 變更追蹤
+
+### ECR-20260420-001：HOST copy 邀請 link（含 6 碼房號）+ localStorage 暱稱記憶，一鍵加入
+- **狀態**：✅ DONE
+- **分類**：ECR / 需求面
+- **日期**：2026-04-20
+- **描述**：HOST 開好房間後可 COPY 邀請 link（含 6 碼房號），受邀者點 link 自動帶入房號，名字欄位自動帶入上次輸入過的名字，一鍵加入。
+- **影響範圍**：§localStorage 規格（新增 ladder_last_nickname key）、§Client 架構（新增 LocalStorageService）
+- **修正/實作內容**：新增 CopyInviteLink 元件規格（HOST 等待大廳）；更新 NicknameInput 自動預填行為規格（localStorage + URL param 組合一鍵加入）
+- **commit**：bcf969e
