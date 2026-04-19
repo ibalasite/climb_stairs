@@ -634,6 +634,33 @@ describe('GameService', () => {
         (e: unknown) => e instanceof DomainError && e.code === 'INVALID_STATE'
       );
     });
+
+    it('throws REVEALS_INCOMPLETE when not all results have been revealed (FR-04-1)', async () => {
+      const results: ResultSlot[] = [
+        makeResultSlot({ playerIndex: 0, playerId: 'player-1' }),
+        makeResultSlot({ playerIndex: 1, playerId: 'player-2' }),
+      ];
+      // Only 1 of 2 revealed → endGame must be rejected
+      const repo = makeMockRepo({ status: 'revealing', results, revealedCount: 1 });
+      const svc = new GameService(repo);
+
+      await expect(svc.endGame('ABCD12', 'player-1')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'REVEALS_INCOMPLETE'
+      );
+    });
+
+    it('allows endGame when all results have been revealed (revealedCount === results.length)', async () => {
+      const results: ResultSlot[] = [
+        makeResultSlot({ playerIndex: 0, playerId: 'player-1' }),
+        makeResultSlot({ playerIndex: 1, playerId: 'player-2' }),
+      ];
+      // Both revealed — endGame must succeed
+      const repo = makeMockRepo({ status: 'revealing', results, revealedCount: 2 });
+      const svc = new GameService(repo);
+
+      const room = await svc.endGame('ABCD12', 'player-1');
+      expect(room.status).toBe('finished');
+    });
   });
 
   // ── playAgain ──────────────────────────────────────────────────────────────

@@ -186,6 +186,16 @@ export class GameService {
       throw new DomainError('INVALID_STATE', 'Room must be in revealing state to end the game', 409);
     }
 
+    // FR-04-1: all results must be revealed before ending the game
+    const totalResults = room.results?.length ?? 0;
+    if (room.revealedCount < totalResults) {
+      throw new DomainError(
+        'REVEALS_INCOMPLETE',
+        `Cannot end game: ${room.revealedCount} of ${totalResults} results have been revealed`,
+        422
+      );
+    }
+
     return this.repo.update(roomCode, { status: 'finished' });
   }
 
