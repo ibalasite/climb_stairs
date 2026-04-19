@@ -49,6 +49,18 @@ Feature: 主持人管理操作
       | finished    |
 
   # ---------------------------------------------------------------------------
+  # AC-HOST-KICK-SELF — 主持人嘗試踢除自己時系統拒絕並回傳 CANNOT_KICK_HOST
+  # ---------------------------------------------------------------------------
+  @AC-HOST-KICK-SELF @P1
+  Scenario: 主持人嘗試踢除自己時收到 CANNOT_KICK_HOST 錯誤
+    Given 房間碼 "DELTA5" 存在且狀態為 "waiting"
+    And 主持人的 playerId 為 "host-player-uuid"
+    When 主持人送出 KICK_PLAYER（targetPlayerId="host-player-uuid"，即自己）
+    Then 伺服器回傳錯誤碼 "CANNOT_KICK_SELF"
+    And 主持人仍在房間玩家列表中
+    And 房間狀態維持 "waiting"
+
+  # ---------------------------------------------------------------------------
   # AC-H07-4 — 踢除後 playerId 持久化存入 Redis kickedPlayerIds
   # ---------------------------------------------------------------------------
   @AC-HOST-KICK-004 @P1
@@ -69,6 +81,9 @@ Feature: 主持人管理操作
     When 主持人送出 RESET_ROOM
     Then 新局初始化完成後 Redis 中 kickedPlayerIds 為空陣列 []
     And 前一局被踢玩家可使用新暱稱加入新局
+    When the host resets the game with "RESET_ROOM"
+    And the previously kicked player joins with a new nickname "NewPlayer"
+    Then the join response status should be 201
 
   # ---------------------------------------------------------------------------
   # AC-H08-1 — 再玩一局：剔除離線玩家後重置為 waiting

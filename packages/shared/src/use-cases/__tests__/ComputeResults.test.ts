@@ -179,4 +179,33 @@ describe('computeResults', () => {
       expect(uniqueStartCols.size).toBe(N);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // NFR-03 — Bijection property: every player mapped to exactly one outcome
+  // across 100 distinct seed sources.
+  // ---------------------------------------------------------------------------
+  describe('bijection property over 100 seeds (NFR-03)', () => {
+    it('produces a bijection (every player mapped to exactly one outcome) over 100 seeds', () => {
+      const playerCount = 5;
+      const winnerCount = 2;
+
+      for (let seed = 1; seed <= 100; seed++) {
+        const ladder = generateLadder(`nfr03-bijection-seed-${seed}`, playerCount);
+        const results = computeResults(ladder, winnerCount);
+
+        // Every playerIndex must appear exactly once
+        const playerIndices = results.map((r) => r.playerIndex);
+        expect(new Set(playerIndices).size).toBe(playerCount);
+        expect(playerIndices).toHaveLength(playerCount);
+
+        // Exactly winnerCount winners
+        const winners = results.filter((r) => r.isWinner);
+        expect(winners).toHaveLength(winnerCount);
+
+        // endCols must also be a bijection (each column claimed by exactly one player)
+        const endCols = results.map((r) => r.endCol);
+        expect(new Set(endCols).size).toBe(playerCount);
+      }
+    });
+  });
 });
