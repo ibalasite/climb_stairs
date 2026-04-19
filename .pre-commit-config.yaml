@@ -1,0 +1,10 @@
+repos:
+  # Secret scanning — blocks commits containing credentials
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+        name: Detect hardcoded secrets (gitleaks)
+        entry: gitleaks protect --staged --redact --config=.gitleaks.toml
+        language: golang
+        pass_filenames: false

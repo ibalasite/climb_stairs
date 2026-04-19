@@ -1,0 +1,17 @@
+[extend]
+# Use gitleaks default ruleset as base
+useDefault = true
+
+[allowlist]
+description = "Allow known safe patterns"
+paths = [
+  ".env.example",
+  "scripts/setup_secrets.sh",
+  "scripts/setup_secrets.ps1",
+  "scripts/setup_k8s_secrets.sh",
+]
+regexes = [
+  "REPLACE_WITH_",
+  "YOUR_ORG",
+  "placeholder",
+]
