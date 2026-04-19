@@ -377,15 +377,13 @@ async function bootstrap(): Promise<void> {
 
     // Mark player online
     try {
-      await repo.update(roomCode, {});
       const room = await repo.findByCode(roomCode);
       if (room) {
         const updatedPlayers = room.players.map(p =>
           p.id === playerId ? { ...p, isOnline: true } : p
         );
-        await repo.update(roomCode, { players: updatedPlayers });
-        const updated = await repo.findByCode(roomCode);
-        if (updated) broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(updated) });
+        const updated = await repo.update(roomCode, { players: updatedPlayers });
+        broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(updated) });
       }
     } catch { /* ignore */ }
 
@@ -474,7 +472,13 @@ async function bootstrap(): Promise<void> {
               send('ERROR', { code: 'NOT_HOST', message: 'Only the host can change the reveal mode' });
               break;
             }
-            const intervalSec = mode === 'auto' && typeof p?.intervalSec === 'number' ? p.intervalSec : null;
+            const rawIntervalSec = mode === 'auto' && typeof p?.intervalSec === 'number' ? p.intervalSec : null;
+            // Guard: interval must be between 1 and 300 seconds when in auto mode
+            if (rawIntervalSec !== null && (rawIntervalSec < 1 || rawIntervalSec > 300 || !Number.isFinite(rawIntervalSec))) {
+              send('ERROR', { code: 'INVALID_INTERVAL', message: 'intervalSec must be between 1 and 300' });
+              break;
+            }
+            const intervalSec = rawIntervalSec;
             const room = await repo.update(roomCode, { revealMode: mode, autoRevealIntervalSec: intervalSec });
             broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
             break;
