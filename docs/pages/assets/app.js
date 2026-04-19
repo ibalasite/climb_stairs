@@ -1,36 +1,15 @@
 // docs/pages/assets/app.js
-
-// Theme
-const savedTheme = localStorage.getItem('theme') || 'dark';
-document.documentElement.setAttribute('data-theme', savedTheme);
-
-document.querySelector('.theme-toggle')?.addEventListener('click', () => {
-  const current = document.documentElement.getAttribute('data-theme');
-  const next = current === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('theme', next);
-  const btn = document.querySelector('.theme-toggle');
-  if (btn) btn.textContent = next === 'dark' ? '☀️' : '🌙';
-});
-
-const toggleBtn = document.querySelector('.theme-toggle');
-if (toggleBtn) toggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
-
-// Active Sidebar Link
 const currentPage = location.pathname.split('/').pop() || 'index.html';
 document.querySelectorAll('.sidebar__link').forEach(link => {
   if (link.getAttribute('href') === currentPage) link.classList.add('active');
 });
 
-// Lightbox
 const lightbox = document.createElement('div');
 lightbox.className = 'lightbox';
 lightbox.innerHTML = '<span class="lightbox__close">&#x2715;</span><div class="lightbox__content"></div>';
 document.body.appendChild(lightbox);
-
 lightbox.querySelector('.lightbox__close').addEventListener('click', () => lightbox.classList.remove('active'));
 lightbox.addEventListener('click', e => { if (e.target === lightbox) lightbox.classList.remove('active'); });
-
 document.querySelectorAll('.diagram-container').forEach(el => {
   el.addEventListener('click', () => {
     const clone = el.cloneNode(true);
@@ -41,35 +20,20 @@ document.querySelectorAll('.diagram-container').forEach(el => {
   });
 });
 
-// Client-side Search
 let searchData = null;
 async function initSearch() {
-  try {
-    const res = await fetch('search-data.json');
-    if (res.ok) searchData = await res.json();
-  } catch {}
+  try { const res = await fetch('search-data.json'); if (res.ok) searchData = await res.json(); } catch {}
 }
-
 const searchInput = document.querySelector('.search-input');
 const searchResultsEl = document.querySelector('.search-results');
-
 searchInput?.addEventListener('input', e => {
   const q = e.target.value.trim().toLowerCase();
   if (!q || !searchData || !searchResultsEl) { if (searchResultsEl) searchResultsEl.style.display = 'none'; return; }
-  const hits = Object.values(searchData)
-    .filter(d => d.title.toLowerCase().includes(q) || d.excerpt.toLowerCase().includes(q))
-    .slice(0, 8);
+  const hits = Object.values(searchData).filter(d => d.title.toLowerCase().includes(q) || d.excerpt.toLowerCase().includes(q)).slice(0, 8);
   if (!hits.length) { searchResultsEl.style.display = 'none'; return; }
   searchResultsEl.innerHTML = hits.map(d =>
-    `<a class="search-result-item" href="${d.url}">
-      <div class="search-result-item__title">${d.title}</div>
-      <div class="search-result-item__excerpt">${d.excerpt.slice(0,80)}...</div>
-    </a>`).join('');
+    `<a class="search-result-item" href="${d.url}"><div class="search-result-item__title">${d.title}</div><div class="search-result-item__excerpt">${d.excerpt.slice(0,80)}…</div></a>`).join('');
   searchResultsEl.style.display = 'block';
 });
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('.search-wrap') && searchResultsEl) searchResultsEl.style.display = 'none';
-});
-
+document.addEventListener('click', e => { if (!e.target.closest('.search-wrap') && searchResultsEl) searchResultsEl.style.display = 'none'; });
 initSearch();

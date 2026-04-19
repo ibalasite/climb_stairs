@@ -1,72 +1,221 @@
 <!DOCTYPE html>
-<html lang="zh-Hant" data-theme="dark">
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>首頁 — 爬樓梯抽獎 Ladder Room</title>
+  <title>Ladder Room Online 文件中心 — Ladder Room Online</title>
   <link rel="stylesheet" href="assets/style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-  <header class="topbar">
-    <a href="index.html" class="topbar__title">🪜 Ladder Room</a>
-    <div class="topbar__controls">
+  <header class="top-nav">
+    <a href="index.html" class="nav-brand">🪜 Ladder Room</a>
+    <div class="nav-controls">
       <div class="search-wrap">
         <input class="search-input" type="search" placeholder="搜尋文件...">
         <div class="search-results"></div>
       </div>
-      <button class="theme-toggle" aria-label="切換深淺色模式">🌙</button>
     </div>
   </header>
 
-  <nav class="sidebar" aria-label="文件導覽">
-    <div class="sidebar__section">
-      <div class="sidebar__label">文件</div>
-      <a class="sidebar__link" href="index.html">🏠 首頁</a>
-      <a class="sidebar__link" href="pdd.html">📋 PDD</a>
-      <a class="sidebar__link" href="prd.html">📝 PRD</a>
-      <a class="sidebar__link" href="edd.html">🏗️ EDD</a>
-      <a class="sidebar__link" href="arch.html">🧩 ARCH</a>
-      <a class="sidebar__link" href="api.html">🔌 API</a>
-      <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
-      <a class="sidebar__link" href="design.html">🎨 Design</a>
-      <a class="sidebar__link" href="bdd.html">🧪 BDD</a>
-    </div>
-  </nav>
+  <div class="doc-page-banner">
+    <p class="banner-breadcrumb"><a href="index.html">Ladder Room</a> › 首頁</p>
+    <h1 class="banner-title">Ladder Room Online 文件中心</h1>
+    <p class="banner-desc">WebSocket 多人即時爬樓梯抽獎系統 — 完整技術文件</p>
+  </div>
 
-  <main class="content">
-    <h1>🪜 爬樓梯抽獎 — Ladder Room Online</h1>
-    <p>WebSocket 多人實時爬樓梯抽獎系統，最多 50 人同時參與。主持人建立房間並掌控揭曉節奏，玩家透過 6 碼房間碼加入並即時觀看路徑動畫；Mulberry32 PRNG 算法確保每局結果在所有客戶端 100% 一致，消除舞弊疑慮，適用於團隊抽獎、課堂點名、活動互動等場景。</p>
+  <div class="page-wrapper">
+    <aside class="sidebar">
+      <div class="sidebar__section">
+        <div class="sidebar__label">文件</div>
+        <a class="sidebar__link" href="index.html">🏠 首頁</a>
+        <a class="sidebar__link" href="pdd.html">📋 PDD</a>
+        <a class="sidebar__link" href="prd.html">📝 PRD</a>
+        <a class="sidebar__link" href="edd.html">🏗️ EDD</a>
+        <a class="sidebar__link" href="arch.html">🧩 ARCH</a>
+        <a class="sidebar__link" href="api.html">🔌 API</a>
+        <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
+        <a class="sidebar__link" href="design.html">🎨 Design</a>
+        <a class="sidebar__link" href="bdd.html">🧪 BDD</a>
+      </div>
+    </aside>
+    <main class="doc-content">
+      <h1>🪜 Ladder Room Online — 線上多人爬樓梯抽獎</h1>
 
-    <div class="stack-grid" style="margin-top:2rem">
-      <div class="stack-card"><div class="stack-card__label">Runtime</div><div class="stack-card__value">Node.js 20 LTS</div></div>
-      <div class="stack-card"><div class="stack-card__label">語言</div><div class="stack-card__value">TypeScript</div><div class="stack-card__note">strict mode，前後端共用</div></div>
-      <div class="stack-card"><div class="stack-card__label">HTTP Server</div><div class="stack-card__value">Fastify</div></div>
-      <div class="stack-card"><div class="stack-card__label">WebSocket</div><div class="stack-card__value">ws（原生）</div></div>
-      <div class="stack-card"><div class="stack-card__label">狀態儲存</div><div class="stack-card__value">Redis</div><div class="stack-card__note">原子操作、Pub/Sub</div></div>
-      <div class="stack-card"><div class="stack-card__label">前端</div><div class="stack-card__value">Vanilla TS + Vite</div><div class="stack-card__note">HTML5 Canvas，零框架</div></div>
-    </div>
+      <p>HTML5 多人線上房間制爬樓梯抽獎遊戲。主持人建立房間，最多 50 人同時參與，透過 WebSocket 即時同步遊戲狀態，HTML5 Canvas 渲染動態揭曉動畫。</p>
 
-    <div class="index-grid">
-      <a class="index-card" href="pdd.html"><span class="index-card__icon">📋</span><span class="index-card__title">PDD — 產品設計</span><span class="index-card__desc">產品目標、功能範圍、驗收標準</span></a>
-      <a class="index-card" href="prd.html"><span class="index-card__icon">📝</span><span class="index-card__title">PRD — 產品需求</span><span class="index-card__desc">User Stories、AC、非功能需求</span></a>
-      <a class="index-card" href="edd.html"><span class="index-card__icon">🏗️</span><span class="index-card__title">EDD — 工程設計</span><span class="index-card__desc">架構、技術選型、Mermaid 圖表</span></a>
-      <a class="index-card" href="arch.html"><span class="index-card__icon">🧩</span><span class="index-card__title">ARCH — 系統架構</span><span class="index-card__desc">元件設計、資料流、部署架構</span></a>
-      <a class="index-card" href="api.html"><span class="index-card__icon">🔌</span><span class="index-card__title">API 文件</span><span class="index-card__desc">Endpoints、WebSocket Events、Error Codes</span></a>
-      <a class="index-card" href="schema.html"><span class="index-card__icon">🗄️</span><span class="index-card__title">Schema 文件</span><span class="index-card__desc">Redis 資料結構、ER 圖、Lua Scripts</span></a>
-      <a class="index-card" href="design.html"><span class="index-card__icon">🎨</span><span class="index-card__title">UI Design</span><span class="index-card__desc">介面規範、Canvas 座標系、錯誤處理</span></a>
-      <a class="index-card" href="bdd.html"><span class="index-card__icon">🧪</span><span class="index-card__title">BDD Scenarios</span><span class="index-card__desc">Gherkin Feature Files、驗收測試</span></a>
-    </div>
-  </main>
+      <hr>
+
+      <h2>📋 專案說明</h2>
+      <p><strong>Ladder Room Online</strong> 是一款基於 HTML5 Canvas 的線上多人爬樓梯抽獎系統，參考 LINE 爬樓梯玩法設計。</p>
+      <ul>
+        <li>產品名稱：Ladder Room Online</li>
+        <li>版本：v2.2（MVP v1）</li>
+        <li>產品類型：多人線上房間制抽獎／派對互動遊戲</li>
+        <li>最多支援 50 名玩家同時連線</li>
+      </ul>
+
+      <hr>
+
+      <h2>✨ 核心功能（P0）</h2>
+      <ul>
+        <li>玩家輸入暱稱並透過 6 碼房間碼加入房間</li>
+        <li>等待室即時顯示玩家列表（WebSocket 廣播）</li>
+        <li>主持人一鍵開始遊戲，伺服器即時生成爬梯結構</li>
+        <li>逐人揭曉（manual）或自動循序揭曉（auto）兩種模式</li>
+        <li>HTML5 Canvas 動態路徑動畫，突顯自己的爬梯路徑</li>
+        <li>主持人可踢出玩家，玩家可隨時重連（JWT 長效連線）</li>
+        <li>END_GAME 結束遊戲，PLAY_AGAIN 重置房間保留在線玩家</li>
+        <li>支援最多 50 人同時連線，Redis 原子操作保障一致性</li>
+      </ul>
+
+      <hr>
+
+      <h2>🏗️ 系統架構</h2>
+      <div class="diagram-container">
+        <pre class="mermaid">graph TD
+  Client["瀏覽器 (Vanilla TS + Vite)"]
+  Server["Fastify HTTP + ws WebSocket Server"]
+  Redis["Redis (房間狀態 / 原子鎖)"]
+  Client -- "REST /api/*" --> Server
+  Client -- "WebSocket /ws" --> Server
+  Server -- "ioredis" --> Redis</pre>
+      </div>
+
+      <hr>
+
+      <h2>🛠️ 技術棧</h2>
+      <table>
+        <thead><tr><th>層次</th><th>技術</th><th>版本 / 說明</th></tr></thead>
+        <tbody>
+          <tr><td>Runtime</td><td>Node.js</td><td>20 LTS</td></tr>
+          <tr><td>語言</td><td>TypeScript</td><td>strict mode，前後端共用型別</td></tr>
+          <tr><td>HTTP Server</td><td>Fastify</td><td>v5，REST API <code>/api/*</code></td></tr>
+          <tr><td>WebSocket</td><td>ws（原生）</td><td><code>maxPayload: 65536</code></td></tr>
+          <tr><td>快取 / 狀態</td><td>Redis</td><td>原子操作、房間持久化</td></tr>
+          <tr><td>前端</td><td>Vanilla TypeScript + Vite</td><td>HTML5 Canvas，零 UI 框架依賴</td></tr>
+          <tr><td>Monorepo</td><td>npm workspaces</td><td><code>packages/shared / server / client</code></td></tr>
+          <tr><td>測試</td><td>Vitest</td><td>Unit + Integration</td></tr>
+          <tr><td>部署</td><td>Docker + Kubernetes</td><td>k8s HPA，GH Actions CI/CD</td></tr>
+        </tbody>
+      </table>
+
+      <hr>
+
+      <h2>🚀 快速啟動</h2>
+      <h3>🐳 Docker（推薦）</h3>
+      <pre><code class="language-bash">git clone https://github.com/ibalasite/climb_stairs
+cd climb_stairs
+cp .env.example .env
+docker compose up -d</code></pre>
+      <p>服務啟動後開啟 <code>http://localhost:3000</code></p>
+
+      <h3>🍎 macOS / 🐧 Linux（本地開發）</h3>
+      <pre><code class="language-bash">git clone https://github.com/ibalasite/climb_stairs
+cd climb_stairs
+npm install
+cp .env.example .env
+redis-server &amp;
+npm run dev --workspace=packages/server
+npm run dev --workspace=packages/client</code></pre>
+
+      <hr>
+
+      <h2>⚙️ 環境變數</h2>
+      <table>
+        <thead><tr><th>變數名稱</th><th>說明</th><th>必填</th><th>預設值</th></tr></thead>
+        <tbody>
+          <tr><td><code>PORT</code></td><td>HTTP server 監聽 port</td><td>✅</td><td><code>3000</code></td></tr>
+          <tr><td><code>JWT_SECRET</code></td><td>JWT 簽名密鑰（至少 64 bytes hex）</td><td>✅</td><td>—</td></tr>
+          <tr><td><code>REDIS_HOST</code></td><td>Redis 主機位址</td><td>✅</td><td><code>localhost</code></td></tr>
+          <tr><td><code>REDIS_PORT</code></td><td>Redis port</td><td>✅</td><td><code>6379</code></td></tr>
+          <tr><td><code>REDIS_PASSWORD</code></td><td>Redis 認證密碼（可選）</td><td>✅</td><td>—</td></tr>
+          <tr><td><code>NODE_ENV</code></td><td>執行環境</td><td>✅</td><td><code>development</code></td></tr>
+          <tr><td><code>ALLOWED_ORIGINS</code></td><td>CORS 允許來源（production 用）</td><td>✅</td><td>—</td></tr>
+        </tbody>
+      </table>
+
+      <hr>
+
+      <h2>📡 API 快速參考</h2>
+      <table>
+        <thead><tr><th>Endpoint</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr><td><code>POST /api/rooms</code></td><td>建立房間，回傳 roomCode + JWT</td></tr>
+          <tr><td><code>GET /api/rooms/:code</code></td><td>查詢房間狀態（不需 token）</td></tr>
+          <tr><td><code>POST /api/rooms/:code/players</code></td><td>加入房間，回傳 playerId + JWT</td></tr>
+          <tr><td><code>DELETE /api/rooms/:code/players/:id</code></td><td>踢除玩家（需主持人 token）</td></tr>
+          <tr><td><code>POST /api/rooms/:code/game/start</code></td><td>開始遊戲（需主持人 token）</td></tr>
+        </tbody>
+      </table>
+
+      <hr>
+
+      <h2>📚 文件導覽</h2>
+      <div class="index-grid">
+        <a class="index-card" href="pdd.html">
+          <div class="index-card__icon">📋</div>
+          <div class="index-card__title">PDD</div>
+          <div class="index-card__desc">產品設計文件 — 目標、範疇、驗收標準</div>
+        </a>
+        <a class="index-card" href="prd.html">
+          <div class="index-card__icon">📝</div>
+          <div class="index-card__title">PRD</div>
+          <div class="index-card__desc">產品需求 — User Stories、AC</div>
+        </a>
+        <a class="index-card" href="edd.html">
+          <div class="index-card__icon">🏗️</div>
+          <div class="index-card__title">EDD</div>
+          <div class="index-card__desc">工程設計 — 架構、技術選型</div>
+        </a>
+        <a class="index-card" href="arch.html">
+          <div class="index-card__icon">🧩</div>
+          <div class="index-card__title">ARCH</div>
+          <div class="index-card__desc">系統架構設計</div>
+        </a>
+        <a class="index-card" href="api.html">
+          <div class="index-card__icon">🔌</div>
+          <div class="index-card__title">API</div>
+          <div class="index-card__desc">Endpoints、WebSocket Events</div>
+        </a>
+        <a class="index-card" href="schema.html">
+          <div class="index-card__icon">🗄️</div>
+          <div class="index-card__title">Schema</div>
+          <div class="index-card__desc">Redis Schema、Lua Scripts</div>
+        </a>
+        <a class="index-card" href="design.html">
+          <div class="index-card__icon">🎨</div>
+          <div class="index-card__title">Design</div>
+          <div class="index-card__desc">前端 UI 規範、Canvas 座標系</div>
+        </a>
+        <a class="index-card" href="bdd.html">
+          <div class="index-card__icon">🧪</div>
+          <div class="index-card__title">BDD</div>
+          <div class="index-card__desc">Gherkin Feature Files</div>
+        </a>
+      </div>
+
+      <section style="margin-top:3rem;padding:1.5rem;background:var(--content-bg);border:1px solid var(--border);border-radius:8px;">
+        <h2 style="margin-top:0;border-bottom:none">📊 專案健康狀態</h2>
+        <div class="health-grid">
+          <div class="health-metric"><div class="health-metric__label">已完成 STEP</div><div class="health-metric__value">0/20</div></div>
+          <div class="health-metric"><div class="health-metric__label">測試（Unit）</div><div class="health-metric__value">93+</div></div>
+          <div class="health-metric"><div class="health-metric__label">BDD Scenarios</div><div class="health-metric__value">40+</div></div>
+          <div class="health-metric"><div class="health-metric__label">技術文件</div><div class="health-metric__value">8 頁</div></div>
+        </div>
+      </section>
+    </main>
+  </div>
 
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    const isDark = localStorage.getItem('theme') !== 'light';
-    mermaid.initialize({ startOnLoad: true, theme: isDark ? 'dark' : 'default' });
+    mermaid.initialize({ startOnLoad: true, theme: 'default', flowchart: { curve: 'basis' }, er: { layoutDirection: 'TD' } });
   </script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>

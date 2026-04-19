@@ -1,88 +1,131 @@
 <!DOCTYPE html>
-<html lang="zh-Hant" data-theme="dark">
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Schema — 爬樓梯抽獎 Ladder Room</title>
+  <title>Schema 文件 — Ladder Room Online</title>
   <link rel="stylesheet" href="assets/style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-  <header class="topbar">
-    <a href="index.html" class="topbar__title">🪜 Ladder Room</a>
-    <div class="topbar__controls">
+  <header class="top-nav">
+    <a href="index.html" class="nav-brand">🪜 Ladder Room</a>
+    <div class="nav-controls">
       <div class="search-wrap">
         <input class="search-input" type="search" placeholder="搜尋文件...">
         <div class="search-results"></div>
       </div>
-      <button class="theme-toggle" aria-label="切換深淺色模式">🌙</button>
     </div>
   </header>
 
-  <nav class="sidebar" aria-label="文件導覽">
-    <div class="sidebar__section">
-      <div class="sidebar__label">文件</div>
-      <a class="sidebar__link" href="index.html">🏠 首頁</a>
-      <a class="sidebar__link" href="pdd.html">📋 PDD</a>
-      <a class="sidebar__link" href="prd.html">📝 PRD</a>
-      <a class="sidebar__link" href="edd.html">🏗️ EDD</a>
-      <a class="sidebar__link" href="arch.html">🧩 ARCH</a>
-      <a class="sidebar__link" href="api.html">🔌 API</a>
-      <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
-      <a class="sidebar__link" href="design.html">🎨 Design</a>
-      <a class="sidebar__link" href="bdd.html">🧪 BDD</a>
-    </div>
-  </nav>
+  <div class="doc-page-banner">
+    <p class="banner-breadcrumb"><a href="index.html">Ladder Room</a> › Schema 文件</p>
+    <h1 class="banner-title">Schema 文件</h1>
+    <p class="banner-desc">Redis 資料結構、ER 圖、Lua Scripts</p>
+  </div>
 
-  <main class="content">
-    <h1>🗄️ SCHEMA — Redis Schema Design</h1>
-    <blockquote><p>Version: v1.1 ｜ 2026-04-19 ｜ Based on EDD v1.3 ｜ Redis is the sole persistence layer. There is no SQL database.</p></blockquote>
+  <div class="page-wrapper">
+    <aside class="sidebar">
+      <div class="sidebar__section">
+        <div class="sidebar__label">文件</div>
+        <a class="sidebar__link" href="index.html">🏠 首頁</a>
+        <a class="sidebar__link" href="pdd.html">📋 PDD</a>
+        <a class="sidebar__link" href="prd.html">📝 PRD</a>
+        <a class="sidebar__link" href="edd.html">🏗️ EDD</a>
+        <a class="sidebar__link" href="arch.html">🧩 ARCH</a>
+        <a class="sidebar__link" href="api.html">🔌 API</a>
+        <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
+        <a class="sidebar__link" href="design.html">🎨 Design</a>
+        <a class="sidebar__link" href="bdd.html">🧪 BDD</a>
+      </div>
+    </aside>
+    <main class="doc-content">
+      <h1>SCHEMA — Ladder Room Online Redis Schema Design</h1>
+      <p><strong>Version</strong>: v1.1 &nbsp; <strong>Date</strong>: 2026-04-19 &nbsp; <strong>Based on</strong>: EDD v1.3</p>
+      <p>Redis 是唯一的持久層，沒有 SQL 資料庫。所有狀態以明確 TTL 儲存於 Redis 鍵值結構中。</p>
 
-    <h2>1. 資料儲存概覽</h2>
+      <hr>
 
-    <h3>持久層選擇</h3>
-    <p>Ladder Room Online 使用 <strong>Redis 作為唯一的持久層</strong>。選擇 Redis 的原因：</p>
-    <ul>
-      <li>房間生命週期短（數分鐘到數小時），天然適合 TTL 驅動的資料管理</li>
-      <li>WebSocket 廣播需要低延遲讀寫，Redis 的亞毫秒響應完全符合</li>
-      <li>原子操作（INCR、SETNX、MULTI/EXEC、WATCH）消除競態條件，無需分散式鎖服務</li>
-      <li>記憶體用量可預測（每房間 ~88 KB，100 房間僅 ~8.8 MB）</li>
-    </ul>
+      <h2>1. 資料儲存概覽</h2>
 
-    <h3>TTL 策略</h3>
-    <table>
-      <thead><tr><th>房間狀態</th><th>TTL</th><th>觸發條件</th></tr></thead>
-      <tbody>
-        <tr><td><code>waiting</code> / <code>running</code> / <code>revealing</code></td><td>24h</td><td>建立或任何狀態變更時重設</td></tr>
-        <tr><td><code>finished</code></td><td>1h</td><td>轉換至 finished 狀態時設定</td></tr>
-        <tr><td>所有玩家離線</td><td>5min (300s)</td><td>最後一個 WS 連線關閉時 EXPIRE</td></tr>
-      </tbody>
-    </table>
+      <h3>持久層選擇</h3>
+      <p>Ladder Room Online 使用 <strong>Redis 作為唯一的持久層</strong>。選擇 Redis 的原因：</p>
+      <ul>
+        <li>房間生命週期短（數分鐘到數小時），天然適合 TTL 驅動的資料管理</li>
+        <li>WebSocket 廣播需要低延遲讀寫，Redis 的亞毫秒響應完全符合</li>
+        <li>原子操作（INCR、SETNX、MULTI/EXEC、WATCH）消除競態條件，無需分散式鎖服務</li>
+        <li>記憶體用量可預測（每房間 ~88 KB，100 房間僅 ~8.8 MB）</li>
+      </ul>
 
-    <hr>
+      <h3>儲存的資料類型</h3>
+      <table>
+        <thead><tr><th>類別</th><th>儲存內容</th></tr></thead>
+        <tbody>
+          <tr><td>房間狀態</td><td>status、hostId、winnerCount (number | null)、revealMode、autoRevealIntervalSec、createdAt、updatedAt</td></tr>
+          <tr><td>玩家狀態</td><td>players 陣列（nickname、colorIndex、isHost、isOnline）</td></tr>
+          <tr><td>梯子資料</td><td>seed (number)、seedSource (UUID hex)、rowCount、colCount、segments 陣列</td></tr>
+          <tr><td>揭示計數</td><td>revealedCount 原子計數器</td></tr>
+          <tr><td>踢除名單</td><td>kickedPlayerIds Set（同時冗余儲存於 Room JSON）</td></tr>
+          <tr><td>Session 對應</td><td>playerId → sessionId Hash</td></tr>
+        </tbody>
+      </table>
 
-    <h2>2. Redis Key Schema</h2>
+      <h3>TTL 策略</h3>
+      <table>
+        <thead><tr><th>房間狀態</th><th>TTL</th><th>觸發條件</th></tr></thead>
+        <tbody>
+          <tr><td><code>waiting</code> / <code>running</code> / <code>revealing</code></td><td>24h</td><td>建立或任何狀態變更時重設</td></tr>
+          <tr><td><code>finished</code></td><td>1h</td><td>轉換至 finished 狀態時設定</td></tr>
+          <tr><td>所有玩家離線</td><td>5min (300s)</td><td>最後一個 WS 連線關閉時 EXPIRE</td></tr>
+          <tr><td>Pod 重啟</td><td>維持現有 TTL</td><td>無連線的房間不重設，自然過期</td></tr>
+        </tbody>
+      </table>
 
-    <h3>完整鍵清單</h3>
-    <table>
-      <thead><tr><th>Key 模式</th><th>Type</th><th>Value</th><th>TTL</th><th>用途</th></tr></thead>
-      <tbody>
-        <tr><td><code>room:{code}</code></td><td>String (JSON)</td><td>序列化的 Room 物件（含 players 陣列）</td><td>24h（每次狀態變更重設）</td><td>房間主狀態</td></tr>
-        <tr><td><code>room:{code}:ladder</code></td><td>String (JSON)</td><td>LadderData JSON（seed、segments、results）</td><td>與主鍵同步</td><td>梯子結構與結果</td></tr>
-        <tr><td><code>room:{code}:revealedCount</code></td><td>String (counter)</td><td>整數字串，如 <code>"0"</code> 到 <code>"N"</code></td><td>與主鍵同步</td><td>揭示進度原子計數器</td></tr>
-        <tr><td><code>room:{code}:kicked</code></td><td>Set</td><td><code>{ playerId1, playerId2, ... }</code></td><td>與主鍵同步</td><td>踢除玩家 ID 集合，用於重連檢查</td></tr>
-        <tr><td><code>room:{code}:sessions</code></td><td>Hash</td><td><code>{ playerId: sessionId }</code></td><td>與主鍵同步</td><td>追蹤活躍 WebSocket Session</td></tr>
-      </tbody>
-    </table>
+      <p>所有 <code>room:{code}:*</code> 子鍵與主鍵使用相同的 TTL，並在主鍵更新時一起重設。</p>
 
-    <hr>
+      <h3>序列化策略</h3>
+      <ul>
+        <li><strong>複雜物件</strong>（Room、LadderData）序列化為 JSON 字串，儲存在 Redis String 鍵</li>
+        <li><strong>revealedCount</strong> 使用 Redis 原生計數器（INCR），值為整數字串如 <code>"3"</code></li>
+        <li><strong>kickedPlayerIds</strong> 使用 Redis Set，成員為 playerId 字串</li>
+        <li><strong>sessions</strong> 使用 Redis Hash，field 為 playerId，value 為 sessionId</li>
+      </ul>
 
-    <h2>3. Room 物件 JSON 結構</h2>
+      <hr>
 
-    <h3>Stage 1: waiting（剛建立，等待玩家加入）</h3>
-    <pre><code class="language-json">{
+      <h2>2. Redis Key Schema</h2>
+
+      <table>
+        <thead><tr><th>Key 模式</th><th>Type</th><th>Value</th><th>TTL</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td><code>room:{code}</code></td><td>String (JSON)</td><td>序列化的 Room 物件（含 players 陣列）</td><td>24h（每次狀態變更重設）</td><td>房間主狀態</td></tr>
+          <tr><td><code>room:{code}:ladder</code></td><td>String (JSON)</td><td>LadderData JSON（seed、segments、results）</td><td>與主鍵同步</td><td>梯子結構與結果</td></tr>
+          <tr><td><code>room:{code}:revealedCount</code></td><td>String (counter)</td><td>整數字串，如 <code>"0"</code> 到 <code>"N"</code></td><td>與主鍵同步</td><td>揭示進度原子計數器</td></tr>
+          <tr><td><code>room:{code}:kicked</code></td><td>Set</td><td><code>{ playerId1, playerId2, ... }</code></td><td>與主鍵同步</td><td>踢除玩家 ID 集合，用於重連檢查</td></tr>
+          <tr><td><code>room:{code}:sessions</code></td><td>Hash</td><td><code>{ playerId: sessionId }</code></td><td>與主鍵同步</td><td>追蹤活躍 WebSocket Session</td></tr>
+        </tbody>
+      </table>
+
+      <h3>鍵格式說明</h3>
+      <ul>
+        <li><code>{code}</code> 為 6 位大寫英數字房間代碼，例如 <code>ALPHA1</code></li>
+        <li>所有子鍵（<code>:ladder</code>、<code>:revealedCount</code>、<code>:kicked</code>、<code>:sessions</code>）的 TTL 與主鍵 <code>room:{code}</code> 一致</li>
+        <li>主鍵更新時，使用 <code>MULTI/EXEC</code> 批次重設所有子鍵的 EXPIRE</li>
+      </ul>
+
+      <pre><code class="language-bash">room:ALPHA1
+room:ALPHA1:ladder
+room:ALPHA1:revealedCount
+room:ALPHA1:kicked
+room:ALPHA1:sessions</code></pre>
+
+      <hr>
+
+      <h2>3. Room 物件 JSON 結構</h2>
+
+      <h3>Stage 1: waiting（剛建立，等待玩家加入）</h3>
+      <pre><code class="language-typescript">// room:ALPHA1
+{
   "code": "ALPHA1",
   "status": "waiting",
   "hostId": "player-uuid-001",
@@ -102,33 +145,49 @@
       "joinedAt": 1745049600000
     }
   ]
-}</code></pre>
+}
 
-    <h3>Stage 2: running（梯子尚未生成）</h3>
-    <blockquote><p><strong>重要</strong>：START_GAME 只生成 <code>seedSource</code>（UUID v4）並計算 <code>rowCount</code>，<strong>不生成梯子結構</strong>。梯子在 BEGIN_REVEAL 時原子生成。<code>room:{code}:ladder</code> 鍵在此階段<strong>不存在</strong>。</p></blockquote>
-    <pre><code class="language-json">{
+// room:ALPHA1:ladder → "" (空字串或鍵不存在)
+// room:ALPHA1:revealedCount → "0"
+// room:ALPHA1:kicked → 空 Set
+// room:ALPHA1:sessions → { "player-uuid-001": "sess-abc123" }</code></pre>
+
+      <h3>Stage 2: running（開始遊戲，梯子尚未生成）</h3>
+      <blockquote><p><strong>重要</strong>：START_GAME 只生成 <code>seedSource</code>（UUID v4）並計算 <code>rowCount</code>，<strong>不生成梯子結構</strong>。梯子（LadderData、ResultSlots）延遲至 BEGIN_REVEAL 時原子生成（PRD AC-H03-1, NFR-05）。<code>room:{code}:ladder</code> 鍵在此階段<strong>不存在</strong>。</p></blockquote>
+      <pre><code class="language-typescript">// room:ALPHA1
+{
   "code": "ALPHA1",
   "status": "running",
   "hostId": "player-uuid-001",
   "winnerCount": 1,
+  "revealMode": "manual",
+  "autoRevealIntervalSec": null,
   "kickedPlayerIds": ["player-uuid-004"],
+  "createdAt": 1745049600000,
+  "updatedAt": 1745049930000,
   "players": [
-    { "id": "player-uuid-001", "nickname": "Alice", "isHost": true, "isOnline": true },
-    { "id": "player-uuid-002", "nickname": "Bob", "isHost": false, "isOnline": true },
-    { "id": "player-uuid-003", "nickname": "Carol", "isHost": false, "isOnline": false }
+    { "id": "player-uuid-001", "nickname": "Alice", "colorIndex": 0, "isHost": true, "isOnline": true, "joinedAt": 1745049600000 },
+    { "id": "player-uuid-002", "nickname": "Bob",   "colorIndex": 1, "isHost": false, "isOnline": true, "joinedAt": 1745049675000 },
+    { "id": "player-uuid-003", "nickname": "Carol", "colorIndex": 2, "isHost": false, "isOnline": false, "joinedAt": 1745049720000 }
   ]
-}</code></pre>
+}
 
-    <h3>Stage 3: revealing（揭示進行中，梯子已生成）</h3>
-    <p>房間主鍵 JSON 同 Stage 2，但 <code>status</code> 更新。<code>room:{code}:revealedCount</code> → <code>"2"</code>（已揭示 2 位玩家）</p>
-    <p><code>room:{code}:ladder</code> → BEGIN_REVEAL 時原子生成，此時已存在（含 seed、seedSource、segments、results）。</p>
-    <blockquote><p><code>seed</code> 存在於 Redis，但 <code>ROOM_STATE_FULL</code> 以 <strong>LadderDataPublic</strong>（省略 seed/seedSource）傳送客戶端。<code>seed</code> 至 END_GAME（status=finished）時才首次對客戶端公開。</p></blockquote>
+// room:ALPHA1:ladder → 不存在（BEGIN_REVEAL 時才創建）
+// room:ALPHA1:revealedCount → "0"
+// room:ALPHA1:kicked → { "player-uuid-004" }
+// room:ALPHA1:sessions → { "player-uuid-001": "sess-abc123", "player-uuid-002": "sess-def456" }</code></pre>
 
-    <h3>Stage 4: finished（全部揭示完畢）</h3>
-    <p>TTL 降為 1h，<code>room:ALPHA1:revealedCount</code> → <code>"3"</code>（等於 players.length）</p>
+      <h3>Stage 3: revealing（揭示進行中，BEGIN_REVEAL 已觸發）</h3>
+      <p>房間主鍵 JSON 同 Stage 2，但 <code>status</code> 更新為 <code>"revealing"</code>。<code>room:ALPHA1:revealedCount</code> 實時遞增（例如 <code>"2"</code> 表示已揭示 2 位）。</p>
+      <p><code>room:ALPHA1:ladder</code> 在 BEGIN_REVEAL 時原子生成，此時已存在（含 seed、seedSource、segments、results）。seed 存在於 Redis，但以 <strong>LadderDataPublic</strong>（省略 seed/seedSource）傳送客戶端，直到 END_GAME 後才公開。</p>
 
-    <h3>LadderData JSON（<code>room:ALPHA1:ladder</code>）</h3>
-    <pre><code class="language-json">{
+      <h3>Stage 4: finished（全部揭示完畢）</h3>
+      <p>此時 TTL 降為 1h，<code>room:ALPHA1:revealedCount</code> 等於 <code>players.length</code>。<code>room:ALPHA1:ladder</code> 中的 seed 與 seedSource 首次對客戶端公開（ROOM_STATE 廣播含完整 results[]）。</p>
+
+      <hr>
+
+      <h2>LadderData JSON（<code>room:ALPHA1:ladder</code>）</h2>
+      <pre><code class="language-typescript">{
   "seed": 2753483489,
   "seedSource": "a3f8c2e1-d9b7-4f2a-8e6c-1b3d5f7a9c0e",
   "rowCount": 10,
@@ -147,28 +206,17 @@
       "isWinner": true,
       "path": [
         { "row": 0, "col": 0, "direction": "down" },
-        { "row": 1, "col": 0, "direction": "right" }
-      ]
-    },
-    {
-      "playerIndex": 1,
-      "playerId": "player-uuid-002",
-      "startCol": 1,
-      "endCol": 2,
-      "isWinner": false,
-      "path": [
-        { "row": 0, "col": 1, "direction": "right" },
-        { "row": 1, "col": 2, "direction": "down" }
+        { "row": 1, "col": 0, "direction": "right" },
+        { "row": 2, "col": 1, "direction": "down" }
       ]
     }
   ]
 }</code></pre>
 
-    <hr>
+      <hr>
 
-    <h2>4. 資料模型（TypeScript → Redis 對應）</h2>
-
-    <pre><code class="language-typescript">interface Room {
+      <h2>4. TypeScript 資料模型</h2>
+      <pre><code class="language-typescript">interface Room {
   readonly code: string;
   status: 'waiting' | 'running' | 'revealing' | 'finished';
   hostId: string;
@@ -176,8 +224,8 @@
   revealMode: 'manual' | 'auto';
   autoRevealIntervalSec: number | null;
   kickedPlayerIds: readonly string[];
-  createdAt: number;       // Unix ms
-  updatedAt: number;       // Unix ms
+  createdAt: number;   // Unix ms
+  updatedAt: number;   // Unix ms
   readonly players: readonly Player[];
 }
 
@@ -187,38 +235,29 @@ interface Player {
   colorIndex: number;
   isHost: boolean;
   isOnline: boolean;
-  joinedAt: number;        // Unix ms
+  joinedAt: number;    // Unix ms
 }
 
-/**
- * LadderData — 完整梯子資料，含 seed/seedSource
- * 儲存於 Redis room:{code}:ladder
- * 在 BEGIN_REVEAL 時生成（非 START_GAME）
- * 僅在 status=finished 時對客戶端公開（含 seed/seedSource）
- */
+/** 完整梯子資料，含 seed/seedSource；僅在 status=finished 時對客戶端公開 */
 interface LadderData {
   readonly seed: number;          // Mulberry32 seed = djb2(seedSource) >>> 0 (uint32)
-  readonly seedSource: string;    // UUID v4 hex
+  readonly seedSource: string;    // UUID v4 hex；START_GAME 時生成，用於審計（PRD FR-03-1）
   readonly rowCount: number;      // clamp(N*3, 20, 60)
-  readonly colCount: number;      // = N
+  readonly colCount: number;      // = N (所有玩家，含離線)
   readonly segments: readonly LadderSegment[];
   readonly results: readonly ResultSlot[];
 }
 
-/**
- * LadderDataPublic — 發送給客戶端的公開梯子資料（省略 seed/seedSource）
- * 在 status=revealing 時透過 ROOM_STATE_FULL unicast 給重連玩家
- */
+/** 發送給客戶端的公開梯子資料（省略 seed/seedSource） */
 interface LadderDataPublic {
   readonly rowCount: number;
   readonly colCount: number;
   readonly segments: readonly LadderSegment[];
-  // seed 與 seedSource 刻意省略
 }
 
 interface LadderSegment {
   readonly row: number;
-  readonly col: number;             // 橫槓左端的欄位索引（col &lt;-> col+1 has a rung）
+  readonly col: number;   // 橫槓左端欄位索引（col ↔ col+1 有橫槓）
 }
 
 interface PathStep {
@@ -233,95 +272,338 @@ interface ResultSlot {
   readonly startCol: number;
   readonly endCol: number;
   readonly isWinner: boolean;
-  readonly path: readonly PathStep[];
+  readonly path: readonly PathStep[];  // length = rowCount
 }
 
-/** ResultSlotPublic — REVEAL_ALL payload 專用（省略 path 欄位） */
+/** REVEAL_ALL payload 專用（省略 path，避免超過 64KB WS maxPayload） */
 type ResultSlotPublic = Omit&lt;ResultSlot, 'path'&gt;;</code></pre>
 
-    <h3>TypeScript 欄位 → Redis 鍵對應表</h3>
-    <table>
-      <thead><tr><th>TypeScript 欄位</th><th>Redis 鍵</th><th>儲存位置</th><th>備註</th></tr></thead>
-      <tbody>
-        <tr><td><code>Room.code</code></td><td><code>room:{code}</code></td><td>JSON 頂層 <code>code</code> 欄位</td><td></td></tr>
-        <tr><td><code>Room.status</code></td><td><code>room:{code}</code></td><td>JSON 頂層 <code>status</code> 欄位</td><td></td></tr>
-        <tr><td><code>Room.hostId</code></td><td><code>room:{code}</code></td><td>JSON 頂層 <code>hostId</code> 欄位</td><td></td></tr>
-        <tr><td><code>Room.winnerCount</code></td><td><code>room:{code}</code></td><td>JSON 頂層 <code>winnerCount</code> 欄位</td><td><code>number | null</code></td></tr>
-        <tr><td><code>Room.players[]</code></td><td><code>room:{code}</code></td><td>JSON 頂層 <code>players</code> 陣列</td><td></td></tr>
-        <tr><td><code>LadderData.seed</code></td><td><code>room:{code}:ladder</code></td><td>JSON 頂層 <code>seed</code> 欄位</td><td><strong>revealing 狀態省略</strong>；finished 後公開</td></tr>
-        <tr><td><code>LadderData.segments[]</code></td><td><code>room:{code}:ladder</code></td><td>JSON 頂層 <code>segments</code> 陣列</td><td>LadderDataPublic 中保留</td></tr>
-        <tr><td><code>LadderData.results[]</code></td><td><code>room:{code}:ladder</code></td><td>JSON 頂層 <code>results</code> 陣列</td><td>BEGIN_REVEAL 時原子填入</td></tr>
-        <tr><td><code>revealedCount</code></td><td><code>room:{code}:revealedCount</code></td><td>Redis String 計數器</td><td>原子 INCR；與 Room JSON 同步</td></tr>
-        <tr><td><code>kickedPlayerIds</code>（正本）</td><td><code>room:{code}:kicked</code></td><td>Redis Set 成員</td><td>SISMEMBER 用於重連檢查</td></tr>
-        <tr><td><code>sessionId 對應</code></td><td><code>room:{code}:sessions</code></td><td>Redis Hash field/value</td><td></td></tr>
-      </tbody>
-    </table>
+      <h3>TypeScript 欄位 → Redis 鍵對應表</h3>
+      <table>
+        <thead><tr><th>TypeScript 欄位</th><th>Redis 鍵</th><th>儲存位置</th><th>備註</th></tr></thead>
+        <tbody>
+          <tr><td><code>Room.code</code></td><td><code>room:{code}</code></td><td>JSON 頂層 <code>code</code></td><td></td></tr>
+          <tr><td><code>Room.status</code></td><td><code>room:{code}</code></td><td>JSON 頂層 <code>status</code></td><td></td></tr>
+          <tr><td><code>Room.hostId</code></td><td><code>room:{code}</code></td><td>JSON 頂層 <code>hostId</code></td><td></td></tr>
+          <tr><td><code>Room.winnerCount</code></td><td><code>room:{code}</code></td><td>JSON 頂層 <code>winnerCount</code></td><td><code>number | null</code></td></tr>
+          <tr><td><code>Room.revealMode</code></td><td><code>room:{code}</code></td><td>JSON 頂層 <code>revealMode</code></td><td><code>"manual" | "auto"</code></td></tr>
+          <tr><td><code>Room.kickedPlayerIds</code></td><td><code>room:{code}</code></td><td>JSON 頂層 <code>kickedPlayerIds</code></td><td>冗余鏡像，以 Redis Set 為準</td></tr>
+          <tr><td><code>LadderData.seed</code></td><td><code>room:{code}:ladder</code></td><td>JSON 頂層 <code>seed</code></td><td>revealing 狀態以 LadderDataPublic 省略</td></tr>
+          <tr><td><code>LadderData.seedSource</code></td><td><code>room:{code}:ladder</code></td><td>JSON 頂層 <code>seedSource</code></td><td>revealing 狀態省略；finished 後公開</td></tr>
+          <tr><td><code>LadderData.segments[]</code></td><td><code>room:{code}:ladder</code></td><td>JSON 頂層 <code>segments</code></td><td>LadderDataPublic 中保留</td></tr>
+          <tr><td><code>LadderData.results[]</code></td><td><code>room:{code}:ladder</code></td><td>JSON 頂層 <code>results</code></td><td>BEGIN_REVEAL 時原子填入</td></tr>
+          <tr><td><code>ResultSlot.path[]</code></td><td><code>room:{code}:ladder</code></td><td><code>results[n].path</code></td><td>REVEAL_ALL payload 使用 ResultSlotPublic 省略</td></tr>
+          <tr><td>revealedCount</td><td><code>room:{code}:revealedCount</code></td><td>Redis String 計數器</td><td>原子 INCR；與 Room JSON 無冗余</td></tr>
+          <tr><td>kickedPlayerIds（正本）</td><td><code>room:{code}:kicked</code></td><td>Redis Set 成員</td><td>SISMEMBER 用於重連檢查</td></tr>
+          <tr><td>sessionId 對應</td><td><code>room:{code}:sessions</code></td><td>Redis Hash field/value</td><td></td></tr>
+        </tbody>
+      </table>
 
-    <hr>
+      <hr>
 
-    <h2>5. 原子操作設計</h2>
+      <h2>5. 原子操作設計</h2>
 
-    <h3>5.1 建立房間（<code>POST /rooms</code>）</h3>
-    <pre><code class="language-bash"># SET NX EX 原子地設定鍵值與 TTL，確保唯一性
+      <h3>5.1 建立房間（POST /rooms）</h3>
+      <p>並發請求可能生成相同的 6 位房間代碼，必須用 SET NX EX 確保唯一性。</p>
+      <pre><code class="language-bash"># SET NX EX 原子地設定鍵值與 TTL，確保唯一性
+# 若回傳 nil（已存在），重新生成代碼並重試，最多重試 10 次
 SET room:ALPHA1 "{...roomJson...}" NX EX 86400
 
-# 若成功，原子地初始化 revealedCount
+# 成功後原子初始化 revealedCount（使用 Lua 確保原子性）
 EVAL "
   if redis.call('EXISTS', KEYS[1]) == 0 then return 0 end
   redis.call('SET', KEYS[2], '0', 'EX', ARGV[1])
   return 1
-" 2 room:ALPHA1 room:ALPHA1:revealedCount 86400</code></pre>
+" 2 room:ALPHA1 room:ALPHA1:revealedCount 86400
 
-    <h3>5.2 開始遊戲（<code>START_GAME</code>）</h3>
-    <blockquote><p><strong>重要</strong>：START_GAME <strong>不生成梯子</strong>。梯子在 BEGIN_REVEAL 時才原子生成。</p></blockquote>
-    <pre><code class="language-bash">WATCH room:ALPHA1
-GET room:ALPHA1  # 讀取並驗證（status=waiting, N>=2, 1<=W<=N-1）
+# room:ALPHA1:kicked 不預先初始化（SISMEMBER 對不存在的鍵返回 0，行為正確）</code></pre>
+
+      <h3>5.2 開始遊戲（START_GAME）</h3>
+      <p><strong>重要</strong>：START_GAME <strong>不生成梯子</strong>（LadderData、ResultSlots）。梯子在 BEGIN_REVEAL 時才原子生成（PRD AC-H03-1, NFR-05）。</p>
+      <pre><code class="language-bash">WATCH room:ALPHA1
+GET room:ALPHA1
+# 驗證 status=waiting，請求者是 host，N>=2，1<=W<=N-1
+# 應用層生成 seedSource = crypto.randomUUID()；計算 rowCount = clamp(N*3, 20, 60)
 
 MULTI
-  SET room:ALPHA1 "{...status:running, seedSource:uuid, rowCount:N...}"
-  DEL room:ALPHA1:revealedCount
-  SET room:ALPHA1:revealedCount "0" EX 86400
-EXEC  # EXEC null → 重試最多 3 次</code></pre>
+  SET room:ALPHA1 "{...status:running, seedSource:uuid, rowCount:N, ladder:null...}"
+  SET room:ALPHA1:revealedCount "0"
+  DEL room:ALPHA1:ladder          # 若有舊梯子資料，確保清除
+  EXPIRE room:ALPHA1 86400
+  EXPIRE room:ALPHA1:revealedCount 86400
+  EXPIRE room:ALPHA1:kicked 86400
+  EXPIRE room:ALPHA1:sessions 86400
+EXEC
+# 廣播 ROOM_STATE（status:running, rowCount）— 不含 seed、不含 ladder</code></pre>
 
-    <h3>5.3 開始揭曉（<code>BEGIN_REVEAL</code>）</h3>
-    <blockquote><p>應用層計算 LadderData + ResultSlots，Lua Script 原子寫入 ladder/status=revealing，確保「梯子資料」與「狀態=revealing」不可分割。</p></blockquote>
-    <pre><code class="language-bash"># Lua Script 確保原子性（偽代碼）
+      <h3>5.3-B 開始揭示（BEGIN_REVEAL）— Lua Script 原子操作</h3>
+      <p>必須同時生成並寫入 LadderData（含 seed、segments）和 ResultSlots，並將 status 更新為 revealing。</p>
+      <pre><code class="language-bash"># 應用層（GameService）執行純計算（零 I/O）：
+#   ladder = GenerateLadder(room.seedSource, N)
+#   results = ComputeResults(ladder, winnerCount, rng)
+
 EVAL "
-  local room = redis.call('GET', KEYS[1])
-  -- 驗證 status=running
-  -- 寫入梯子資料（由應用層傳入）
-  redis.call('SET', KEYS[2], ARGV[1], 'EX', ARGV[3])  -- ladder
-  redis.call('SET', KEYS[1], ARGV[2], 'EX', ARGV[3])  -- room (status=revealing)
+  local room = cjson.decode(ARGV[1])
+  room.status = 'revealing'
+  redis.call('SET', KEYS[1], cjson.encode(room))
+  redis.call('SET', KEYS[2], ARGV[2])   -- 寫入 LadderData JSON（含 seed）
+  redis.call('SET', KEYS[3], '0')       -- 重置揭示計數器
+  redis.call('EXPIRE', KEYS[1], 86400)
+  redis.call('EXPIRE', KEYS[2], 86400)
+  redis.call('EXPIRE', KEYS[3], 86400)
   return 1
-" 2 room:ALPHA1 room:ALPHA1:ladder {ladderJson} {roomJson} 86400</code></pre>
+" 3 room:ALPHA1 room:ALPHA1:ladder room:ALPHA1:revealedCount {roomJson} {ladderDataJson}
 
-    <h3>5.4 逐一揭示（<code>REVEAL_NEXT</code>）</h3>
-    <pre><code class="language-bash"># 1. 原子遞增計數器
-INCR room:ALPHA1:revealedCount  → newCount
+# seed 雖已存入 Redis，但不對客戶端公開（直到 END_GAME）</code></pre>
 
-# 2. 以 WATCH+MULTI/EXEC 同步 Room JSON 快照並 PUBLISH
-WATCH room:ALPHA1
+      <h3>5.4 揭示計數（REVEAL_NEXT）</h3>
+      <pre><code class="language-bash"># 原子遞增，返回新值（本次揭示的 1-based index）
+INCR room:ALPHA1:revealedCount
+# 返回值如 "3" 表示第 3 位玩家揭示完成
+
+# REVEAL_NEXT 後不自動轉 finished（PRD AC-H04-4）
+# 狀態轉換（revealing → finished）需由 Host 另行發送 END_GAME</code></pre>
+
+      <h3>5.4-B 結束本局（END_GAME）</h3>
+      <pre><code class="language-bash">WATCH room:ALPHA1
+GET room:ALPHA1
+# 驗證 status=revealing，revealedCount==totalCount，請求者是 host
+
 MULTI
-  SET room:ALPHA1 "{...revealedCount:newCount...}"
-  # 備注：PUBLISH 不在 MULTI/EXEC 中；改用 EXEC 後立即 PUBLISH
+  SET room:ALPHA1 "{...room with status:'finished', updatedAt:now...}"
+  EXPIRE room:ALPHA1 3600           # TTL 降至 1h
+  EXPIRE room:ALPHA1:ladder 3600
+  EXPIRE room:ALPHA1:revealedCount 3600
+  EXPIRE room:ALPHA1:kicked 3600
+  EXPIRE room:ALPHA1:sessions 3600
+EXEC
+# 成功後廣播 ROOM_STATE（status:'finished'，含 seed + 完整 results[]）
+# seed 至此首次對客戶端公開</code></pre>
+
+      <h3>5.5 踢除玩家（KICK_PLAYER）</h3>
+      <pre><code class="language-bash">WATCH room:ALPHA1
+GET room:ALPHA1
+# 驗證請求者是 host 且目標玩家存在
+
+MULTI
+  SET room:ALPHA1 "{...roomJson with player removed from players array...}"
+  SADD room:ALPHA1:kicked "player-uuid-003"
+  EXPIRE room:ALPHA1 86400
+  EXPIRE room:ALPHA1:kicked 86400
 EXEC</code></pre>
 
-    <h3>5.5 結束遊戲（<code>END_GAME</code>）</h3>
-    <pre><code class="language-bash">WATCH room:ALPHA1
+      <h3>5.6 再玩一局（PLAY_AGAIN）</h3>
+      <p>流程：驗證 status=finished → 計算 onlinePlayers → 若 onlinePlayers.length &lt; 2 → INSUFFICIENT_ONLINE_PLAYERS → 若 winnerCount &gt;= onlinePlayers.length → winnerCount = null → kickedPlayerIds 清空。</p>
+      <pre><code class="language-bash">WATCH room:ALPHA1
+GET room:ALPHA1
+# 篩選 onlinePlayers，調整 winnerCount
+
 MULTI
-  SET room:ALPHA1 "{...status:finished...}" EX 3600  # TTL 降為 1h
+  SET room:ALPHA1 "{...status:'waiting', players:onlinePlayers, winnerCount:adjusted, kickedPlayerIds:[], revealMode:'manual', autoRevealIntervalSec:null, seedSource:null...}"
+  DEL room:ALPHA1:ladder            # 清除梯子（DEL 確保鍵完全移除）
+  SET room:ALPHA1:revealedCount "0"
+  DEL room:ALPHA1:kicked            # 清空踢除 Set（PRD AC-H07-5）
+  EXPIRE room:ALPHA1 86400
+  EXPIRE room:ALPHA1:revealedCount 86400
+  EXPIRE room:ALPHA1:sessions 86400
 EXEC
-# EXEC 成功後廣播含 seed 的 ROOM_STATE</code></pre>
-  </main>
+# 成功後廣播 ROOM_STATE（status:'waiting'）</code></pre>
+
+      <hr>
+
+      <h2>6. 記憶體估算</h2>
+      <p>估算基準：50 名玩家、梯子 10 列 × 50 欄（約 600 個橫槓 segments）、每位玩家 path 長度 10（rowCount）。</p>
+      <table>
+        <thead><tr><th>物件</th><th>大小估算</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr><td>Room JSON（50 players）</td><td>~10 KB</td><td>每位玩家約 200 bytes，加上頂層欄位</td></tr>
+          <tr><td>LadderData segments（~600 segments）</td><td>~5 KB</td><td>每個 segment <code>{row, col}</code> 約 20 bytes</td></tr>
+          <tr><td>ResultSlot[]（50 players × path[10]）</td><td>~72 KB</td><td>每個 ResultSlot 含 path 陣列約 1.5 KB</td></tr>
+          <tr><td>kickedPlayerIds Set</td><td>&lt; 1 KB</td><td>UUID 字串 × 最多數十個被踢玩家</td></tr>
+          <tr><td>revealedCount counter</td><td>8 bytes</td><td>Redis String 計數器</td></tr>
+          <tr><td>sessions Hash</td><td>~3 KB</td><td>50 個 playerId:sessionId 對</td></tr>
+          <tr><td><strong>單房間合計</strong></td><td><strong>~90 KB</strong></td><td>含所有子鍵</td></tr>
+          <tr><td>100 房間（MVP 目標）</td><td><strong>~9 MB</strong></td><td>遠低於標準 Redis 實例記憶體限制</td></tr>
+        </tbody>
+      </table>
+
+      <hr>
+
+      <h2>7. ER 圖</h2>
+      <p>以下為邏輯 ER 圖，反映 Redis 中各資料集合之間的關係。雖然 Redis 無外鍵約束，但應用層在寫入時強制維護這些關係。</p>
+      <div class="diagram-container">
+        <pre class="mermaid">erDiagram
+    ROOM {
+        string code PK
+        string status
+        string hostId
+        int_or_null winnerCount
+        string revealMode
+        int_or_null autoRevealIntervalSec
+        string_array kickedPlayerIds
+        int createdAt
+        int updatedAt
+    }
+
+    ROOM_REVEALED_COUNT {
+        string roomCode FK
+        int revealedCount
+    }
+
+    ROOM_KICKED_SET {
+        string roomCode FK
+        string playerId
+    }
+
+    ROOM_SESSIONS_HASH {
+        string roomCode FK
+        string playerId
+        string sessionId
+    }
+
+    PLAYER {
+        string id PK
+        string roomCode FK
+        string nickname
+        int colorIndex
+        bool isHost
+        bool isOnline
+        int joinedAt
+    }
+
+    LADDER_DATA {
+        string roomCode FK
+        int seed
+        string seedSource
+        int rowCount
+        int colCount
+    }
+
+    LADDER_SEGMENT {
+        string roomCode FK
+        int row
+        int col
+    }
+
+    RESULT_SLOT {
+        int playerIndex PK
+        string roomCode FK
+        string playerId FK
+        int startCol
+        int endCol
+        bool isWinner
+    }
+
+    ROOM ||--o{ PLAYER : "has"
+    ROOM ||--|| ROOM_REVEALED_COUNT : "counter"
+    ROOM ||--o{ ROOM_KICKED_SET : "kicked"
+    ROOM ||--o{ ROOM_SESSIONS_HASH : "sessions"
+    ROOM ||--o| LADDER_DATA : "has"
+    LADDER_DATA ||--o{ LADDER_SEGMENT : "contains"
+    LADDER_DATA ||--o{ RESULT_SLOT : "produces"
+    PLAYER ||--o| RESULT_SLOT : "maps to"</pre>
+      </div>
+
+      <hr>
+
+      <h2>8. 查詢模式</h2>
+
+      <h3>8.1 加入房間流程</h3>
+      <pre><code class="language-bash"># Step 1: 讀取房間狀態
+GET room:ALPHA1
+# 若 nil → 房間不存在，回傳 404
+
+# Step 2: 檢查玩家是否被踢除（O(1)）
+SISMEMBER room:ALPHA1:kicked "player-uuid-003"
+# 若返回 1 → 玩家已被踢，回傳 403
+
+# Step 3-4: 讀取、修改、原子寫入
+WATCH room:ALPHA1
+MULTI
+  SET room:ALPHA1 "{...roomJson with new player appended...}"
+  HSET room:ALPHA1:sessions "player-uuid-005" "sess-new-xyz"
+  EXPIRE room:ALPHA1 86400
+  EXPIRE room:ALPHA1:sessions 86400
+EXEC</code></pre>
+
+      <h3>8.2 重連查詢</h3>
+      <pre><code class="language-bash"># 一次取得所有需要的狀態
+SISMEMBER room:ALPHA1:kicked "player-uuid-002"   # O(1)
+GET room:ALPHA1                                   # O(1)
+GET room:ALPHA1:ladder                            # O(1)
+GET room:ALPHA1:revealedCount                     # O(1)
+
+# 更新 session 與 isOnline 狀態
+HSET room:ALPHA1:sessions "player-uuid-002" "sess-new-reconnect"
+WATCH room:ALPHA1
+MULTI
+  SET room:ALPHA1 "{...with player.isOnline=true...}"
+  EXPIRE room:ALPHA1 86400
+  EXPIRE room:ALPHA1:ladder 86400
+  EXPIRE room:ALPHA1:revealedCount 86400
+  EXPIRE room:ALPHA1:kicked 86400
+  EXPIRE room:ALPHA1:sessions 86400
+EXEC</code></pre>
+
+      <h3>8.3 揭示下一位</h3>
+      <pre><code class="language-bash"># 原子遞增，取得本次揭示的 1-based index
+INCR room:ALPHA1:revealedCount
+# 返回值如 3 → 廣播 REVEAL_INDEX（results[2]，含完整 path）
+
+# 廣播揭示事件
+PUBLISH room:ALPHA1:events "{type:'REVEAL_INDEX', payload:{...}}"
+
+# 注意：不自動轉 finished，等待 Host 的 END_GAME（PRD AC-H04-4）</code></pre>
+
+      <hr>
+
+      <h2>9. TTL 管理策略</h2>
+
+      <table>
+        <thead><tr><th>情境</th><th>TTL</th><th>設定時機</th><th>套用對象</th></tr></thead>
+        <tbody>
+          <tr><td>房間建立</td><td>86400s（24h）</td><td>POST /rooms 成功後</td><td>所有 <code>room:{code}:*</code> 鍵</td></tr>
+          <tr><td>狀態變更（任何）</td><td>86400s（24h）</td><td>每次 MULTI/EXEC 成功後</td><td>所有 <code>room:{code}:*</code> 鍵</td></tr>
+          <tr><td>轉換至 finished</td><td>3600s（1h）</td><td>END_GAME 的 EXEC 後</td><td>所有 <code>room:{code}:*</code> 鍵</td></tr>
+          <tr><td>所有玩家離線</td><td>300s（5min）</td><td>最後一個 WS close 事件後</td><td>所有 <code>room:{code}:*</code> 鍵</td></tr>
+          <tr><td>Pod 重啟後重連</td><td>不重設 → 重連時重設 24h</td><td>有玩家重連時</td><td>所有 <code>room:{code}:*</code> 鍵</td></tr>
+        </tbody>
+      </table>
+
+      <h3>TTL 管理原則</h3>
+      <ol>
+        <li><strong>子鍵 TTL 與主鍵同步</strong>：每次寫入操作在 MULTI/EXEC 中一次重設所有相關鍵的 EXPIRE</li>
+        <li><strong>finished 狀態降低 TTL</strong>：遊戲結束後資料僅供短時間查閱，1h 後自動清理</li>
+        <li><strong>空房縮短 TTL</strong>：所有玩家離線 5 分鐘後自動清理，防止殭屍房間積累記憶體</li>
+        <li><strong>Pod 重啟不影響現有 TTL</strong>：Redis 鍵的 TTL 在 Pod 重啟後仍然有效，無需掃描重設</li>
+        <li><strong>TTL 重設在 MULTI/EXEC 內完成</strong>：確保原子性，transaction 失敗時 TTL 不會被單獨更新</li>
+      </ol>
+
+      <h3>命令複雜度總覽</h3>
+      <table>
+        <thead><tr><th>使用案例</th><th>關鍵命令</th><th>複雜度</th><th>潛在瓶頸</th></tr></thead>
+        <tbody>
+          <tr><td>重連</td><td>SISMEMBER、GET × 3 pipeline、HSET、WATCH/MULTI/EXEC</td><td>O(1)</td><td>WATCH 重試（高並發房間）</td></tr>
+          <tr><td>揭示下一位</td><td>INCR、GET、PUBLISH（不自動轉 finished）</td><td>O(1)</td><td>PUBLISH fan-out（50 訂閱者）</td></tr>
+          <tr><td>自動揭示計時器</td><td>GET（模式確認）、INCR、WATCH/MULTI/EXEC</td><td>O(1)</td><td>計時器與 REVEAL_ALL_TRIGGER 競態</td></tr>
+          <tr><td>主持人移交</td><td>WATCH/MULTI/EXEC、PUBLISH</td><td>O(1)</td><td>WATCH 競態（60s grace 期間並發寫入）</td></tr>
+          <tr><td>房間清理</td><td>UNLINK × 5 / EXPIRE × 5 / DEL（在 MULTI 中）</td><td>O(1)</td><td>無（UNLINK 非同步）</td></tr>
+        </tbody>
+      </table>
+
+      <blockquote><p><strong>無 O(n) 掃描</strong>：Schema 設計全程避免 KEYS、SCAN、SMEMBERS 等線性掃描命令。kicked Set 的成員列舉僅在 PLAY_AGAIN 時以 DEL 整體清除，不需要逐一 SREM。</p></blockquote>
+    </main>
+  </div>
 
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    const isDark = localStorage.getItem('theme') !== 'light';
-    mermaid.initialize({ startOnLoad: true, theme: isDark ? 'dark' : 'default' });
+    mermaid.initialize({ startOnLoad: true, theme: 'default', flowchart: { curve: 'basis' }, er: { layoutDirection: 'TD' } });
   </script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>

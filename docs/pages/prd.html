@@ -1,213 +1,253 @@
 <!DOCTYPE html>
-<html lang="zh-Hant" data-theme="dark">
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PRD — 爬樓梯抽獎 Ladder Room</title>
+  <title>產品需求文件 (PRD) — Ladder Room Online</title>
   <link rel="stylesheet" href="assets/style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-  <header class="topbar">
-    <a href="index.html" class="topbar__title">🪜 Ladder Room</a>
-    <div class="topbar__controls">
+  <header class="top-nav">
+    <a href="index.html" class="nav-brand">🪜 Ladder Room</a>
+    <div class="nav-controls">
       <div class="search-wrap">
         <input class="search-input" type="search" placeholder="搜尋文件...">
         <div class="search-results"></div>
       </div>
-      <button class="theme-toggle" aria-label="切換深淺色模式">🌙</button>
     </div>
   </header>
 
-  <nav class="sidebar" aria-label="文件導覽">
-    <div class="sidebar__section">
-      <div class="sidebar__label">文件</div>
-      <a class="sidebar__link" href="index.html">🏠 首頁</a>
-      <a class="sidebar__link" href="pdd.html">📋 PDD</a>
-      <a class="sidebar__link" href="prd.html">📝 PRD</a>
-      <a class="sidebar__link" href="edd.html">🏗️ EDD</a>
-      <a class="sidebar__link" href="arch.html">🧩 ARCH</a>
-      <a class="sidebar__link" href="api.html">🔌 API</a>
-      <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
-      <a class="sidebar__link" href="design.html">🎨 Design</a>
-      <a class="sidebar__link" href="bdd.html">🧪 BDD</a>
-    </div>
-  </nav>
+  <div class="doc-page-banner">
+    <p class="banner-breadcrumb"><a href="index.html">Ladder Room</a> › 產品需求文件 (PRD)</p>
+    <h1 class="banner-title">產品需求文件 (PRD)</h1>
+    <p class="banner-desc">User Stories、驗收標準 (AC)、非功能需求</p>
+  </div>
 
-  <main class="content">
-    <h1>📝 PRD — Ladder Room Online</h1>
-    <blockquote><p><strong>版本</strong>：v1.3 ｜ <strong>日期</strong>：2026-04-19 ｜ <strong>基於 PDD</strong>：v2.2 ｜ <strong>狀態</strong>：Draft</p></blockquote>
+  <div class="page-wrapper">
+    <aside class="sidebar">
+      <div class="sidebar__section">
+        <div class="sidebar__label">文件</div>
+        <a class="sidebar__link" href="index.html">🏠 首頁</a>
+        <a class="sidebar__link" href="pdd.html">📋 PDD</a>
+        <a class="sidebar__link" href="prd.html">📝 PRD</a>
+        <a class="sidebar__link" href="edd.html">🏗️ EDD</a>
+        <a class="sidebar__link" href="arch.html">🧩 ARCH</a>
+        <a class="sidebar__link" href="api.html">🔌 API</a>
+        <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
+        <a class="sidebar__link" href="design.html">🎨 Design</a>
+        <a class="sidebar__link" href="bdd.html">🧪 BDD</a>
+      </div>
+    </aside>
+    <main class="doc-content">
+      <h1>PRD — Ladder Room Online</h1>
+      <p><strong>版本</strong>：v1.3 &nbsp; <strong>日期</strong>：2026-04-19 &nbsp; <strong>基於 PDD</strong>：v2.2<br>
+      <strong>作者</strong>：AI PM Agent &nbsp; <strong>狀態</strong>：Draft</p>
 
-    <h2>執行摘要</h2>
-    <p>Ladder Room Online 是一款基於 HTML5 Canvas 的多人線上爬樓梯抽獎遊戲，支援最多 50 人同房間即時參與。主持人建立房間並掌控揭曉節奏，玩家透過 6 碼房間碼加入並即時觀看路徑動畫；Mulberry32 PRNG 算法確保每局結果在所有客戶端 100% 一致，消除舞弊疑慮，適用於團隊抽獎、課堂點名、活動互動等場景。</p>
+      <hr>
 
-    <hr>
+      <h2>執行摘要</h2>
+      <p>Ladder Room Online 是一款基於 HTML5 Canvas 的多人線上爬樓梯抽獎遊戲，支援最多 50 人同房間即時參與。主持人建立房間並掌控揭曉節奏，玩家透過 6 碼房間碼加入並即時觀看路徑動畫；Mulberry32 PRNG 算法確保每局結果在所有客戶端 100% 一致，消除舞弊疑慮，適用於團隊抽獎、課堂點名、活動互動等場景。</p>
 
-    <h2>使用者故事</h2>
+      <hr>
 
-    <h3>主持人（Host）</h3>
+      <h2>使用者故事 — 主持人（Host）</h2>
 
-    <p><strong>US-H01</strong>：作為主持人，我想要建立一個帶有唯一 6 碼房間碼的房間，以便玩家能快速找到並加入我的抽獎活動。</p>
-    <ul>
-      <li><strong>AC-H01-1</strong>：Given 主持人點擊「建立房間」，When 系統接受請求，Then 於 2 秒內回傳 6 碼 Room Code（字元集 <code>ABCDEFGHJKLMNPQRSTUVWXYZ23456789</code>）且在 Redis 中不重複。</li>
-      <li><strong>AC-H01-2</strong>：Given 房間建立成功，When 主持人進入房間，Then 頁面顯示 Room Code、目前玩家列表（空）、設定中獎名額的輸入框，狀態為 <code>waiting</code>。</li>
-      <li><strong>AC-H01-3</strong>：Given 建立房間的請求因網路異常失敗，When 系統偵測到錯誤，Then 顯示「建立失敗，請重試」提示並保留輸入內容，不產生孤立房間。</li>
-      <li><strong>AC-H01-4</strong>：Given Room Code 生成碰撞次數超過 10 次，Then 回傳 <code>ROOM_CODE_GENERATION_FAILED</code> 錯誤。</li>
-    </ul>
+      <h3>US-H01：建立房間</h3>
+      <p>作為主持人，我想要建立一個帶有唯一 6 碼房間碼的房間，以便玩家能快速找到並加入我的抽獎活動。</p>
+      <ul>
+        <li><strong>AC-H01-1</strong>：Given 主持人點擊「建立房間」，When 系統接受請求，Then 於 2 秒內回傳 6 碼 Room Code（字元集 <code>[A-HJ-NP-Z2-9]</code>）且在 Redis 中不重複。</li>
+        <li><strong>AC-H01-2</strong>：Given 房間建立成功，Then 頁面顯示 Room Code、玩家列表、設定中獎名額輸入框，狀態為 <code>waiting</code>。</li>
+        <li><strong>AC-H01-3</strong>：Given 建立房間因網路異常失敗，Then 顯示「建立失敗，請重試」，不產生孤立房間。</li>
+        <li><strong>AC-H01-4</strong>：Given Room Code 碰撞超過 10 次，Then 回傳 <code>ROOM_CODE_GENERATION_FAILED</code>，前端顯示「建立失敗，請重試」。</li>
+      </ul>
 
-    <p><strong>US-H02</strong>：作為主持人，我想要設定中獎名額（W），以便控制本局有多少玩家會獲獎。</p>
-    <ul>
-      <li><strong>AC-H02-1</strong>：Given 房間狀態為 <code>waiting</code>，When 主持人填入 W（1 ≤ W ≤ N-1），Then 系統接受並廣播更新後的 <code>ROOM_STATE</code>。</li>
-      <li><strong>AC-H02-2</strong>：Given 主持人輸入 W ≤ 0 或 W ≥ N，Then 系統顯示「中獎名額須介於 1 到玩家數減 1 之間」錯誤。</li>
-      <li><strong>AC-H02-3</strong>：Given 再玩一局且剔除離線玩家後 W ≥ 新 N，Then 自動將 W 重設為 null 並通知主持人。</li>
-    </ul>
+      <h3>US-H02：設定中獎名額</h3>
+      <p>作為主持人，我想要設定中獎名額（W），以便控制本局有多少玩家會獲獎。</p>
+      <ul>
+        <li><strong>AC-H02-1</strong>：Given 狀態為 <code>waiting</code>，When 主持人填入合法 W（1 ≤ W ≤ N-1），Then 系統接受並廣播 <code>ROOM_STATE</code>。</li>
+        <li><strong>AC-H02-2</strong>：Given W ≤ 0 或 W ≥ N，Then 顯示「中獎名額須介於 1 到玩家數減 1 之間」，不更新狀態。</li>
+        <li><strong>AC-H02-3</strong>：Given 再玩一局後 W 越界，Then 自動重設 W 為 null，通知主持人重新設定。</li>
+      </ul>
 
-    <p><strong>US-H03</strong>：作為主持人，我想要在所有玩家就緒後開始遊戲，以便正式進入揭曉流程。</p>
-    <ul>
-      <li><strong>AC-H03-1</strong>：Given 房間狀態為 <code>waiting</code> 且 N ≥ 2 且 W 已設定，When 主持人點擊「開始遊戲」，Then 狀態轉為 <code>running</code>，seed 生成與樓梯計算原子完成，廣播 <code>ROOM_STATE</code>（status=<code>running</code>，含 rowCount）；<strong>seed 及完整樓梯資料在 status=<code>finished</code> 前禁止傳送給任何客戶端</strong>。</li>
-      <li><strong>AC-H03-4</strong>：Given 房間只有 Host 一人（N &lt; 2），Then 系統拒絕並回傳 <code>INSUFFICIENT_PLAYERS</code> 錯誤。</li>
-      <li><strong>AC-H03-5</strong>：<code>rowCount</code> 公式為 <code>clamp(N×3, 20, 60)</code>。</li>
-    </ul>
+      <h3>US-H03：開始遊戲</h3>
+      <p>作為主持人，我想要在所有玩家就緒後開始遊戲，以便正式進入揭曉流程。</p>
+      <ul>
+        <li><strong>AC-H03-1</strong>：Given N ≥ 2 且 W 已設定，When 主持人點擊「開始遊戲」，Then 狀態轉為 <code>running</code>，廣播 <code>ROOM_STATE</code>（含 rowCount）。</li>
+        <li><strong>AC-H03-2</strong>：Given W 尚未設定，Then 拒絕並回傳「請先設定中獎名額」，狀態維持 <code>waiting</code>。</li>
+        <li><strong>AC-H03-4</strong>：Given N &lt; 2，Then 回傳 <code>INSUFFICIENT_PLAYERS</code>，前端顯示「人數不足（至少需要 2 位玩家）」。</li>
+        <li><strong>AC-H03-5</strong>：rowCount 公式為 <code>clamp(N×3, 20, 60)</code>（N=3 → 20；N=10 → 30；N=21 → 60）。</li>
+      </ul>
 
-    <p><strong>US-H04</strong>：作為主持人，我想要以手動逐步揭曉每條路徑，以便配合現場節奏製造懸念。</p>
-    <ul>
-      <li><strong>AC-H04-1</strong>：Given 房間狀態為 <code>running</code>，When 主持人點擊「開始揭曉」，Then 伺服器執行狀態轉換（<code>running → revealing</code>）並廣播 <code>ROOM_STATE</code>，操作須在 1 秒內完成。</li>
-      <li><strong>AC-H04-2</strong>：Given 狀態為 <code>revealing</code>，When 主持人點擊「下一位」，Then 伺服器廣播 <code>REVEAL_INDEX</code>，所有客戶端同步播放行走動畫。</li>
-      <li><strong>AC-H04-4</strong>：Given 所有路徑已揭曉且主持人點擊「結束本局」，Then 狀態轉為 <code>finished</code>，廣播含完整得獎名單及 seed 的 <code>ROOM_STATE</code>。</li>
-    </ul>
+      <h3>US-H04：手動逐步揭曉</h3>
+      <p>作為主持人，我想要以手動逐步揭曉每條路徑，以便配合現場節奏製造懸念。</p>
+      <ul>
+        <li><strong>AC-H04-1</strong>：When 主持人點擊「開始揭曉」（<code>BEGIN_REVEAL</code>），Then 伺服器廣播 <code>ROOM_STATE</code>（status=<code>revealing</code>），操作須在 1 秒內完成。</li>
+        <li><strong>AC-H04-2</strong>：When 主持人點擊「下一位」，Then 廣播 <code>REVEAL_INDEX</code>，所有客戶端同步播放動畫。</li>
+        <li><strong>AC-H04-3</strong>：Given 所有路徑已揭曉，Then「下一位」按鈕 disabled，頁面顯示「結束本局」按鈕。</li>
+      </ul>
 
-    <p><strong>US-H05</strong>：作為主持人，我想要設定自動揭曉間隔（1～30 秒/格）。</p>
-    <ul>
-      <li><strong>AC-H05-1</strong>：Given 主持人選擇自動模式並設定間隔秒數 T（1 ≤ T ≤ 30，T 須為正整數），When 遊戲進入 <code>revealing</code>，Then 每隔 T 秒伺服器自動廣播下一個 <code>REVEAL_INDEX</code>。</li>
-      <li><strong>AC-H05-3</strong>：Given 主持人輸入非法 T，Then 回傳 <code>INVALID_AUTO_REVEAL_INTERVAL</code> 錯誤。</li>
-    </ul>
+      <h3>US-H05：自動揭曉</h3>
+      <p>作為主持人，我想要設定自動揭曉間隔（1～30 秒），以便讓遊戲自動進行。</p>
+      <ul>
+        <li><strong>AC-H05-1</strong>：Given T 合法（1 ≤ T ≤ 30 整數），Then 每隔 T 秒自動廣播 <code>REVEAL_INDEX</code>。</li>
+        <li><strong>AC-H05-2</strong>：Given 自動揭曉進行中切換回手動，Then 計時停止，已揭曉項目不受影響。</li>
+        <li><strong>AC-H05-3</strong>：Given T 非整數或超範圍，Then 回傳 <code>INVALID_AUTO_REVEAL_INTERVAL</code>，顯示「間隔須為 1～30 的整數」。</li>
+      </ul>
 
-    <p><strong>US-H06</strong>：作為主持人，我想要一鍵揭曉全部路徑。</p>
-    <ul>
-      <li><strong>AC-H06-1</strong>：Given 狀態為 <code>revealing</code> 且尚有未揭曉路徑，When 主持人點擊「全部揭曉」，Then 伺服器廣播 <code>REVEAL_ALL</code>，所有客戶端 2 秒內完成渲染；超時則跳至終止幀。</li>
-    </ul>
+      <h3>US-H06：一鍵全揭</h3>
+      <p>作為主持人，我想要一鍵揭曉全部路徑，以便在時間緊迫時快速完成抽獎。</p>
+      <ul>
+        <li><strong>AC-H06-1</strong>：When 主持人點擊「全部揭曉」，Then 廣播 <code>REVEAL_ALL</code>，2 秒內完成渲染；若超時則跳至終止幀。</li>
+        <li><strong>AC-H06-2</strong>：<code>REVEAL_ALL</code> 廣播後，伺服器自動觸發 <code>finished</code> 狀態轉換，無需主持人再次確認。</li>
+      </ul>
 
-    <p><strong>US-H07</strong>：作為主持人，我想要踢除指定玩家。</p>
-    <ul>
-      <li><strong>AC-H07-1</strong>：Given 房間狀態為 <code>waiting</code>，When 主持人對某玩家點擊「踢除」，Then 伺服器廣播 <code>PLAYER_KICKED</code>，被踢玩家跳轉至「你已被移出房間」頁面。</li>
-      <li><strong>AC-H07-3</strong>：Given 房間狀態為 <code>running</code> 或之後，When 主持人嘗試踢除玩家，Then 系統拒絕並回傳 <code>INVALID_STATE</code>。</li>
-    </ul>
+      <h3>US-H07：踢除玩家</h3>
+      <p>作為主持人，我想要踢除指定玩家，以便移除測試帳號或不當參與者。</p>
+      <ul>
+        <li><strong>AC-H07-1</strong>：Given 狀態為 <code>waiting</code>，When 踢除玩家，Then 廣播 <code>PLAYER_KICKED</code>，玩家列表即時更新。</li>
+        <li><strong>AC-H07-2</strong>：Given 玩家被踢後嘗試以相同 playerId 重連，Then 伺服器拒絕並回傳 <code>PLAYER_KICKED</code>。</li>
+        <li><strong>AC-H07-3</strong>：Given 狀態為 <code>running</code> 或之後，Then 拒絕踢除並回傳 <code>INVALID_STATE</code>。</li>
+        <li><strong>AC-H07-5</strong>：Given 主持人點擊「再玩一局」，Then <code>kickedPlayerIds</code> 清空，前一局被踢者可加入新局。</li>
+      </ul>
 
-    <p><strong>US-H08</strong>：作為主持人，我想要在一局結束後發起「再玩一局」。</p>
-    <ul>
-      <li><strong>AC-H08-1</strong>：Given 狀態為 <code>finished</code>，When 主持人點擊「再玩一局」，Then 系統剔除 <code>isOnline=false</code> 的玩家，重置房間狀態為 <code>waiting</code>。</li>
-    </ul>
+      <h3>US-H08：再玩一局</h3>
+      <p>作為主持人，我想要在一局結束後發起「再玩一局」，以便用同一房間繼續下一輪。</p>
+      <ul>
+        <li><strong>AC-H08-1</strong>：Given 狀態為 <code>finished</code>，When 主持人點擊「再玩一局」，Then 剔除 <code>isOnline=false</code> 玩家，重置為 <code>waiting</code>，廣播新 <code>ROOM_STATE</code>。</li>
+        <li><strong>AC-H08-3</strong>：Given 在線玩家數 &lt; 2，Then 拒絕並回傳 <code>INSUFFICIENT_PLAYERS</code>。</li>
+      </ul>
 
-    <h3>玩家（Player）</h3>
+      <hr>
 
-    <p><strong>US-P01</strong>：作為玩家，我想要輸入暱稱並透過 6 碼房間碼加入房間。</p>
-    <ul>
-      <li><strong>AC-P01-1</strong>：Given 玩家輸入有效暱稱（1～20 個 Unicode 字元）及正確 Room Code，Then 從送出按鈕點擊起計 1.5 秒內進入等待畫面。</li>
-      <li><strong>AC-P01-2</strong>：Given 暱稱重複（區分大小寫），Then 回傳 <code>NICKNAME_TAKEN</code> 錯誤。</li>
-      <li><strong>AC-P01-4</strong>：Given 房間人數已達 50 人上限，Then 伺服器回傳 <code>ROOM_FULL</code> 錯誤。</li>
-    </ul>
+      <h2>使用者故事 — 玩家（Player）</h2>
 
-    <p><strong>US-P03</strong>：作為玩家，我想要觀看自己路徑的揭曉動畫。</p>
-    <ul>
-      <li><strong>AC-P03-1</strong>：Canvas 高亮自己的路徑，動畫 FPS 桌機 ≥ 30、手機 ≥ 24。</li>
-    </ul>
+      <h3>US-P01：加入房間</h3>
+      <ul>
+        <li><strong>AC-P01-1</strong>：Given 有效暱稱及正確 Room Code，Then 1.5 秒內進入等待畫面，玩家列表顯示自己的暱稱。</li>
+        <li><strong>AC-P01-2</strong>：Given 暱稱重複，Then 回傳 <code>NICKNAME_TAKEN</code>，提示「此暱稱已被使用，請換一個」（區分大小寫）。</li>
+        <li><strong>AC-P01-3</strong>：Given 空白暱稱或超過 20 字元，Then 前端即時顯示錯誤，送出按鈕保持 disabled。</li>
+        <li><strong>AC-P01-4</strong>：Given 房間已達 50 人，Then 回傳 <code>ROOM_FULL</code>，顯示「房間已滿，無法加入」。</li>
+      </ul>
 
-    <p><strong>US-P05</strong>：作為玩家，我想要在斷線後能重新連上房間並恢復狀態。</p>
-    <ul>
-      <li><strong>AC-P05-1</strong>：Given 玩家斷線後重新開啟頁面且 localStorage 中存有 <code>playerId</code>，Then 系統自動重連，重連時間 &lt; 3 秒。</li>
-    </ul>
+      <h3>US-P02：即時玩家列表</h3>
+      <ul>
+        <li><strong>AC-P02-1</strong>：Given 有新玩家加入，When 伺服器廣播 <code>ROOM_STATE</code>，Then 所有在線玩家 2 秒內看到更新。</li>
+        <li><strong>AC-P02-2</strong>：Given 玩家離線，Then 標記 <code>isOnline=false</code>，其他玩家看到「離線」標記，不立即移除。</li>
+      </ul>
 
-    <hr>
+      <h3>US-P03：揭曉動畫</h3>
+      <ul>
+        <li><strong>AC-P03-1</strong>：輪到自己時，Canvas 高亮自己的路徑，動畫 FPS 桌機 ≥ 30、手機 ≥ 24。</li>
+        <li><strong>AC-P03-2</strong>：其他玩家路徑揭曉時，自己的路徑以灰色呈現，已揭曉結果持久顯示。</li>
+      </ul>
 
-    <h2>功能需求</h2>
+      <h3>US-P04：確認中獎結果</h3>
+      <ul>
+        <li><strong>AC-P04-1</strong>：自己的路徑揭曉完畢，顯示「恭喜中獎！」或「未中獎」，結果與伺服器 payload 一致。</li>
+      </ul>
 
-    <h3>FR-01 房間建立與管理 [P0]</h3>
-    <ul>
-      <li>FR-01-1：系統須在 2 秒內生成唯一 6 碼 Room Code，字元集：<code>ABCDEFGHJKLMNPQRSTUVWXYZ23456789</code>（排除 O、I、0、1）。</li>
-      <li>FR-01-2：Room Code 在 Redis 中以 TTL = 4 小時儲存；碰撞則重試最多 10 次。</li>
-      <li>FR-01-4：主持人建立房間後取得專屬 <code>token</code>（JWT），所有 Host 操作須附帶此 token 驗證。</li>
-    </ul>
+      <h3>US-P05：斷線重連</h3>
+      <ul>
+        <li><strong>AC-P05-1</strong>：Given localStorage 存有 <code>playerId</code>，系統自動重連，回傳完整房間狀態；重連時間 &lt; 3 秒。</li>
+        <li><strong>AC-P05-2</strong>：Given 重連時狀態已為 <code>revealing</code>，直接呈現已揭曉靜態結果，不重播動畫。</li>
+        <li><strong>AC-P05-3</strong>：Given localStorage 遺失（Ghost Player），視為新玩家，暱稱重複則提示衝突。</li>
+      </ul>
 
-    <h3>FR-03 樓梯生成算法 [P0]</h3>
-    <ul>
-      <li>FR-03-1：樓梯結構以 Mulberry32 PRNG 生成，seed 以 djb2 hash 將 seed 字串（UUID hex）轉為 uint32 初始化。</li>
-      <li>FR-03-2：橫槓生成規則：每 row 目標 <code>max(1, round(N/4))</code> 條橫槓；只連接相鄰欄位；同 row 橫槓不重疊。</li>
-      <li>FR-03-3：結果槽指派須滿足 bijection（N 個起點對應 N 個唯一終點），以 Fisher-Yates 洗牌指派 W 個中獎槽位。</li>
-    </ul>
+      <h3>US-P06：被踢通知</h3>
+      <ul>
+        <li><strong>AC-P06-1</strong>：收到 <code>PLAYER_KICKED</code>，立即顯示「你已被主持人移出房間」，WebSocket 關閉，顯示「回首頁」按鈕。</li>
+        <li><strong>AC-P06-2</strong>：嘗試以相同 playerId 重連，回傳 <code>PLAYER_KICKED</code>，顯示「你已被移出此房間，無法重新加入」。</li>
+      </ul>
 
-    <h3>FR-04 房間狀態機 [P0]</h3>
-    <p>房間狀態流轉：<code>waiting → running → revealing → finished → waiting</code>（再玩一局）。</p>
+      <hr>
 
-    <h3>FR-06 WebSocket 事件規格 [P0]</h3>
-    <p><strong>伺服器 → 客戶端</strong>：<code>ROOM_STATE</code>、<code>ROOM_STATE_FULL</code>、<code>REVEAL_INDEX</code>、<code>REVEAL_ALL</code>、<code>PLAYER_KICKED</code>、<code>SESSION_REPLACED</code>、<code>ERROR</code></p>
-    <p><strong>客戶端 → 伺服器</strong>：<code>START_GAME</code>、<code>UPDATE_WINNER_COUNT</code>、<code>BEGIN_REVEAL</code>、<code>REVEAL_NEXT</code>、<code>SET_AUTO_REVEAL</code>、<code>REVEAL_ALL</code>、<code>END_GAME</code>、<code>PLAY_AGAIN</code>、<code>KICK_PLAYER</code>、<code>JOIN_ROOM</code>、<code>RECONNECT</code></p>
+      <h2>功能需求（FR）</h2>
+      <table>
+        <thead><tr><th>FR</th><th>需求</th><th>優先級</th></tr></thead>
+        <tbody>
+          <tr><td>FR-01</td><td>房間建立與管理：6 碼 Room Code、TTL 4 小時、碰撞重試最多 10 次</td><td>P0</td></tr>
+          <tr><td>FR-02</td><td>玩家加入與身份管理：UUID playerId、暱稱驗證、50 人上限、isOnline 狀態</td><td>P0</td></tr>
+          <tr><td>FR-03</td><td>樓梯生成算法：Mulberry32 PRNG + djb2 hash + Fisher-Yates 洗牌</td><td>P0</td></tr>
+          <tr><td>FR-04</td><td>房間狀態機：waiting → running → revealing → finished → waiting</td><td>P0</td></tr>
+          <tr><td>FR-05</td><td>揭曉控制：手動 / 自動（1-30s）/ 一鍵全揭</td><td>P0</td></tr>
+          <tr><td>FR-06</td><td>WebSocket 事件規格：7 種伺服器事件，11 種客戶端操作</td><td>P0</td></tr>
+          <tr><td>FR-07</td><td>斷線重連：playerId 驗證、Ghost Player、Session 替換</td><td>P1</td></tr>
+          <tr><td>FR-08</td><td>再玩一局：移除離線玩家、重置欄位、W 越界重設</td><td>P1</td></tr>
+          <tr><td>FR-09</td><td>踢除玩家：kickedPlayerIds 持久化、同局有效、再玩一局清空</td><td>P1</td></tr>
+          <tr><td>FR-10</td><td>Canvas 動畫渲染：響應式、逐格動畫、requestAnimationFrame</td><td>P1</td></tr>
+          <tr><td>FR-11</td><td>房間碼輸入體驗：自動轉大寫、URL 參數預填</td><td>P2</td></tr>
+          <tr><td>FR-12</td><td>得獎名單展示：完整排序名單、中獎/未中獎標記</td><td>P2</td></tr>
+        </tbody>
+      </table>
 
-    <hr>
+      <hr>
 
-    <h2>非功能需求</h2>
+      <h2>非功能需求（NFR）</h2>
+      <table>
+        <thead><tr><th>NFR</th><th>類別</th><th>目標</th></tr></thead>
+        <tbody>
+          <tr><td>NFR-01</td><td>效能</td><td>Canvas FPS 桌機 ≥ 30、手機 ≥ 24；WebSocket 延遲 &lt; 2 秒（P95）</td></tr>
+          <tr><td>NFR-02</td><td>並發容量</td><td>100 並發房間 × 50 人 = 5,000 WS 連線；成功率 &gt; 99.5%</td></tr>
+          <tr><td>NFR-03</td><td>結果一致性</td><td>100% 局次所有客戶端結果與伺服器一致，0 容忍差異</td></tr>
+          <tr><td>NFR-04</td><td>可靠性</td><td>重連狀態恢復率 100%，&lt; 3 秒（P95）</td></tr>
+          <tr><td>NFR-05</td><td>安全性</td><td>JWT 驗證、seed 在 finished 前禁止洩漏、WS 訊息上限 64KB</td></tr>
+          <tr><td>NFR-06</td><td>前端效能預算</td><td>JS bundle &lt; 150KB gzip；FCP &lt; 1.5s；LCP &lt; 2.5s；CLS &lt; 0.1</td></tr>
+          <tr><td>NFR-07</td><td>測試覆蓋率</td><td>後端 ≥ 80%；前端 ≥ 70%；E2E 覆蓋所有 P0 Happy Path</td></tr>
+          <tr><td>NFR-08</td><td>瀏覽器相容性</td><td>Chrome 110+、Firefox 110+、Safari 15+；最小 320px 寬度</td></tr>
+        </tbody>
+      </table>
 
-    <table>
-      <thead><tr><th>NFR</th><th>項目</th><th>目標</th></tr></thead>
-      <tbody>
-        <tr><td>NFR-01</td><td>效能</td><td>Canvas 動畫桌機 ≥ 30fps；手機 ≥ 24fps；WS 廣播延遲 &lt; 2s (P95)</td></tr>
-        <tr><td>NFR-02</td><td>並發</td><td>100 並發房間 × 50 人 = 5,000 WS 連線；建立成功率 &gt; 99.5%</td></tr>
-        <tr><td>NFR-03</td><td>一致性</td><td>100% 局次所有客戶端顯示結果與伺服器一致（0 容忍差異）</td></tr>
-        <tr><td>NFR-04</td><td>可靠性</td><td>斷線重連恢復率 100%；重連時間 &lt; 3s (P95)</td></tr>
-        <tr><td>NFR-05</td><td>安全性</td><td>Host 操作驗證 JWT；seed 在 status=finished 前禁止傳送</td></tr>
-        <tr><td>NFR-06</td><td>前端效能預算</td><td>首頁 JS &lt; 80KB gzip；遊戲頁 JS &lt; 150KB；FCP &lt; 1.5s</td></tr>
-        <tr><td>NFR-07</td><td>測試覆蓋率</td><td>後端 ≥ 80%；前端 ≥ 70%；E2E 覆蓋所有 P0 User Story</td></tr>
-        <tr><td>NFR-08</td><td>瀏覽器相容</td><td>Chrome 110+、Firefox 110+、Safari 15+；最小 320px 寬</td></tr>
-      </tbody>
-    </table>
+      <hr>
 
-    <hr>
+      <h2>驗收標準總表</h2>
+      <table>
+        <thead><tr><th>US</th><th>Story</th><th>優先級</th><th>狀態</th></tr></thead>
+        <tbody>
+          <tr><td>US-H01</td><td>主持人建立房間並取得 6 碼 Room Code</td><td>P0</td><td>待開發</td></tr>
+          <tr><td>US-H02</td><td>主持人設定中獎名額 W</td><td>P0</td><td>待開發</td></tr>
+          <tr><td>US-H03</td><td>主持人開始遊戲</td><td>P0</td><td>待開發</td></tr>
+          <tr><td>US-H04</td><td>主持人手動逐步揭曉路徑</td><td>P0</td><td>待開發</td></tr>
+          <tr><td>US-H05</td><td>主持人設定自動揭曉間隔</td><td>P1</td><td>待開發</td></tr>
+          <tr><td>US-H06</td><td>主持人一鍵揭曉全部路徑</td><td>P0</td><td>待開發</td></tr>
+          <tr><td>US-H07</td><td>主持人踢除玩家</td><td>P1</td><td>待開發</td></tr>
+          <tr><td>US-H08</td><td>主持人發起再玩一局</td><td>P1</td><td>待開發</td></tr>
+          <tr><td>US-P01</td><td>玩家輸入暱稱並加入房間</td><td>P0</td><td>待開發</td></tr>
+          <tr><td>US-P02</td><td>玩家觀看即時玩家列表更新</td><td>P0</td><td>待開發</td></tr>
+          <tr><td>US-P03</td><td>玩家觀看自己路徑的揭曉動畫</td><td>P0</td><td>待開發</td></tr>
+          <tr><td>US-P04</td><td>玩家確認自己的中獎結果</td><td>P0</td><td>待開發</td></tr>
+          <tr><td>US-P05</td><td>玩家斷線後重連恢復狀態</td><td>P1</td><td>待開發</td></tr>
+          <tr><td>US-P06</td><td>玩家被踢除後收到明確通知</td><td>P1</td><td>待開發</td></tr>
+        </tbody>
+      </table>
 
-    <h2>驗收標準總表</h2>
-    <table>
-      <thead><tr><th>US</th><th>Story</th><th>優先級</th><th>狀態</th></tr></thead>
-      <tbody>
-        <tr><td>US-H01</td><td>主持人建立房間並取得 6 碼 Room Code</td><td>P0</td><td>待開發</td></tr>
-        <tr><td>US-H02</td><td>主持人設定中獎名額 W</td><td>P0</td><td>待開發</td></tr>
-        <tr><td>US-H03</td><td>主持人開始遊戲</td><td>P0</td><td>待開發</td></tr>
-        <tr><td>US-H04</td><td>主持人手動逐步揭曉路徑</td><td>P0</td><td>待開發</td></tr>
-        <tr><td>US-H05</td><td>主持人設定自動揭曉間隔</td><td>P1</td><td>待開發</td></tr>
-        <tr><td>US-H06</td><td>主持人一鍵揭曉全部路徑</td><td>P0</td><td>待開發</td></tr>
-        <tr><td>US-H07</td><td>主持人踢除玩家</td><td>P1</td><td>待開發</td></tr>
-        <tr><td>US-H08</td><td>主持人發起再玩一局</td><td>P1</td><td>待開發</td></tr>
-        <tr><td>US-P01</td><td>玩家輸入暱稱並加入房間</td><td>P0</td><td>待開發</td></tr>
-        <tr><td>US-P02</td><td>玩家觀看即時玩家列表更新</td><td>P0</td><td>待開發</td></tr>
-        <tr><td>US-P03</td><td>玩家觀看自己路徑的揭曉動畫</td><td>P0</td><td>待開發</td></tr>
-        <tr><td>US-P04</td><td>玩家確認自己的中獎結果</td><td>P0</td><td>待開發</td></tr>
-        <tr><td>US-P05</td><td>玩家斷線後重連恢復狀態</td><td>P1</td><td>待開發</td></tr>
-        <tr><td>US-P06</td><td>玩家被踢除後收到明確通知</td><td>P1</td><td>待開發</td></tr>
-      </tbody>
-    </table>
+      <hr>
 
-    <hr>
-
-    <h2>不在範圍（Out of Scope）</h2>
-    <ol>
-      <li><strong>使用者帳號系統</strong>：MVP 不實作登入、註冊、歷史紀錄查詢。</li>
-      <li><strong>行動原生 App</strong>：MVP 僅支援行動瀏覽器（Mobile Web）。</li>
-      <li><strong>觀眾模式（Spectator）</strong>：MVP 不支援純觀看不參與的角色。</li>
-      <li><strong>多房間管理後台</strong>：MVP 不提供管理員儀表板。</li>
-      <li><strong>自訂獎品名稱或分組抽獎</strong>：MVP 結果槽僅區分「中獎」與「未中獎」。</li>
-      <li><strong>動畫主題或皮膚自訂</strong>：MVP 使用單一視覺主題。</li>
-      <li><strong>抽獎結果匯出（PDF / CSV）</strong>：MVP 不提供結果下載功能。</li>
-      <li><strong>國際化（i18n）多語言支援</strong>：MVP 以繁體中文為唯一介面語言。</li>
-      <li><strong>伺服器端水平擴展</strong>：MVP 以單一 Node.js 實例部署。</li>
-      <li><strong>聲音效果與背景音樂</strong>：MVP 不包含音效。</li>
-    </ol>
-  </main>
+      <h2>不在範圍（Out of Scope）</h2>
+      <ol>
+        <li>使用者帳號系統（登入、歷史紀錄）</li>
+        <li>行動原生 App（iOS / Android）</li>
+        <li>觀眾模式（Spectator）</li>
+        <li>多房間管理後台</li>
+        <li>自訂獎品名稱或分組抽獎</li>
+        <li>動畫主題或皮膚自訂</li>
+        <li>抽獎結果匯出（PDF / CSV）</li>
+        <li>國際化（i18n）多語言支援</li>
+        <li>伺服器端水平擴展（Multi-node clustering）</li>
+        <li>聲音效果與背景音樂</li>
+      </ol>
+    </main>
+  </div>
 
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    const isDark = localStorage.getItem('theme') !== 'light';
-    mermaid.initialize({ startOnLoad: true, theme: isDark ? 'dark' : 'default', flowchart: { curve: 'basis' } });
+    mermaid.initialize({ startOnLoad: true, theme: 'default', flowchart: { curve: 'basis' }, er: { layoutDirection: 'TD' } });
   </script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>
