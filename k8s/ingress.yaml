@@ -1,5 +1,10 @@
-# Traefik Ingress (Rancher Desktop built-in)
-# WebSocket upgrade handled via Traefik's built-in WS support
+# Ingress — defaults to Traefik (Rancher Desktop built-in).
+# To use NGINX ingress controller instead, change ingressClassName to "nginx"
+# and remove the traefik.ingress.kubernetes.io/* annotations.
+#
+# WebSocket upgrade notes:
+#   Traefik: handles HTTP→WS upgrade natively; no extra annotation required.
+#   NGINX:   requires proxy-http-version "1.1" + Upgrade/Connection headers (set below).
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -9,13 +14,19 @@ metadata:
     app.kubernetes.io/name: ladder-server
     app.kubernetes.io/component: ingress
   annotations:
-    # Traefik-specific
+    # ── Traefik (default controller) ──────────────────────────────────────────
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    # WebSocket passthrough
+    # Sticky sessions required for multi-pod WebSocket (post-MVP HPA)
     traefik.ingress.kubernetes.io/service.sticky.cookie: "true"
     traefik.ingress.kubernetes.io/service.sticky.cookie.name: "ladder_sticky"
-    # Timeouts for long-lived WS connections
+    # Custom middleware for WS keep-alive timeouts (apply via IngressRoute CRD if using Traefik CRDs)
     traefik.ingress.kubernetes.io/router.middlewares: ladder-room-ws-timeout@kubernetescrd
+    # ── NGINX (alternative controller — uncomment if switching to nginx) ───────
+    # nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    # nginx.ingress.kubernetes.io/proxy-set-header: "Upgrade $http_upgrade"
+    # nginx.ingress.kubernetes.io/configuration-snippet: |
+    #   proxy_set_header Connection "Upgrade";
+    # Timeouts for long-lived WebSocket connections (applies to both controllers)
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"

@@ -25,6 +25,8 @@ data:
   JWT_ALGORITHM: "HS256"
   JWT_TTL_SECONDS: "21600"
   JWT_CLOCK_SKEW_SECONDS: "30"
+  # CORS (production: comma-separated allowed origins)
+  ALLOWED_ORIGINS: ""
   # Logging
   LOG_LEVEL: "info"
   LOG_PRETTY: "false"
