@@ -67,3 +67,11 @@ spec:
                 name: ladder-server-service
                 port:
                   name: http
+          # Frontend static files (catch-all, must be last)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ladder-client-service
+                port:
+                  name: http
