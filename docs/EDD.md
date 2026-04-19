@@ -1231,6 +1231,62 @@ EXEC
 
 ---
 
+## Client-Side Storage 規格
+
+### localStorage Keys
+
+| Key | 型別 | 用途 | 生命週期 |
+|-----|------|------|---------|
+| `playerId` | `string` (UUID v4) | 玩家身份識別，用於斷線重連 | 永久（手動清除或被踢除後失效） |
+| `ladder_last_nickname` | `string` (1-20 chars) | 記憶上次使用的暱稱，下次加入時自動預填 | 永久（每次成功加入時更新） |
+
+### ladder_last_nickname 操作規格
+
+**寫入時機**：玩家 WebSocket JOIN_ROOM 握手成功（收到 `ROOM_STATE` 廣播，自己出現在 players 列表）後立即寫入：
+```ts
+localStorage.setItem('ladder_last_nickname', nickname)
+```
+
+**讀取時機**：Join 頁面（/#/ 或 / 路由）DOMContentLoaded 事件觸發時：
+```ts
+const saved = localStorage.getItem('ladder_last_nickname')
+if (saved) nicknameInput.value = saved
+```
+
+**優先順序**：URL param `?room=` 優先覆蓋 room code 欄位；localStorage nickname 優先填入暱稱欄位（使用者仍可手動覆蓋）。
+
+### 邀請連結規格
+
+**格式**：`{window.location.origin}/?room={roomCode}`
+
+**生成邏輯**（client-side only，無後端變更）：
+```ts
+const inviteUrl = `${window.location.origin}/?room=${roomCode}`
+```
+
+**複製機制**：
+1. 優先使用 `navigator.clipboard.writeText(inviteUrl)`（需 HTTPS 或 localhost）
+2. Fallback：建立 `<input>` 元素，設值後 `.select()` + `document.execCommand('copy')`；若 execCommand 也失敗，顯示包含 URL 的文字框供手動複製
+
+**UI 反饋**：
+- 複製成功：按鈕文字短暫改為「已複製！」（1500ms 後恢復）
+- Fallback 觸發：顯示可全選的 `<input>` 文字框
+
+### LocalStorageService 模組
+
+新增 `packages/client/src/state/LocalStorageService.ts`：
+```ts
+export const LocalStorageService = {
+  getNickname(): string { return localStorage.getItem('ladder_last_nickname') ?? '' },
+  setNickname(v: string): void { localStorage.setItem('ladder_last_nickname', v) },
+  getPlayerId(): string { return localStorage.getItem('playerId') ?? '' },
+  setPlayerId(v: string): void { localStorage.setItem('playerId', v) },
+  clearPlayerId(): void { localStorage.removeItem('playerId') },
+}
+```
+
+---
+
 *EDD 版本：v1.4*
 *生成時間：2026-04-19（STEP-06 devsop-autodev EDD Review 修訂）*
 *修訂重點（v1.3 vs v1.2）：*
@@ -1257,10 +1313,10 @@ EXEC
 ## 變更追蹤
 
 ### ECR-20260420-001：HOST copy 邀請 link（含 6 碼房號）+ localStorage 暱稱記憶，一鍵加入
-- **狀態**：⏳ PENDING
+- **狀態**：✅ DONE
 - **分類**：ECR / 需求面
 - **日期**：2026-04-20
 - **描述**：HOST 開好房間後可 COPY 邀請 link（含 6 碼房號），受邀者點 link 自動帶入房號，名字欄位自動帶入上次輸入過的名字，一鍵加入。
 - **影響範圍**：§localStorage 規格（新增 ladder_last_nickname key）、§Client 架構（新增 LocalStorageService）
-- **修正/實作內容**：（待完成後填入）
-- **commit**：—
+- **修正/實作內容**：新增 Client-Side Storage 規格章節（ladder_last_nickname + 邀請連結規格 + LocalStorageService 模組設計）
+- **commit**：（將在 git commit 後填入）
