@@ -1,7 +1,7 @@
 # HTML5 線上多人爬樓梯遊戲 PDD
 
 **產品名稱**：Ladder Room Online  
-**版本**：v2.0（對應產品 MVP v1）  
+**版本**：v2.2（對應產品 MVP v1）  
 **產品類型**：多人線上房間制抽獎／派對互動遊戲  
 **核心玩法參考**：LINE 爬樓梯遊戲  
 **文件狀態**：Draft
@@ -687,9 +687,11 @@ Server 回應錯誤碼（HTTP 或 WebSocket response）：
 
 ## 15. 里程碑建議
 
+> 前置條件（所有 Phase 均依賴）：§17 技術選型完成（Node.js + Redis + Vite + k8s 環境搭建）
+
 | 階段 | 內容 | 預估工期 | 依賴 |
 |------|------|----------|------|
-| Phase 1 | Room 建立 + Lobby + 玩家加入（含 playerId 機制） | 3~5 天 | - |
+| Phase 1 | Room 建立 + Lobby + 玩家加入（含 playerId 機制） | 3~5 天 | §17 環境搭建 |
 | Phase 2 | Server 端 Ladder 生成 + 結果計算 + 狀態同步 | 5~7 天 | Phase 1 |
 | Phase 3 | Host 端聚焦揭曉 + 玩家端個人視角 + 結算頁 | 5 天 | Phase 2 |
 | Phase 4 | 重連機制 + 再玩一局 + 同步優化 + bug fix | 3 天 | Phase 3 |
