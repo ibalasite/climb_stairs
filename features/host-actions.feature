@@ -121,6 +121,70 @@ Feature: 主持人管理操作
     And 房間狀態維持 "finished"
 
   # ---------------------------------------------------------------------------
+  # AC-PLAY-AGAIN-001 — PLAY_AGAIN（新事件）：finished 狀態下成功重置為 waiting
+  # ---------------------------------------------------------------------------
+  @AC-PLAY-AGAIN-001 @P1
+  Scenario: 主持人在 finished 狀態送出 PLAY_AGAIN 成功重置房間
+    Given 房間碼 "DELTA5" 狀態為 "finished"
+    And 房間有 5 名玩家，其中 4 名在線（isOnline=true），1 名離線（isOnline=false）
+    When 主持人送出 WS 訊息 PLAY_AGAIN
+    Then 系統從玩家列表移除所有 isOnline=false 的玩家
+    And 伺服器廣播 ROOM_STATE（status="waiting"，含剩餘 4 名在線玩家）
+    And ladder 資料清空（ladder=null）
+    And results 資料清空（results=[]）
+
+  # ---------------------------------------------------------------------------
+  # AC-PLAY-AGAIN-002 — PLAY_AGAIN 後 kickedPlayerIds 清空，前次被踢玩家可重新加入
+  # ---------------------------------------------------------------------------
+  @AC-PLAY-AGAIN-002 @P1
+  Scenario: PLAY_AGAIN 後 kickedPlayerIds 被清空，前次被踢玩家可以新暱稱加入
+    Given 房間碼 "DELTA5" 狀態為 "finished"
+    And kickedPlayerIds 包含 ["player-sam-uuid", "player-tom-uuid"]
+    When 主持人送出 WS 訊息 PLAY_AGAIN
+    Then 新局初始化完成後 Redis 中 kickedPlayerIds 為空陣列 []
+    And 前一局被踢玩家可使用新暱稱加入新局
+
+  # ---------------------------------------------------------------------------
+  # AC-PLAY-AGAIN-003 — PLAY_AGAIN 後 winnerCount 越界時自動重設為 null
+  # ---------------------------------------------------------------------------
+  @AC-PLAY-AGAIN-003 @P1
+  Scenario: PLAY_AGAIN 後在線玩家減少導致 winnerCount 越界，系統自動重設為 null
+    Given 房間碼 "DELTA5" 狀態為 "finished"，winnerCount=4
+    And 剔除離線玩家後剩餘在線玩家數量為 4（新 N=4，W=4 >= 新 N）
+    When 主持人送出 WS 訊息 PLAY_AGAIN
+    Then 伺服器將 winnerCount 設為 null
+    And 主持人收到「中獎名額已重設，請重新設定」提示
+    And 新局 ROOM_STATE 中 winnerCount 為 null
+
+  # ---------------------------------------------------------------------------
+  # AC-PLAY-AGAIN-004 — PLAY_AGAIN 在非 finished 狀態被拒絕（錯誤路徑）
+  # ---------------------------------------------------------------------------
+  @AC-PLAY-AGAIN-004 @P1
+  Scenario Outline: 非 finished 狀態送出 PLAY_AGAIN 時收到 INVALID_STATE 錯誤
+    Given 房間碼 "DELTA5" 存在且狀態為 "<room_status>"
+    When 主持人送出 WS 訊息 PLAY_AGAIN
+    Then 伺服器回傳 ERROR 事件，code 為 "INVALID_STATE"
+    And 房間狀態維持 "<room_status>"
+
+    Examples:
+      | room_status |
+      | waiting     |
+      | running     |
+      | revealing   |
+
+  # ---------------------------------------------------------------------------
+  # AC-PLAY-AGAIN-005 — PLAY_AGAIN 在線玩家不足兩人時被拒絕（錯誤路徑）
+  # ---------------------------------------------------------------------------
+  @AC-PLAY-AGAIN-005 @P1
+  Scenario: PLAY_AGAIN 時在線玩家不足兩人系統拒絕並回傳 INSUFFICIENT_ONLINE_PLAYERS
+    Given 房間碼 "DELTA5" 狀態為 "finished"
+    And 目前僅有主持人 1 名玩家在線（isOnline=true）
+    When 主持人送出 WS 訊息 PLAY_AGAIN
+    Then 伺服器回傳錯誤碼 "INSUFFICIENT_ONLINE_PLAYERS"
+    And 前端顯示「在線玩家不足，無法開始新局」
+    And 房間狀態維持 "finished"
+
+  # ---------------------------------------------------------------------------
   # AC-P06-1/2 — 玩家被踢除後收到 PLAYER_KICKED 通知並跳轉首頁
   # ---------------------------------------------------------------------------
   @AC-P06-001 @P1

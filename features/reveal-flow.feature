@@ -88,3 +88,88 @@ Feature: 路徑揭曉流程
       | 30 | 伺服器接受並開始每隔 30 秒廣播 REVEAL_INDEX（合法上限）   |
       | 0  | 伺服器回傳錯誤碼 "INVALID_AUTO_REVEAL_INTERVAL"（T=0 非法）|
       | 31 | 伺服器回傳錯誤碼 "INVALID_AUTO_REVEAL_INTERVAL"（T=31 非法）|
+
+  # ---------------------------------------------------------------------------
+  # AC-BEGIN-REVEAL-001 — BEGIN_REVEAL：running → revealing，廣播 ROOM_STATE
+  # ---------------------------------------------------------------------------
+  @AC-BEGIN-REVEAL-001 @P0
+  Scenario: 主持人在 running 狀態觸發 BEGIN_REVEAL 後房間進入 revealing 狀態
+    Given 房間碼 "GAMMA4" 存在且狀態為 "running"
+    And 主持人已透過 hostToken 驗證身份
+    When 主持人送出 WS 訊息 BEGIN_REVEAL
+    Then 伺服器廣播 ROOM_STATE 給所有客戶端
+    And ROOM_STATE payload 中 status 為 "revealing"
+    And ROOM_STATE payload 中 revealedCount 為 0
+    And 所有客戶端進入揭曉等待介面
+
+  # ---------------------------------------------------------------------------
+  # AC-BEGIN-REVEAL-002 — BEGIN_REVEAL 在非 running 狀態時被拒絕
+  # ---------------------------------------------------------------------------
+  @AC-BEGIN-REVEAL-002 @P0
+  Scenario Outline: 非 running 狀態送出 BEGIN_REVEAL 時收到 INVALID_STATE 錯誤
+    Given 房間碼 "GAMMA4" 存在且狀態為 "<room_status>"
+    And 主持人已透過 hostToken 驗證身份
+    When 主持人送出 WS 訊息 BEGIN_REVEAL
+    Then 伺服器回傳 ERROR 事件，code 為 "INVALID_STATE"
+    And 房間狀態維持 "<room_status>"
+
+    Examples:
+      | room_status |
+      | waiting     |
+      | revealing   |
+      | finished    |
+
+  # ---------------------------------------------------------------------------
+  # AC-END-GAME-001 — END_GAME：全部路徑已揭曉後主持人觸發，狀態轉為 finished
+  # ---------------------------------------------------------------------------
+  @AC-END-GAME-001 @P0
+  Scenario: 所有路徑揭曉後主持人送出 END_GAME 使房間進入 finished 狀態
+    Given 房間碼 "GAMMA4" 存在且狀態為 "revealing"
+    And 主持人已透過 hostToken 驗證身份
+    And 所有 4 條路徑已全數揭曉（revealedCount=4）
+    When 主持人送出 WS 訊息 END_GAME
+    Then 伺服器廣播 ROOM_STATE 給所有客戶端
+    And ROOM_STATE payload 中 status 為 "finished"
+    And 所有客戶端顯示完整得獎名單
+
+  # ---------------------------------------------------------------------------
+  # AC-END-GAME-002 — END_GAME 在路徑尚未全部揭曉時被拒絕
+  # ---------------------------------------------------------------------------
+  @AC-END-GAME-002 @P0
+  Scenario: 尚有未揭曉路徑時送出 END_GAME 收到 REVEALS_INCOMPLETE 錯誤
+    Given 房間碼 "GAMMA4" 存在且狀態為 "revealing"
+    And 主持人已透過 hostToken 驗證身份
+    And 目前已揭曉 2 條路徑，剩餘 2 條未揭曉（revealedCount=2，totalCount=4）
+    When 主持人送出 WS 訊息 END_GAME
+    Then 伺服器回傳 ERROR 事件，code 為 "REVEALS_INCOMPLETE"
+    And 錯誤訊息包含「尚有未揭曉的路徑，請先完成揭曉」
+    And 房間狀態維持 "revealing"
+
+  # ---------------------------------------------------------------------------
+  # AC-END-GAME-003 — END_GAME 在非 revealing 狀態時被拒絕
+  # ---------------------------------------------------------------------------
+  @AC-END-GAME-003 @P0
+  Scenario Outline: 非 revealing 狀態送出 END_GAME 時收到 INVALID_STATE 錯誤
+    Given 房間碼 "GAMMA4" 存在且狀態為 "<room_status>"
+    And 主持人已透過 hostToken 驗證身份
+    When 主持人送出 WS 訊息 END_GAME
+    Then 伺服器回傳 ERROR 事件，code 為 "INVALID_STATE"
+    And 房間狀態維持 "<room_status>"
+
+    Examples:
+      | room_status |
+      | waiting     |
+      | running     |
+      | finished    |
+
+  # ---------------------------------------------------------------------------
+  # AC-END-GAME-004 — REVEAL_ALL 後系統自動觸發 END_GAME（無需主持人手動）
+  # ---------------------------------------------------------------------------
+  @AC-END-GAME-004 @P0
+  Scenario: REVEAL_ALL_TRIGGER 後伺服器自動完成揭曉並廣播 finished 狀態
+    Given 房間碼 "GAMMA4" 存在且狀態為 "revealing"
+    And 目前已揭曉 1 條路徑，剩餘 3 條未揭曉
+    When 主持人送出 WS 訊息 REVEAL_ALL_TRIGGER
+    Then 伺服器廣播 REVEAL_ALL 事件，payload 包含所有剩餘 3 條路徑的完整 ResultSlot 資料
+    And 伺服器隨後廣播 ROOM_STATE，status 為 "finished"
+    And 所有客戶端顯示完整得獎名單，無需主持人再送出 END_GAME
