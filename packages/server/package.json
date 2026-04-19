@@ -1,0 +1,33 @@
+{
+  "name": "@ladder-room/server",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit --reporter=verbose",
+    "typecheck": "tsc --noEmit",
+    "coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@ladder-room/shared": "*",
+    "fastify": "^4.27.0",
+    "@fastify/cors": "^9.0.1",
+    "@fastify/rate-limit": "^9.1.0",
+    "ws": "^8.17.0",
+    "ioredis": "^5.4.1",
+    "jose": "^5.3.0",
+    "pino": "^9.0.0",
+    "prom-client": "^15.1.3"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.11",
+    "@types/node": "^20.14.0",
+    "tsx": "^4.15.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0",
+    "@vitest/coverage-v8": "^1.6.0"
+  }
+}
