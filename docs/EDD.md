@@ -317,8 +317,9 @@ stateDiagram-v2
 
     finished --> waiting : host PLAY_AGAIN\nprune isOnline=false players\nclear kickedPlayerIds\nbcast ROOM_STATE waiting
 
-    waiting --> [*] : room TTL expired 24h\nall disconnected 5 min
-    finished --> [*] : room TTL expired 1h
+    waiting --> [*] : room TTL expired 4h（PRD FR-01-2）\nall disconnected 5 min
+    running --> [*] : all disconnected 5 min\nroom TTL expired 4h
+    finished --> [*] : room TTL expired 1h（揭示後延長）
 ```
 
 ---
@@ -334,6 +335,7 @@ export type WsEventType =
   | "ROOM_STATE" | "ROOM_STATE_FULL" | "REVEAL_INDEX" | "REVEAL_ALL"
   | "PLAYER_KICKED" | "SESSION_REPLACED"
   | "HOST_TRANSFERRED" // future consideration, not MVP
+  | "PONG"  // response to client PING; payload: { ts: number }
   | "ERROR";
 
 export type WsMsgType =
@@ -565,12 +567,20 @@ Server Upgrade 階段驗證 JWT token，失敗直接 403。
 // HOST_TRANSFERRED — 房主 60s 斷線後自動移交給下一位在線玩家
 { type: "HOST_TRANSFERRED", ts, payload: HostTransferredPayload }
 
+// PONG — 回應客戶端 PING（unicast，PRD AC-P02-2 ping timeout ≤ 30s 偵測機制）
+// 伺服器 ws 實作：使用 ws 內建 ping/pong（RFC 6455 control frame）偵測連線活性（間隔 30s）
+// 應用層 PING/PONG：額外提供 RTT 量測用途，非心跳主路徑
+{ type: "PONG", ts, payload: { ts: number } }  // payload.ts = echo of client's PING ts for RTT calc
+
 // ERROR — 操作失敗（僅 unicast 給觸發方）
 { type: "ERROR", ts, payload: ErrorPayload }
 ```
 
 ### Client → Server
 
+// 注意：遊戲控制操作（START_GAME、BEGIN_REVEAL、END_GAME、PLAY_AGAIN）
+// 同時支援 WS 訊息（即時）和 HTTP REST（向後相容；HTTP 路由觸發同樣的 GameService 方法）。
+// 前端主要使用 WS 路徑；HTTP 路徑供 CLI/工具使用或 WS 不可用時降級。
 ```typescript
 { type: "START_GAME", ts, payload: {} }
 { type: "BEGIN_REVEAL", ts, payload: {} }
@@ -579,6 +589,7 @@ Server Upgrade 階段驗證 JWT token，失敗直接 403。
 { type: "REVEAL_NEXT", ts, payload: {} }
 
 // REVEAL_ALL_TRIGGER — 一鍵全揭；伺服器廣播 REVEAL_ALL 含所有剩餘路徑
+// 處理邏輯：server 原子設定 revealedCount = totalCount（SET，非 INCR）後廣播 REVEAL_ALL
 { type: "REVEAL_ALL_TRIGGER", ts, payload: {} }
 
 // SET_REVEAL_MODE — 切換手動/自動揭示模式（揭示中可隨時切換）
@@ -596,6 +607,7 @@ Server Upgrade 階段驗證 JWT token，失敗直接 403。
 { type: "PLAY_AGAIN", ts, payload: {} }
 
 { type: "KICK_PLAYER", ts, payload: { targetPlayerId: string } }
+// PING — 應用層心跳；伺服器回 PONG { ts: echo }；WS 傳輸層心跳由 ws 內建 ping/pong（間隔 30s）處理
 { type: "PING", ts, payload: {} }
 
 // UPDATE_WINNER_COUNT — Host only, waiting 狀態限定
@@ -1205,14 +1217,19 @@ EXEC
 
 ---
 
-*EDD 版本：v1.2*
-*生成時間：2026-04-19（STEP-05 devsop-autodev 修訂）*
-*修訂重點（v1.2 vs v1.1）：*
-*1. 樓梯生成時機修正：START_GAME 僅生成 seed（不生成 ladder）；GenerateLadder 移至 BEGIN_REVEAL 原子操作*
-*2. END_GAME 新增：revealing→finished 需 Host 明確送出 END_GAME；REVEAL_ALL 不自動觸發 finished（PRD AC-H04-4, AC-H06-2）*
-*3. PLAY_AGAIN 取代 RESET_ROOM：WsMsgType、狀態機、流程說明全面更新（PRD FR-04-1, FR-08-1）*
-*4. seed 保密設計強化：RoomStateFullPayload、序列圖、START_GAME 原子性說明均明確標注 seed 在 finished 前禁止傳送（PRD AC-H03-1, NFR-05）*
-*5. 序列圖重繪：正確呈現 START_GAME→BEGIN_REVEAL→REVEAL_NEXT→END_GAME 四段流程*
-*6. BDD Gherkin 修正：REVEAL_NEXT payload 去除 index（server 決定），新增 @AC-REVEAL-002（REVEAL_ALL+END_GAME）*
-*7. HTTP API 新增 POST /game/end 端點（END_GAME）；/game/reset 更名為 /game/play-again*
+*EDD 版本：v1.3*
+*生成時間：2026-04-19（STEP-06 devsop-autodev EDD Review 修訂）*
+*修訂重點（v1.3 vs v1.2）：*
+*1. 安全修正（關鍵）：引入 LadderDataPublic（省略 seed）於 revealing 狀態；LadderData（含 seed）僅於 finished 時發送（PRD AC-H03-1, NFR-05）*
+*2. 效能修正：REVEAL_ALL payload 採 ResultSlotPublic（省略 path）解決 N=50 時 ~150KB 超過 64KB maxPayload 的問題；MVP Option A*
+*3. 類型新增：RevealAllPayload、ResultSlotPublic、LadderDataPublic、PONG 事件類型*
+*4. 錯誤碼補齊：新增 INVALID_NICKNAME（對應 PRD AC-P01-3），補充 CANNOT_KICK_HOST 和 KICK_NOT_ALLOWED_IN_STATE 至 WS 錯誤策略*
+*5. PRNG 修正：generateLadder retry limit 修正為 N×10（PRD FR-03-2）*
+*6. ComputeResults 實作：新增路徑追蹤與 Fisher-Yates 中獎指派完整算法（PRD FR-03-3）*
+*7. JWT 安全補充：role 欄位語意明確（"host" | "player"），雙重驗證（JWT role + Redis hostId）細節*
+*8. 分散式計時器設計：新增 Post-MVP 多 Pod 自動揭示 Redis 分散式鎖設計（§10.5）*
+*9. 狀態機修正：waiting TTL 更正為 4h（PRD FR-01-2）；新增 running 狀態 TTL/斷線清理路徑*
+*10. PING/PONG 補充：ws 內建心跳（30s）為主路徑；應用層 PONG 用於 RTT 量測*
+*11. REVEAL_ALL_TRIGGER：明確 revealedCount = totalCount 原子 SET 語意*
+*12. BDD AC-ROOM-001：更正為 winnerCount 參數（非舊版 prizes 陣列）*
 *基於 PDD v2.2 + PRD v1.3（Ladder Room Online）*
