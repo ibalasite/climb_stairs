@@ -15,7 +15,8 @@
         <input class="search-input" type="search" placeholder="搜尋文件...">
         <div class="search-results"></div>
       </div>
-      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">&#xfe0f; GitHub</a>
+      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">GitHub</a>
+      <button class="sidebar-toggle" id="sidebarToggle" title="收合/展開側欄">☰</button>
     </div>
   </header>
   <div class="doc-page-banner">
@@ -38,8 +39,9 @@
 <a class="sidebar__link" href="bdd.html">🧪 BDD Scenarios</a>
       </div>
     </aside>
+    <div class="sidebar-resizer" id="sidebarResizer"></div>
     <main class="doc-content"><h1>Ladder Room Online — 線上多人爬樓梯抽獎</h1>
-<p><a href="https://github.com/ibalasite/climb<em>stairs/actions/workflows/ci.yml/badge.svg"><img src="https://github.com/ibalasite/climb</em>stairs/actions/workflows/ci.yml" alt="CI</a>"> <a href="https://img.shields.io/badge/License-MIT-yellow.svg"><img src="LICENSE" alt="License: MIT</a>"></p>
+<p><a href="https://github.com/ibalasite/climb</em>stairs/actions/workflows/ci.yml"><img src="https://github.com/ibalasite/climb<em>stairs/actions/workflows/ci.yml/badge.svg" alt="CI"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></p>
 <blockquote><p>HTML5 多人線上房間制爬樓梯抽獎遊戲。主持人建立房間，最多 50 人同時參與，透過 WebSocket 即時同步遊戲狀態，HTML5 Canvas 渲染動態揭曉動畫。</p></blockquote>
 <hr>
 <h2>📋 專案說明</h2>
@@ -220,7 +222,7 @@ npm test --workspace=packages/server
 # 測試覆蓋率
 npm run coverage --workspace=packages/shared
 npm run coverage --workspace=packages/server</code></pre>
-<p>測試覆蓋率目標：<strong>shared ≥ 90%　server ≥ 80%</strong>　CI 狀態：<a href="https://github.com/ibalasite/climb<em>stairs/actions/workflows/ci.yml/badge.svg"><img src="https://github.com/ibalasite/climb</em>stairs/actions/workflows/ci.yml" alt="CI</a>"></p>
+<p>測試覆蓋率目標：<strong>shared ≥ 90%　server ≥ 80%</strong>　CI 狀態：<a href="https://github.com/ibalasite/climb</em>stairs/actions/workflows/ci.yml"><img src="https://github.com/ibalasite/climb<em>stairs/actions/workflows/ci.yml/badge.svg" alt="CI"></a></p>
 <hr>
 <h2>⚠️ 已知限制</h2>
 <ul><li>WebSocket 整合測試標記為 MANUAL（需真實 Redis 環境）</li><li><code>packages/client/</code> 前端 Vite 應用尚在開發中</li><li>k8s 部署需自行提供 <code>KUBECONFIG</code> secret</li></ul>

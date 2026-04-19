@@ -15,7 +15,8 @@
         <input class="search-input" type="search" placeholder="搜尋文件...">
         <div class="search-results"></div>
       </div>
-      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">&#xfe0f; GitHub</a>
+      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">GitHub</a>
+      <button class="sidebar-toggle" id="sidebarToggle" title="收合/展開側欄">☰</button>
     </div>
   </header>
   <div class="doc-page-banner">
@@ -38,6 +39,7 @@
 <a class="sidebar__link" href="bdd.html">🧪 BDD Scenarios</a>
       </div>
     </aside>
+    <div class="sidebar-resizer" id="sidebarResizer"></div>
     <main class="doc-content"><h1>SCHEMA.md — Ladder Room Online Redis Schema Design</h1>
 <blockquote><p>Version: v1.1 | 2026-04-19 | Based on EDD v1.3</p></blockquote>
 <blockquote><p>Redis is the sole persistence layer. There is no SQL database. All state lives in Redis key-value structures with explicit TTLs.</p></blockquote>
