@@ -36,6 +36,9 @@ jobs:
       - name: Type check (shared)
         run: npm run typecheck --workspace=packages/shared
 
+      - name: Build shared (required for server type resolution)
+        run: npm run build --workspace=packages/shared
+
       - name: Type check (server)
         run: npm run typecheck --workspace=packages/server
 
