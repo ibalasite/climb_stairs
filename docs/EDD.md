@@ -304,7 +304,7 @@ stateDiagram-v2
     [*] --> waiting : POST /api/rooms 建立
 
     waiting --> waiting : player_joined N<50\nplayer_left\nhost updates prizes
-    waiting --> running : host START_GAME\nN>=2 AND 1<=W<=N-1\nGenerateLadder seed N
+    waiting --> running : host START_GAME\nN>=2 AND 1<=W<=N-1\ngenerate seedSource only\nbcast rowCount（no ladder）
 
     running --> revealing : host BEGIN_REVEAL\nbcast ROOM_STATE status:revealing
 
@@ -395,7 +395,7 @@ export interface Room {
   revealedCount: number;
   revealMode: "manual" | "auto";
   autoRevealIntervalSec: number | null;  // 1-30s; null in manual mode
-  kickedPlayerIds: readonly string[];    // persisted in Redis; cleared on RESET_ROOM
+  kickedPlayerIds: readonly string[];    // persisted in Redis; cleared on PLAY_AGAIN (PRD AC-H07-5)
   readonly createdAt: number;
   updatedAt: number;
 }
