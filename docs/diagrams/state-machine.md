@@ -6,7 +6,10 @@ direction: TD
 ---
 # 房間狀態機圖
 
-> 自動生成自 EDD.md § 2.5
+> 反映正確設計決策：
+> - Ladder 在 BEGIN_REVEAL 時生成（非 START_GAME）
+> - END_GAME 需由 Host 明確觸發才進入 finished
+> - PLAY_AGAIN 取代 RESET_ROOM
 
 ```mermaid
 stateDiagram-v2
@@ -14,11 +17,11 @@ stateDiagram-v2
 
     waiting --> waiting : player_joined（N < 50）\nplayer_left / player_kicked\nhost 設定 winnerCount\nbcast ROOM_STATE
 
-    waiting --> running : host START_GAME\nN >= 2 AND 1 <= W <= N-1\ngenerateLadder(seedSource, N)\nWATCH+MULTI/EXEC 原子寫入\nbcast ROOM_STATE status:running
+    waiting --> running : host START_GAME\nN >= 2 AND 1 <= W <= N-1\nWATCH+MULTI/EXEC 原子寫入\nbcast ROOM_STATE status:running\n⚠ Ladder 尚未生成
 
-    running --> running : host 取得 LadderData\n（POST /rooms/:code/start）
+    running --> running : host 確認遊戲狀態\n等待 host 發起揭示
 
-    running --> revealing : host BEGIN_REVEAL\nbcast ROOM_STATE status:revealing
+    running --> revealing : host BEGIN_REVEAL\n★ 此時生成 Ladder\ngenerateLadder(seedSource, N)\nLadderDataPublic 廣播（省略 seed）\nbcast ROOM_STATE status:revealing
 
     revealing --> revealing : REVEAL_NEXT（manual mode）\nINCR revealedCount\nbcast REVEAL_INDEX path+result\nrevealedCount < N
 
@@ -28,9 +31,9 @@ stateDiagram-v2
 
     revealing --> finished : revealedCount == N\n（最後一次 REVEAL_NEXT / auto-timer）\nbcast REVEAL_ALL results[]\nWATCH+MULTI/EXEC status=finished\nEXPIRE 3600（1h）
 
-    revealing --> finished : REVEAL_ALL_TRIGGER\n一鍵揭示所有剩餘玩家\nbcast REVEAL_ALL results[]\nWATCH+MULTI/EXEC status=finished\nEXPIRE 3600（1h）
+    revealing --> finished : REVEAL_ALL_TRIGGER\n★ host 明確觸發 END_GAME\n一鍵揭示所有剩餘玩家\nbcast REVEAL_ALL results[]\nWATCH+MULTI/EXEC status=finished\nEXPIRE 3600（1h）
 
-    finished --> waiting : host RESET_ROOM\nonlinePlayers >= 2\nprune offline players\nclear kickedPlayerIds\nadjust winnerCount if W >= new N\nbcast ROOM_STATE status:waiting\nEXPIRE 86400（重設 24h）
+    finished --> waiting : host PLAY_AGAIN\nonlinePlayers >= 2\n清除 Ladder / Results\nadjust winnerCount if W >= new N\nbcast ROOM_STATE status:waiting\nEXPIRE 86400（重設 24h）
 
     finished --> waiting : HOST_TRANSFERRED\n原房主斷線 60s 未重連\n自動移交給下一個 isOnline=true 玩家\nbcast HOST_TRANSFERRED { newHostId }
 
