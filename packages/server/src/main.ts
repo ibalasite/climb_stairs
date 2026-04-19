@@ -25,6 +25,18 @@ function broadcastAll(roomCode: string, payload: unknown): void {
   broadcast(roomCode, payload);
 }
 
+/**
+ * Strip the ladder (seed-derived structure) from a room object before
+ * sending it to clients. The ladder must never be exposed while the game
+ * is in a non-finished state because it encodes the full result mapping.
+ * Once status is 'finished', the ladder is already resolved and safe to omit
+ * entirely — clients only need the results array.
+ */
+function sanitizeRoomForClient<T extends { ladder?: unknown; status?: unknown }>(room: T): T {
+  const { ladder: _ladder, ...rest } = room as Record<string, unknown>;
+  return rest as T;
+}
+
 // ─── JWT helpers ─────────────────────────────────────────────────────────────
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -46,11 +58,18 @@ async function signToken(claims: JwtClaims): Promise<string> {
 
 async function verifyToken(token: string): Promise<JwtClaims> {
   const { payload } = await jwtVerify(token, JWT_SECRET);
-  return {
-    playerId: payload['playerId'] as string,
-    roomCode: payload['roomCode'] as string,
-    role: payload['role'] as 'host' | 'player',
-  };
+  const playerId = payload['playerId'];
+  const roomCode = payload['roomCode'];
+  const role = payload['role'];
+
+  if (typeof playerId !== 'string' || typeof roomCode !== 'string') {
+    throw new Error('Invalid token claims');
+  }
+  if (role !== 'host' && role !== 'player') {
+    throw new Error('Invalid token role');
+  }
+
+  return { playerId, roomCode, role };
 }
 
 function extractBearer(authHeader: string | undefined): string | null {
@@ -147,7 +166,7 @@ async function bootstrap(): Promise<void> {
     const { room, hostId } = await roomService.createRoom(hostNickname, winnerCount);
     const token = await signToken({ playerId: hostId, roomCode: room.code, role: 'host' });
 
-    return reply.status(201).send({ roomCode: room.code, playerId: hostId, token, room });
+    return reply.status(201).send({ roomCode: room.code, playerId: hostId, token, room: sanitizeRoomForClient(room) });
   });
 
   // ─── GET /api/rooms/:code ──────────────────────────────────────────────────
@@ -185,7 +204,7 @@ async function bootstrap(): Promise<void> {
     const { room, playerId } = await roomService.joinRoom(code, nickname);
     const token = await signToken({ playerId, roomCode: code, role: 'player' });
 
-    return reply.status(201).send({ playerId, token, room });
+    return reply.status(201).send({ playerId, token, room: sanitizeRoomForClient(room) });
   });
 
   // ─── DELETE /api/rooms/:code/players/:playerId ─────────────────────────────
@@ -213,7 +232,7 @@ async function bootstrap(): Promise<void> {
     }
 
     const room = await gameService.startGame(code, auth.claims.playerId);
-    return reply.status(200).send(room);
+    return reply.status(200).send(sanitizeRoomForClient(room));
   });
 
   // ─── POST /api/rooms/:code/game/reveal ────────────────────────────────────
@@ -230,10 +249,10 @@ async function bootstrap(): Promise<void> {
 
     if (mode === 'all') {
       const { results, room } = await gameService.revealAll(code, auth.claims.playerId);
-      return reply.status(200).send({ results, room });
+      return reply.status(200).send({ results, room: sanitizeRoomForClient(room) });
     } else if (mode === 'next') {
       const { result, room } = await gameService.revealNext(code, auth.claims.playerId);
-      return reply.status(200).send({ result, room });
+      return reply.status(200).send({ result, room: sanitizeRoomForClient(room) });
     } else {
       return reply.status(400).send({
         error: 'VALIDATION_ERROR',
@@ -253,7 +272,7 @@ async function bootstrap(): Promise<void> {
     }
 
     const room = await gameService.resetRoom(code, auth.claims.playerId);
-    return reply.status(200).send(room);
+    return reply.status(200).send(sanitizeRoomForClient(room));
   });
 
   // ─── POST /api/rooms/:code/game/end ───────────────────────────────────────
@@ -267,7 +286,7 @@ async function bootstrap(): Promise<void> {
     }
 
     const room = await gameService.endGame(code, auth.claims.playerId);
-    return reply.status(200).send(room);
+    return reply.status(200).send(sanitizeRoomForClient(room));
   });
 
   // ─── POST /api/rooms/:code/game/play-again ────────────────────────────────
@@ -281,7 +300,7 @@ async function bootstrap(): Promise<void> {
     }
 
     const room = await gameService.playAgain(code, auth.claims.playerId);
-    return reply.status(200).send(room);
+    return reply.status(200).send(sanitizeRoomForClient(room));
   });
 
   // ─── Listen ────────────────────────────────────────────────────────────────
@@ -352,7 +371,7 @@ async function bootstrap(): Promise<void> {
       const room = await repo.findByCode(roomCode);
       if (room) ws.send(JSON.stringify({
         type: 'ROOM_STATE_FULL',
-        payload: { ...room, selfPlayerId: playerId },
+        payload: { ...sanitizeRoomForClient(room), selfPlayerId: playerId },
       }));
     } catch { /* ignore */ }
 
@@ -366,7 +385,7 @@ async function bootstrap(): Promise<void> {
         );
         await repo.update(roomCode, { players: updatedPlayers });
         const updated = await repo.findByCode(roomCode);
-        if (updated) broadcastAll(roomCode, { type: 'ROOM_STATE', payload: updated });
+        if (updated) broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(updated) });
       }
     } catch { /* ignore */ }
 
@@ -390,13 +409,13 @@ async function bootstrap(): Promise<void> {
 
           case 'START_GAME': {
             const room = await gameService.startGame(roomCode, playerId);
-            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: room });
+            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
             break;
           }
 
           case 'BEGIN_REVEAL': {
             const room = await gameService.beginReveal(roomCode, playerId);
-            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: room });
+            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
             break;
           }
 
@@ -416,25 +435,25 @@ async function bootstrap(): Promise<void> {
 
           case 'REVEAL_ALL_TRIGGER': {
             const { results, room } = await gameService.revealAll(roomCode, playerId);
-            broadcastAll(roomCode, { type: 'REVEAL_ALL', payload: { results, room } });
+            broadcastAll(roomCode, { type: 'REVEAL_ALL', payload: { results, room: sanitizeRoomForClient(room) } });
             break;
           }
 
           case 'END_GAME': {
             const room = await gameService.endGame(roomCode, playerId);
-            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: room });
+            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
             break;
           }
 
           case 'PLAY_AGAIN': {
             const room = await gameService.playAgain(roomCode, playerId);
-            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: room });
+            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
             break;
           }
 
           case 'RESET_ROOM': {
             const room = await gameService.resetRoom(roomCode, playerId);
-            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: room });
+            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
             break;
           }
 
@@ -445,9 +464,19 @@ async function bootstrap(): Promise<void> {
               send('ERROR', { code: 'INVALID_MODE', message: 'mode must be "manual" or "auto"' });
               break;
             }
+            // Only the host may change the reveal mode
+            const revealModeRoom = await repo.findByCode(roomCode);
+            if (revealModeRoom === null) {
+              send('ERROR', { code: 'ROOM_NOT_FOUND', message: 'Room not found' });
+              break;
+            }
+            if (revealModeRoom.hostId !== playerId) {
+              send('ERROR', { code: 'NOT_HOST', message: 'Only the host can change the reveal mode' });
+              break;
+            }
             const intervalSec = mode === 'auto' && typeof p?.intervalSec === 'number' ? p.intervalSec : null;
             const room = await repo.update(roomCode, { revealMode: mode, autoRevealIntervalSec: intervalSec });
-            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: room });
+            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
             break;
           }
 
@@ -462,7 +491,7 @@ async function bootstrap(): Promise<void> {
               kickedWs.send(JSON.stringify({ type: 'PLAYER_KICKED', payload: { kickedPlayerId: targetId, reason: 'host_kick' } }));
               kickedWs.close(4003, 'Kicked');
             }
-            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: room });
+            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
             break;
           }
 
@@ -492,7 +521,7 @@ async function bootstrap(): Promise<void> {
           );
           await repo.update(roomCode, { players: updatedPlayers });
           const updated = await repo.findByCode(roomCode);
-          if (updated) broadcastAll(roomCode, { type: 'ROOM_STATE', payload: updated });
+          if (updated) broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(updated) });
         }
       } catch { /* ignore */ }
     });
