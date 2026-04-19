@@ -644,4 +644,4 @@ WebSocket 連線中斷
 - **描述**：HOST 開好房間後可 COPY 邀請 link（含 6 碼房號），受邀者點 link 自動帶入房號，名字欄位自動帶入上次輸入過的名字，一鍵加入。
 - **影響範圍**：§localStorage 規格（新增 ladder_last_nickname key）、§Client 架構（新增 LocalStorageService）
 - **修正/實作內容**：新增 CopyInviteLink 元件規格（HOST 等待大廳）；更新 NicknameInput 自動預填行為規格（localStorage + URL param 組合一鍵加入）
-- **commit**：（將在 git commit 後填入）
+- **commit**：bcf969e
