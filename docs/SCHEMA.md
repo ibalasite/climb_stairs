@@ -509,7 +509,7 @@ EVAL "
   room.status = 'revealing'
   redis.call('SET', KEYS[1], cjson.encode(room))
   redis.call('SET', KEYS[2], ARGV[2])        -- 寫入 LadderData JSON（含 seed）
-  redis.call('DEL', KEYS[3])                  -- 重置揭示計數器
+  redis.call('SET', KEYS[3], '0')            -- 重置揭示計數器為 '0'（DEL 後 EXPIRE 對不存在的鍵是 no-op，應使用 SET）
   redis.call('EXPIRE', KEYS[1], 86400)
   redis.call('EXPIRE', KEYS[2], 86400)
   redis.call('EXPIRE', KEYS[3], 86400)
@@ -781,17 +781,9 @@ INCR room:ALPHA1:revealedCount
 GET room:ALPHA1:ladder
 # 解析 results[2] 並透過 WebSocket 廣播 REVEAL_INDEX 事件
 
-# Step 3: 若計數 == players.length，更新 status 為 finished，TTL 改為 1h
-WATCH room:ALPHA1
-GET room:ALPHA1
-MULTI
-  SET room:ALPHA1 "{...status:finished, updatedAt:now...}"
-  EXPIRE room:ALPHA1 3600
-  EXPIRE room:ALPHA1:ladder 3600
-  EXPIRE room:ALPHA1:revealedCount 3600
-  EXPIRE room:ALPHA1:kicked 3600
-  EXPIRE room:ALPHA1:sessions 3600
-EXEC
+# Step 3: REVEAL_NEXT 後不自動轉 finished（即使 INCR 返回值 == players.length）
+# PRD AC-H04-4：狀態轉換（revealing → finished）需由 Host 明確發送 END_GAME 才觸發
+# 自動轉 finished 邏輯已移除，見 §5.4-B END_GAME 原子操作
 ```
 
 ---
