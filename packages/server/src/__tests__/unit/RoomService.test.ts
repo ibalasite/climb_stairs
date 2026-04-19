@@ -188,6 +188,23 @@ describe('RoomService', () => {
       );
     });
 
+    it('accepts a nickname of exactly 1 character (lower boundary)', async () => {
+      const repo = makeMockRepo();
+      const svc = new RoomService(repo);
+
+      const { room } = await svc.createRoom('A', 1);
+      expect(room.players[0]?.nickname).toBe('A');
+    });
+
+    it('accepts a nickname of exactly 20 characters (upper boundary)', async () => {
+      const repo = makeMockRepo();
+      const svc = new RoomService(repo);
+
+      const nick20 = 'A'.repeat(20);
+      const { room } = await svc.createRoom(nick20, 1);
+      expect(room.players[0]?.nickname).toBe(nick20);
+    });
+
     it('throws CODE_COLLISION when all code generation attempts collide', async () => {
       // Repo always returns an existing room, forcing every attempt to fail
       const existingRoom = makeRoom();
@@ -254,6 +271,26 @@ describe('RoomService', () => {
 
     it('throws ROOM_NOT_ACCEPTING when room status is not waiting', async () => {
       const room = makeRoom({ status: 'running' });
+      const repo = makeMockRepo(room);
+      const svc = new RoomService(repo);
+
+      await expect(svc.joinRoom('ABCD12', 'Bob')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'ROOM_NOT_ACCEPTING'
+      );
+    });
+
+    it('throws ROOM_NOT_ACCEPTING when room status is finished', async () => {
+      const room = makeRoom({ status: 'finished' });
+      const repo = makeMockRepo(room);
+      const svc = new RoomService(repo);
+
+      await expect(svc.joinRoom('ABCD12', 'Bob')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'ROOM_NOT_ACCEPTING'
+      );
+    });
+
+    it('throws ROOM_NOT_ACCEPTING when room status is revealing', async () => {
+      const room = makeRoom({ status: 'revealing' });
       const repo = makeMockRepo(room);
       const svc = new RoomService(repo);
 

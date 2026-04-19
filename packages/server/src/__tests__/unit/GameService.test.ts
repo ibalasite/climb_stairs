@@ -149,6 +149,36 @@ describe('GameService', () => {
       expect(room.results).toHaveLength(2);
     });
 
+    it('binds real player IDs to every result slot (anti-fake: ensures IDs come from players array)', async () => {
+      const players = [
+        makePlayer({ id: 'player-1', isHost: true }),
+        makePlayer({ id: 'player-2', isHost: false, nickname: 'Bob', colorIndex: 1 }),
+      ];
+      const repo = makeMockRepo({ players, winnerCount: 1 });
+      const svc = new GameService(repo);
+
+      const room = await svc.startGame('ABCD12', 'player-1');
+
+      const knownIds = new Set(['player-1', 'player-2']);
+      expect(room.results).not.toBeNull();
+      for (const slot of room.results!) {
+        expect(knownIds.has(slot.playerId)).toBe(true);
+      }
+    });
+
+    it('sets revealedCount to 0 when starting a new game', async () => {
+      const players = [
+        makePlayer({ id: 'player-1', isHost: true }),
+        makePlayer({ id: 'player-2', isHost: false, nickname: 'Bob', colorIndex: 1 }),
+      ];
+      const repo = makeMockRepo({ players, winnerCount: 1 });
+      const svc = new GameService(repo);
+
+      const room = await svc.startGame('ABCD12', 'player-1');
+
+      expect(room.revealedCount).toBe(0);
+    });
+
   });
 
   // ── beginReveal ────────────────────────────────────────────────────────────
@@ -456,6 +486,50 @@ describe('GameService', () => {
       // winnerCount=5 >= 2 players, so it should be reset to null
       expect(room.winnerCount).toBeNull();
     });
+
+    it('preserves winnerCount when it is still valid for the new player count', async () => {
+      // 3 players remain, winnerCount=1 — valid because 1 < 3
+      const players = [
+        makePlayer({ id: 'player-1', isHost: true, isOnline: true }),
+        makePlayer({ id: 'player-2', isHost: false, nickname: 'Bob', colorIndex: 1, isOnline: true }),
+        makePlayer({ id: 'player-3', isHost: false, nickname: 'Carol', colorIndex: 2, isOnline: true }),
+      ];
+      const repo = makeMockRepo({ status: 'finished', players, winnerCount: 1 });
+      const svc = new GameService(repo);
+
+      const room = await svc.resetRoom('ABCD12', 'player-1');
+
+      // winnerCount=1 < 3 players → should be preserved
+      expect(room.winnerCount).toBe(1);
+    });
+
+    it('calls clearKickedPlayers when resetting room', async () => {
+      const players = [
+        makePlayer({ id: 'player-1', isHost: true, isOnline: true }),
+        makePlayer({ id: 'player-2', isHost: false, nickname: 'Bob', colorIndex: 1, isOnline: true }),
+      ];
+      const repo = makeMockRepo({ status: 'finished', players });
+      const svc = new GameService(repo);
+
+      await svc.resetRoom('ABCD12', 'player-1');
+
+      expect(repo.clearKickedPlayers).toHaveBeenCalledWith('ABCD12');
+    });
+
+    it('retains offline host when resetting (host always kept regardless of online status)', async () => {
+      // Host is offline but must be retained; one non-host is online so total=2
+      const players = [
+        makePlayer({ id: 'player-1', isHost: true, isOnline: false }),
+        makePlayer({ id: 'player-2', isHost: false, nickname: 'Bob', colorIndex: 1, isOnline: true }),
+      ];
+      const repo = makeMockRepo({ status: 'finished', players });
+      const svc = new GameService(repo);
+
+      const room = await svc.resetRoom('ABCD12', 'player-1');
+
+      expect(room.players.some((p) => p.id === 'player-1')).toBe(true);
+      expect(room.players).toHaveLength(2);
+    });
   });
 
   // ── endGame ────────────────────────────────────────────────────────────────
@@ -593,6 +667,36 @@ describe('GameService', () => {
       const svc = new GameService(repo);
 
       await expect(svc.playAgain('ZZZZZZ', 'player-1')).rejects.toMatchObject({ code: 'ROOM_NOT_FOUND' });
+    });
+
+    it('retains offline host in playAgain (host always kept regardless of online status)', async () => {
+      // Host is offline but must be included; one online non-host makes total >= 2
+      const players = [
+        makePlayer({ id: 'player-1', isHost: true, isOnline: false }),
+        makePlayer({ id: 'player-2', isHost: false, nickname: 'Bob', colorIndex: 1, isOnline: true }),
+      ];
+      const repo = makeMockRepo({ status: 'finished', players });
+      const svc = new GameService(repo);
+
+      const room = await svc.playAgain('ABCD12', 'player-1');
+
+      expect(room.players.some((p) => p.id === 'player-1')).toBe(true);
+      expect(room.players).toHaveLength(2);
+    });
+
+    it('preserves winnerCount when still valid after pruning (winnerCount < new player count)', async () => {
+      const players = [
+        makePlayer({ id: 'player-1', isHost: true, isOnline: true }),
+        makePlayer({ id: 'player-2', isHost: false, nickname: 'Bob', colorIndex: 1, isOnline: true }),
+        makePlayer({ id: 'player-3', isHost: false, nickname: 'Carol', colorIndex: 2, isOnline: true }),
+      ];
+      const repo = makeMockRepo({ status: 'finished', players, winnerCount: 1 });
+      const svc = new GameService(repo);
+
+      const room = await svc.playAgain('ABCD12', 'player-1');
+
+      // 3 online players, winnerCount=1 < 3, so should be preserved
+      expect(room.winnerCount).toBe(1);
     });
   });
 
