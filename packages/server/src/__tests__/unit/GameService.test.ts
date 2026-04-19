@@ -458,6 +458,144 @@ describe('GameService', () => {
     });
   });
 
+  // ── endGame ────────────────────────────────────────────────────────────────
+
+  describe('endGame', () => {
+    it('throws NOT_HOST when caller is not the host', async () => {
+      const repo = makeMockRepo({ status: 'revealing' });
+      const svc = new GameService(repo);
+
+      await expect(svc.endGame('ABCD12', 'not-host')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'NOT_HOST'
+      );
+    });
+
+    it('throws INVALID_STATE when room is not in revealing state', async () => {
+      const repo = makeMockRepo({ status: 'running' });
+      const svc = new GameService(repo);
+
+      await expect(svc.endGame('ABCD12', 'player-1')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'INVALID_STATE'
+      );
+    });
+
+    it('throws INVALID_STATE when room is in waiting state', async () => {
+      const repo = makeMockRepo({ status: 'waiting' });
+      const svc = new GameService(repo);
+
+      await expect(svc.endGame('ABCD12', 'player-1')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'INVALID_STATE'
+      );
+    });
+
+    it('transitions room to finished state from revealing', async () => {
+      const repo = makeMockRepo({ status: 'revealing' });
+      const svc = new GameService(repo);
+
+      const room = await svc.endGame('ABCD12', 'player-1');
+      expect(room.status).toBe('finished');
+    });
+
+    it('throws ROOM_NOT_FOUND when room does not exist', async () => {
+      const repo: IRoomRepository = {
+        ...makeMockRepo(),
+        findByCode: vi.fn(async () => null),
+      };
+      const svc = new GameService(repo);
+
+      await expect(svc.endGame('ZZZZZZ', 'player-1')).rejects.toMatchObject({ code: 'ROOM_NOT_FOUND' });
+    });
+  });
+
+  // ── playAgain ──────────────────────────────────────────────────────────────
+
+  describe('playAgain', () => {
+    it('throws NOT_HOST when caller is not the host', async () => {
+      const repo = makeMockRepo({ status: 'finished' });
+      const svc = new GameService(repo);
+
+      await expect(svc.playAgain('ABCD12', 'not-host')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'NOT_HOST'
+      );
+    });
+
+    it('throws INVALID_STATE when room is not in finished state', async () => {
+      const repo = makeMockRepo({ status: 'running' });
+      const svc = new GameService(repo);
+
+      await expect(svc.playAgain('ABCD12', 'player-1')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'INVALID_STATE'
+      );
+    });
+
+    it('throws INSUFFICIENT_ONLINE_PLAYERS when fewer than 2 online players remain', async () => {
+      const players = [
+        makePlayer({ id: 'player-1', isHost: true, isOnline: true }),
+        makePlayer({ id: 'player-2', isHost: false, nickname: 'Bob', colorIndex: 1, isOnline: false }),
+      ];
+      const repo = makeMockRepo({ status: 'finished', players });
+      const svc = new GameService(repo);
+
+      await expect(svc.playAgain('ABCD12', 'player-1')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'INSUFFICIENT_ONLINE_PLAYERS'
+      );
+    });
+
+    it('resets room to waiting state retaining only online players', async () => {
+      const players = [
+        makePlayer({ id: 'player-1', isHost: true, isOnline: true }),
+        makePlayer({ id: 'player-2', isHost: false, nickname: 'Bob', colorIndex: 1, isOnline: true }),
+        makePlayer({ id: 'player-3', isHost: false, nickname: 'Carol', colorIndex: 2, isOnline: false }),
+      ];
+      const repo = makeMockRepo({ status: 'finished', players });
+      const svc = new GameService(repo);
+
+      const room = await svc.playAgain('ABCD12', 'player-1');
+
+      expect(room.status).toBe('waiting');
+      expect(room.ladder).toBeNull();
+      expect(room.results).toBeNull();
+      expect(room.revealedCount).toBe(0);
+      // offline player-3 should be removed; player-1 (host) and player-2 retained
+      expect(room.players).toHaveLength(2);
+      expect(room.players.some((p) => p.id === 'player-3')).toBe(false);
+    });
+
+    it('sets winnerCount to null when old winnerCount >= new player count', async () => {
+      const players = [
+        makePlayer({ id: 'player-1', isHost: true, isOnline: true }),
+        makePlayer({ id: 'player-2', isHost: false, nickname: 'Bob', colorIndex: 1, isOnline: true }),
+      ];
+      const repo = makeMockRepo({ status: 'finished', players, winnerCount: 5 });
+      const svc = new GameService(repo);
+
+      const room = await svc.playAgain('ABCD12', 'player-1');
+      expect(room.winnerCount).toBeNull();
+    });
+
+    it('clears kicked player list when resetting', async () => {
+      const players = [
+        makePlayer({ id: 'player-1', isHost: true, isOnline: true }),
+        makePlayer({ id: 'player-2', isHost: false, nickname: 'Bob', colorIndex: 1, isOnline: true }),
+      ];
+      const repo = makeMockRepo({ status: 'finished', players });
+      const svc = new GameService(repo);
+
+      await svc.playAgain('ABCD12', 'player-1');
+      expect(repo.clearKickedPlayers).toHaveBeenCalledWith('ABCD12');
+    });
+
+    it('throws ROOM_NOT_FOUND when room does not exist', async () => {
+      const repo: IRoomRepository = {
+        ...makeMockRepo(),
+        findByCode: vi.fn(async () => null),
+      };
+      const svc = new GameService(repo);
+
+      await expect(svc.playAgain('ZZZZZZ', 'player-1')).rejects.toMatchObject({ code: 'ROOM_NOT_FOUND' });
+    });
+  });
+
   // ── ROOM_NOT_FOUND ─────────────────────────────────────────────────────────
 
   describe('missing room', () => {
