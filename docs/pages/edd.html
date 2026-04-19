@@ -522,13 +522,13 @@ export interface JoinRoomResponse {
 <p>JWT TTL：<strong>6 小時</strong>（<code>exp = iat + 21600</code>）。</p>
 <table>
 <tr><th>Method</th><th>Path</th><th>描述</th><th>成功</th><th>錯誤</th></tr>
-<tr><td><code>POST</code></td><td><code>/api/rooms</code></td><td>建立房間（含 hostNickname, winnerCount）</td><td><code>201 CreateRoomResponse</code></td><td><code>400 INVALID<em>PRIZES</em>COUNT</code>, <code>429 RATE_LIMIT</code></td></tr>
-<tr><td><code>GET</code></td><td><code>/api/rooms/:code</code></td><td>查詢房間公開摘要（unauthenticated）</td><td><code>200 RoomSummaryPayload</code></td><td><code>404 ROOM<em>NOT</em>FOUND</code></td></tr>
-<tr><td><code>POST</code></td><td><code>/api/rooms/:code/players</code></td><td>加入房間</td><td><code>201 JoinRoomResponse</code></td><td><code>404 ROOM<em>NOT</em>FOUND / 409 ROOM<em>FULL,NICKNAME</em>TAKEN,ROOM<em>NOT</em>ACCEPTING</code></td></tr>
-<tr><td><code>DELETE</code></td><td><code>/api/rooms/:code/players/:id</code></td><td>踢出玩家（需 token；waiting 狀態限定）</td><td><code>204</code></td><td><code>401 AUTH<em>INVALID</em>TOKEN,AUTH<em>TOKEN</em>EXPIRED / 403 PLAYER<em>NOT</em>HOST / 404 / 409 INVALID<em>STATE,CANNOT</em>KICK_HOST</code></td></tr>
-<tr><td><code>POST</code></td><td><code>/api/rooms/:code/game/start</code></td><td>開始遊戲（需 token）</td><td><code>200 Room</code></td><td><code>400 INSUFFICIENT<em>PLAYERS,PRIZES</em>NOT<em>SET,INVALID</em>PRIZES<em>COUNT / 409 INVALID</em>STATE</code></td></tr>
-<tr><td><code>POST</code></td><td><code>/api/rooms/:code/game/end</code></td><td>結束本局（需 token；revealing 狀態、所有路徑已揭曉）</td><td><code>200 Room</code></td><td><code>403 PLAYER<em>NOT</em>HOST / 409 INVALID_STATE</code></td></tr>
-<tr><td><code>POST</code></td><td><code>/api/rooms/:code/game/play-again</code></td><td>再玩一局（需 token；finished 狀態限定）</td><td><code>200 Room</code></td><td><code>403 / 409 INVALID<em>STATE / 400 INSUFFICIENT</em>ONLINE_PLAYERS</code></td></tr>
+<tr><td><code>POST</code></td><td><code>/api/rooms</code></td><td>建立房間（含 hostNickname, winnerCount）</td><td><code>201 CreateRoomResponse</code></td><td><code>400 INVALID_PRIZES_COUNT</code>, <code>429 RATE_LIMIT</code></td></tr>
+<tr><td><code>GET</code></td><td><code>/api/rooms/:code</code></td><td>查詢房間公開摘要（unauthenticated）</td><td><code>200 RoomSummaryPayload</code></td><td><code>404 ROOM_NOT_FOUND</code></td></tr>
+<tr><td><code>POST</code></td><td><code>/api/rooms/:code/players</code></td><td>加入房間</td><td><code>201 JoinRoomResponse</code></td><td><code>404 ROOM_NOT_FOUND / 409 ROOM_FULL,NICKNAME_TAKEN,ROOM_NOT_ACCEPTING</code></td></tr>
+<tr><td><code>DELETE</code></td><td><code>/api/rooms/:code/players/:id</code></td><td>踢出玩家（需 token；waiting 狀態限定）</td><td><code>204</code></td><td><code>401 AUTH_INVALID_TOKEN,AUTH_TOKEN_EXPIRED / 403 PLAYER_NOT_HOST / 404 / 409 INVALID_STATE,CANNOT_KICK_HOST</code></td></tr>
+<tr><td><code>POST</code></td><td><code>/api/rooms/:code/game/start</code></td><td>開始遊戲（需 token）</td><td><code>200 Room</code></td><td><code>400 INSUFFICIENT_PLAYERS,PRIZES_NOT_SET,INVALID_PRIZES_COUNT / 409 INVALID_STATE</code></td></tr>
+<tr><td><code>POST</code></td><td><code>/api/rooms/:code/game/end</code></td><td>結束本局（需 token；revealing 狀態、所有路徑已揭曉）</td><td><code>200 Room</code></td><td><code>403 PLAYER_NOT_HOST / 409 INVALID_STATE</code></td></tr>
+<tr><td><code>POST</code></td><td><code>/api/rooms/:code/game/play-again</code></td><td>再玩一局（需 token；finished 狀態限定）</td><td><code>200 Room</code></td><td><code>403 / 409 INVALID_STATE / 400 INSUFFICIENT_ONLINE_PLAYERS</code></td></tr>
 <tr><td><code>GET</code></td><td><code>/health</code></td><td>健康檢查（liveness）</td><td><code>200 { status, redis, wsCount, uptime }</code></td><td>—</td></tr>
 <tr><td><code>GET</code></td><td><code>/ready</code></td><td>就緒檢查（readiness）；redis=&quot;error&quot; 時回傳 503</td><td><code>200 { status, redis, wsCount, uptime }</code></td><td><code>503</code></td></tr>
 </table>
@@ -538,7 +538,7 @@ export interface JoinRoomResponse {
 <h2>5. WebSocket 事件設計</h2>
 <p><strong>連線端點：</strong> <code>WSS /ws?room={code}&amp;token={sessionToken}</code></p>
 <p>Server Upgrade 階段驗證 JWT token，失敗直接 403。</p>
-<p><strong>踢除玩家重連特殊處理：</strong> 若 playerId 在 <code>kickedPlayerIds</code> 清單中，WS Upgrade 在 HTTP 101 握手之前關閉，使用 WS close code <code>4003</code>（Application-level: Player Kicked），並在關閉前發送 JSON frame <code>{ type: &quot;PLAYER<em>KICKED&quot;, ts, payload: { code: &quot;PLAYER</em>KICKED&quot;, message: &quot;你已被移出此房間&quot; } }</code>，讓前端可區分一般認證失敗（403）與被踢（4003）。</p>
+<p><strong>踢除玩家重連特殊處理：</strong> 若 playerId 在 <code>kickedPlayerIds</code> 清單中，WS Upgrade 在 HTTP 101 握手之前關閉，使用 WS close code <code>4003</code>（Application-level: Player Kicked），並在關閉前發送 JSON frame <code>{ type: &quot;PLAYER_KICKED&quot;, ts, payload: { code: &quot;PLAYER_KICKED&quot;, message: &quot;你已被移出此房間&quot; } }</code>，讓前端可區分一般認證失敗（403）與被踢（4003）。</p>
 <h3>Server → Client</h3>
 <pre><code class="language-typescript">// ROOM_STATE — 房間狀態摘要（玩家加入/離線/踢出/中獎名額變更）
 { type: &quot;ROOM_STATE&quot;, ts, payload: RoomStatePayload }
@@ -576,7 +576,7 @@ export interface JoinRoomResponse {
 // ERROR — 操作失敗（僅 unicast 給觸發方）
 { type: &quot;ERROR&quot;, ts, payload: ErrorPayload }</code></pre>
 <h3>Client → Server</h3>
-<p>// 注意：遊戲控制操作（START<em>GAME、BEGIN</em>REVEAL、END<em>GAME、PLAY</em>AGAIN）</p>
+<p>// 注意：遊戲控制操作（START_GAME、BEGIN_REVEAL、END_GAME、PLAY_AGAIN）</p>
 <p>// 同時支援 WS 訊息（即時）和 HTTP REST（向後相容；HTTP 路由觸發同樣的 GameService 方法）。</p>
 <p>// 前端主要使用 WS 路徑；HTTP 路徑供 CLI/工具使用或 WS 不可用時降級。</p>
 <pre><code class="language-typescript">{ type: &quot;START_GAME&quot;, ts, payload: {} }
@@ -628,7 +628,7 @@ export interface JoinRoomResponse {
 <h2>6. Security 設計（OWASP Top 10）</h2>
 <table>
 <tr><th>OWASP</th><th>威脅</th><th>對應措施</th></tr>
-<tr><td>A01 Broken Access Control</td><td>非 host 操作</td><td>JWT HS256 驗證（<code>jose</code> 庫），payload: `{ playerId, roomCode, role: &quot;host&quot; \</td><td>&quot;player&quot;, exp }<code>；</code>role` 欄位區分 host 與 player（建立房間時 role=&quot;host&quot;，加入房間時 role=&quot;player&quot;）；非 host 發送 host-only 操作 → ERROR AUTH<em>NOT</em>HOST；雙重驗證：JWT role=&quot;host&quot; AND Redis room.hostId === playerId（防止 JWT 偽造或 host 轉移後舊 token 濫用）</td></tr>
+<tr><td>A01 Broken Access Control</td><td>非 host 操作</td><td>JWT HS256 驗證（<code>jose</code> 庫），payload: `{ playerId, roomCode, role: &quot;host&quot; \</td><td>&quot;player&quot;, exp }<code>；</code>role` 欄位區分 host 與 player（建立房間時 role=&quot;host&quot;，加入房間時 role=&quot;player&quot;）；非 host 發送 host-only 操作 → ERROR AUTH_NOT_HOST；雙重驗證：JWT role=&quot;host&quot; AND Redis room.hostId === playerId（防止 JWT 偽造或 host 轉移後舊 token 濫用）</td></tr>
 <tr><td>A02 Cryptographic Failures</td><td>弱加密</td><td>JWT HS256（標準 RFC 7519）；Redis TLS；Nginx HTTPS + HSTS max-age=31536000</td></tr>
 <tr><td>A03 Injection</td><td>輸入注入</td><td>Fastify JSON Schema AJV 驗證；nickname AJV <code>pattern: &quot;^[^\x00-\x1F\x7F]{1,20}$&quot;</code>（禁 null/控制字元，非 DOMPurify）；roomCode 正則 <code>[A-HJ-NP-Z2-9]{6}</code></td></tr>
 <tr><td>A04 Insecure Design</td><td>WS 訊息洪泛</td><td><code>ws</code> Server <code>maxPayload: 65536</code>（64KB，PRD NFR-05）；per-connection rate limit 60 msg/min，超限 WS close code 4029；host-only 操作雙重驗證（JWT role + Redis room.hostId 比對）</td></tr>
@@ -752,7 +752,7 @@ export function computeResults(ladder: LadderData, winnerCount: number, rng: () 
   }));
 }</code></pre>
 <blockquote><p><strong>注意</strong>：<code>computeResults</code> 在 <code>packages/shared</code> 中為純函式（零 I/O），</p></blockquote>
-<blockquote><p>Server 端 GameService 於 START<em>GAME 時呼叫（與 generateLadder 原子合一），並填入 <code>playerId</code>（依 players 陣列順序）；BEGIN</em>REVEAL 時不重新呼叫，ladder 及 results 已存於 Redis。</p></blockquote>
+<blockquote><p>Server 端 GameService 於 START_GAME 時呼叫（與 generateLadder 原子合一），並填入 <code>playerId</code>（依 players 陣列順序）；BEGIN_REVEAL 時不重新呼叫，ladder 及 results 已存於 Redis。</p></blockquote>
 <h3>7.6 測試策略</h3>
 <table>
 <tr><th>類型</th><th>覆蓋</th></tr>
@@ -824,7 +824,7 @@ export function computeResults(ladder: LadderData, winnerCount: number, rng: () 
 <tr><td>AC-H07-4/5 kickedPlayerIds</td><td>@AC-SECURITY-001</td><td>host-actions.feature</td></tr>
 <tr><td>AC-H08-1/3 PLAY_AGAIN</td><td>@AC-RESET-001</td><td>host-actions.feature</td></tr>
 <tr><td>AC-P04 揭示結果</td><td>@AC-REVEAL-001</td><td>reveal-flow.feature</td></tr>
-<tr><td>AC-H06-2 REVEAL<em>ALL+END</em>GAME</td><td>@AC-REVEAL-002</td><td>reveal-flow.feature</td></tr>
+<tr><td>AC-H06-2 REVEAL_ALL+END_GAME</td><td>@AC-REVEAL-002</td><td>reveal-flow.feature</td></tr>
 <tr><td>PRNG 一致性</td><td>@AC-PRNG-001</td><td>prng.feature</td></tr>
 </table>
 <hr>
@@ -844,9 +844,9 @@ export function computeResults(ladder: LadderData, winnerCount: number, rng: () 
 </table>
 <p>覆蓋率目標：shared ≥ 90%；server application/domain ≥ 80%；client（Canvas 渲染邏輯、WS 事件解析）≥ 70%（PRD NFR-07）</p>
 <h3>9.2 Integration Tests（20%）— testcontainers</h3>
-<ul><li>RoomRepository 對真實 Redis CRUD、TTL、原子 INCR</li><li>Pub/Sub：PUBLISH/SUBSCRIBE 跨 handler 傳遞</li><li>Fastify 路由：supertest HTTP 請求</li><li>WS 連線建立、認證失敗（403）、ROOM<em>STATE</em>FULL 接收</li></ul>
+<ul><li>RoomRepository 對真實 Redis CRUD、TTL、原子 INCR</li><li>Pub/Sub：PUBLISH/SUBSCRIBE 跨 handler 傳遞</li><li>Fastify 路由：supertest HTTP 請求</li><li>WS 連線建立、認證失敗（403）、ROOM_STATE_FULL 接收</li></ul>
 <h3>9.3 E2E Tests（10%）— Playwright</h3>
-<ol><li>完整流程（2 玩家）：建立 → 加入 → 開始 → 揭示 → 結束</li><li>踢除玩家：被踢者收到 PLAYER_KICKED</li><li>斷線重連：WS 重連後收到 ROOM<em>STATE</em>FULL</li><li>50 人上限：第 51 人嘗試加入回傳 409</li></ol>
+<ol><li>完整流程（2 玩家）：建立 → 加入 → 開始 → 揭示 → 結束</li><li>踢除玩家：被踢者收到 PLAYER_KICKED</li><li>斷線重連：WS 重連後收到 ROOM_STATE_FULL</li><li>50 人上限：第 51 人嘗試加入回傳 409</li></ol>
 <hr>
 <h2>10. SCALE 設計</h2>
 <blockquote><p><strong>MVP 部署說明（PRD Out of Scope #9）：</strong> MVP 以單一 Node.js 實例部署，不啟用 HPA 及多 Pod。Redis 以單節點模式運行（不啟用 Sentinel/Cluster）。下方容量設計以 PRD NFR-02 的「100 並發房間 × 50 人 = 5,000 WS 連線」為目標。多 Pod、Redis HA 設計預留於此文件供 Post-MVP 擴展使用。</p></blockquote>
@@ -895,7 +895,7 @@ System overhead: ~50 MB
 <h3>10.5 分散式計時器與 Pod 崩潰恢復（Post-MVP 注意事項）</h3>
 <p><strong>MVP（單 Pod）：</strong> 自動揭示 timer 由 GameService 的 <code>setInterval</code> 管理，無需分散式鎖。</p>
 <p><strong>Post-MVP（多 Pod）：</strong> 自動揭示 timer 須以 Redis SETNX 分散式鎖確保僅一個 Pod 持有計時器：</p>
-<ul><li><code>SET room:{code}:auto<em>timer</em>lock {podId} EX {intervalSec+2} NX</code></li><li>持鎖 Pod 定期 EXTEND TTL；Pod 崩潰後 TTL 自然過期，其他 Pod 搶鎖接續</li><li>10 秒 Rollback Timeout（§12.4）在多 Pod 環境中須以 Redis key <code>room:{code}:reveal_watchdog EX 10</code> 實作，</li></ul>
+<ul><li><code>SET room:{code}:auto_timer_lock {podId} EX {intervalSec+2} NX</code></li><li>持鎖 Pod 定期 EXTEND TTL；Pod 崩潰後 TTL 自然過期，其他 Pod 搶鎖接續</li><li>10 秒 Rollback Timeout（§12.4）在多 Pod 環境中須以 Redis key <code>room:{code}:reveal_watchdog EX 10</code> 實作，</li></ul>
 <p>任一 Pod 於 SUBSCRIBE 中偵測 expired key 事件後執行 rollback</p>
 <h3>10.6 Load Test 門檻（k6）</h3>
 <table>
@@ -983,27 +983,27 @@ fastify.get(&#x27;/metrics&#x27;, async (_, reply) =&gt; {
 <h3>12.1 HTTP 錯誤碼</h3>
 <table>
 <tr><th>錯誤碼</th><th>HTTP</th><th>說明</th></tr>
-<tr><td><code>ROOM<em>NOT</em>FOUND</code></td><td>404</td><td>房間不存在或已過期</td></tr>
+<tr><td><code>ROOM_NOT_FOUND</code></td><td>404</td><td>房間不存在或已過期</td></tr>
 <tr><td><code>ROOM_FULL</code></td><td>409</td><td>已達 50 人上限</td></tr>
-<tr><td><code>ROOM<em>NOT</em>ACCEPTING</code></td><td>409</td><td>房間狀態非 waiting（改用 409 而非 410，房間可能 reset 後重新接受）</td></tr>
+<tr><td><code>ROOM_NOT_ACCEPTING</code></td><td>409</td><td>房間狀態非 waiting（改用 409 而非 410，房間可能 reset 後重新接受）</td></tr>
 <tr><td><code>NICKNAME_TAKEN</code></td><td>409</td><td>nickname 重複</td></tr>
-<tr><td><code>PLAYER<em>NOT</em>FOUND</code></td><td>404</td><td>玩家不存在</td></tr>
-<tr><td><code>PLAYER<em>NOT</em>HOST</code></td><td>403</td><td>需要房主權限</td></tr>
-<tr><td><code>AUTH<em>INVALID</em>TOKEN</code></td><td>401</td><td>JWT Token 無效</td></tr>
-<tr><td><code>AUTH<em>TOKEN</em>EXPIRED</code></td><td>401</td><td>JWT Token 過期</td></tr>
+<tr><td><code>PLAYER_NOT_FOUND</code></td><td>404</td><td>玩家不存在</td></tr>
+<tr><td><code>PLAYER_NOT_HOST</code></td><td>403</td><td>需要房主權限</td></tr>
+<tr><td><code>AUTH_INVALID_TOKEN</code></td><td>401</td><td>JWT Token 無效</td></tr>
+<tr><td><code>AUTH_TOKEN_EXPIRED</code></td><td>401</td><td>JWT Token 過期</td></tr>
 <tr><td><code>INSUFFICIENT_PLAYERS</code></td><td>400</td><td>N &lt; 2（開始遊戲時）</td></tr>
-<tr><td><code>INSUFFICIENT<em>ONLINE</em>PLAYERS</code></td><td>400</td><td>再玩一局時在線玩家 &lt; 2（AC-H08-3）</td></tr>
-<tr><td><code>PRIZES<em>NOT</em>SET</code></td><td>400</td><td>W 尚未設定（AC-H03-2，回傳訊息：「請先設定中獎名額」）</td></tr>
-<tr><td><code>INVALID<em>PRIZES</em>COUNT</code></td><td>400</td><td>W &lt; 1 或 W &gt;= N</td></tr>
+<tr><td><code>INSUFFICIENT_ONLINE_PLAYERS</code></td><td>400</td><td>再玩一局時在線玩家 &lt; 2（AC-H08-3）</td></tr>
+<tr><td><code>PRIZES_NOT_SET</code></td><td>400</td><td>W 尚未設定（AC-H03-2，回傳訊息：「請先設定中獎名額」）</td></tr>
+<tr><td><code>INVALID_PRIZES_COUNT</code></td><td>400</td><td>W &lt; 1 或 W &gt;= N</td></tr>
 <tr><td><code>INVALID_STATE</code></td><td>409</td><td>操作不符合當前狀態（統一用此碼，PRD FR-04-3/FR-09-3）</td></tr>
-<tr><td><code>CANNOT<em>KICK</em>HOST</code></td><td>400</td><td>踢除操作目標為 Host 本身，不允許（PRD AC-H07-3b）</td></tr>
+<tr><td><code>CANNOT_KICK_HOST</code></td><td>400</td><td>踢除操作目標為 Host 本身，不允許（PRD AC-H07-3b）</td></tr>
 <tr><td><code>INVALID_NICKNAME</code></td><td>400</td><td>暱稱格式不合法（長度超限、含禁止字元）（PRD AC-P01-3）</td></tr>
 <tr><td><code>INVALID_NAME</code></td><td>400</td><td>title 格式不合法（長度超限、含禁止字元）；與 INVALID_NICKNAME 分開以區分語意</td></tr>
-<tr><td><code>ROOM<em>CODE</em>GENERATION_FAILED</code></td><td>500</td><td>Room Code 碰撞重試超過 10 次，無法生成唯一碼</td></tr>
-<tr><td><code>TITLE<em>UPDATE</em>NOT<em>ALLOWED</em>IN_STATE</code></td><td>409</td><td>在非 waiting 狀態嘗試更新 title</td></tr>
-<tr><td><code>UPDATE<em>WINNER</em>COUNT<em>NOT</em>ALLOWED<em>IN</em>STATE</code></td><td>409</td><td>在非 waiting 狀態嘗試更新 winnerCount</td></tr>
-<tr><td><code>INVALID<em>AUTO</em>REVEAL_INTERVAL</code></td><td>400</td><td>SET<em>REVEAL</em>MODE 中 intervalSec 不為整數或超出 1-30 範圍</td></tr>
-<tr><td><code>SYS<em>INTERNAL</em>ERROR</code></td><td>500</td><td>非預期錯誤</td></tr>
+<tr><td><code>ROOM_CODE_GENERATION_FAILED</code></td><td>500</td><td>Room Code 碰撞重試超過 10 次，無法生成唯一碼</td></tr>
+<tr><td><code>TITLE_UPDATE_NOT_ALLOWED_IN_STATE</code></td><td>409</td><td>在非 waiting 狀態嘗試更新 title</td></tr>
+<tr><td><code>UPDATE_WINNER_COUNT_NOT_ALLOWED_IN_STATE</code></td><td>409</td><td>在非 waiting 狀態嘗試更新 winnerCount</td></tr>
+<tr><td><code>INVALID_AUTO_REVEAL_INTERVAL</code></td><td>400</td><td>SET_REVEAL_MODE 中 intervalSec 不為整數或超出 1-30 範圍</td></tr>
+<tr><td><code>SYS_INTERNAL_ERROR</code></td><td>500</td><td>非預期錯誤</td></tr>
 <tr><td><code>RATE_LIMIT</code></td><td>429</td><td>超過速率限制</td></tr>
 </table>
 <h3>12.2 WebSocket 錯誤策略</h3>
@@ -1029,7 +1029,7 @@ WS 斷線：
   60s grace period   → 若未重連，HOST_TRANSFERRED 廣播（新 host = 下一個 isOnline=true 玩家）
                        若無其他在線玩家（無法轉移），room 進入 「無 host 等待」狀態，等待 5 分鐘 TTL 清理
   最後一位斷線 5 分鐘 → EXPIRE room:{code} 300（在最後一個 close 事件觸發時執行原子設定）</code></pre>
-<h3>12.3 PLAY<em>AGAIN 完整流程（對應 PRD FR-08，取代舊 RESET</em>ROOM）</h3>
+<h3>12.3 PLAY_AGAIN 完整流程（對應 PRD FR-08，取代舊 RESET_ROOM）</h3>
 <pre><code class="">1. 驗證 JWT role=host 且 room.hostId 比對
 2. 驗證 status === &quot;finished&quot;，否則 INVALID_STATE
 3. 計算 onlinePlayers = players.filter(p =&gt; p.isOnline)
@@ -1044,7 +1044,7 @@ WS 斷線：
      room.kickedPlayerIds = []
      room.winnerCount = 調整後的值
 8. 廣播 ROOM_STATE（status: waiting）</code></pre>
-<h3>12.4 START<em>GAME / BEGIN</em>REVEAL / END_GAME 原子性</h3>
+<h3>12.4 START_GAME / BEGIN_REVEAL / END_GAME 原子性</h3>
 <p><strong>START_GAME（<code>waiting → running</code>）：</strong></p>
 <pre><code class="">// START_GAME 原子生成 seed + ladderMap + resultSlots，一次性寫入 Redis
 // seed 生成與樓梯計算合一，避免中間狀態（PRD AC-H03-1, FR-04-4）
@@ -1070,7 +1070,7 @@ MULTI
 EXEC
 // 成功後廣播 ROOM_STATE（status: &quot;revealing&quot;）</code></pre>
 <p><strong>10 秒 Rollback Timeout（PDD §7.1）：</strong></p>
-<p>若 BEGIN<em>REVEAL 後 10 秒內 Server 未收到任何 REVEAL</em>NEXT/REVEAL<em>ALL</em>TRIGGER，</p>
+<p>若 BEGIN_REVEAL 後 10 秒內 Server 未收到任何 REVEAL_NEXT/REVEAL_ALL_TRIGGER，</p>
 <p>GameService 自動將 status 回退為 <code>running</code>，廣播 ROOM_STATE 通知客戶端重試。</p>
 <p>此保護避免 Server 崩潰後房間永久卡在 <code>revealing</code> 初始化狀態。</p>
 <p><strong>END_GAME（<code>revealing → finished</code>）：</strong></p>
@@ -1103,14 +1103,14 @@ EXEC
 <p><em>1. 安全修正（關鍵）：引入 LadderDataPublic（省略 seed）於 revealing 狀態；LadderData（含 seed）僅於 finished 時發送（PRD AC-H03-1, NFR-05）</em></p>
 <p><em>2. 效能修正：REVEAL_ALL payload 採 ResultSlotPublic（省略 path）解決 N=50 時 ~150KB 超過 64KB maxPayload 的問題；MVP Option A</em></p>
 <p><em>3. 類型新增：RevealAllPayload、ResultSlotPublic、LadderDataPublic、PONG 事件類型</em></p>
-<p><em>4. 錯誤碼補齊：新增 INVALID<em>NICKNAME（對應 PRD AC-P01-3），補充 CANNOT</em>KICK<em>HOST 和 KICK</em>NOT<em>ALLOWED</em>IN_STATE 至 WS 錯誤策略</em></p>
+<p><em>4. 錯誤碼補齊：新增 INVALID_NICKNAME（對應 PRD AC-P01-3），補充 CANNOT_KICK_HOST 和 KICK_NOT_ALLOWED_IN_STATE 至 WS 錯誤策略</em></p>
 <p><em>5. PRNG 修正：generateLadder retry limit 修正為 N×10（PRD FR-03-2）</em></p>
 <p><em>6. ComputeResults 實作：新增路徑追蹤與 Fisher-Yates 中獎指派完整算法（PRD FR-03-3）</em></p>
 <p><em>7. JWT 安全補充：role 欄位語意明確（&quot;host&quot; | &quot;player&quot;），雙重驗證（JWT role + Redis hostId）細節</em></p>
 <p><em>8. 分散式計時器設計：新增 Post-MVP 多 Pod 自動揭示 Redis 分散式鎖設計（§10.5）</em></p>
 <p><em>9. 狀態機修正：waiting TTL 更正為 4h（PRD FR-01-2）；新增 running 狀態 TTL/斷線清理路徑</em></p>
 <p><em>10. PING/PONG 補充：ws 內建心跳（30s）為主路徑；應用層 PONG 用於 RTT 量測</em></p>
-<p><em>11. REVEAL<em>ALL</em>TRIGGER：明確 revealedCount = totalCount 原子 SET 語意</em></p>
+<p><em>11. REVEAL_ALL_TRIGGER：明確 revealedCount = totalCount 原子 SET 語意</em></p>
 <p><em>12. BDD AC-ROOM-001：更正為 winnerCount 參數（非舊版 prizes 陣列）</em></p>
 <p><em>修訂重點（v1.4 vs v1.3）：</em></p>
 <p><em>13. 前端部署架構重構：新增 Nginx Pod（ladder-client:local）作為本機 k8s 開發模式的靜態檔案服務，取代原 GitHub Pages 僅選項設計；兩者並存（本機 Nginx Pod / 生產 GitHub Pages）</em></p>

@@ -141,7 +141,7 @@
 └──────────────────────────────┘</code></pre>
 <h3>4.2 核心 UI 元件</h3>
 <p><strong>RoomCodeInput</strong></p>
-<ul><li>6 格獨立字元輸入（每格一個 <code>&lt;input maxlength=&quot;1&quot;&gt;</code>）或單一輸入框自動分割</li><li>自動轉大寫（<code>text-transform: uppercase</code>）</li><li>排除 O / I / 0 / 1 的軟性提示</li><li>透過 URL param <code>?room=XXXXXX</code> 自動預填</li><li>錯誤狀態：紅框 + 下方錯誤文字（ROOM<em>NOT</em>FOUND / ROOM_FULL 等）</li></ul>
+<ul><li>6 格獨立字元輸入（每格一個 <code>&lt;input maxlength=&quot;1&quot;&gt;</code>）或單一輸入框自動分割</li><li>自動轉大寫（<code>text-transform: uppercase</code>）</li><li>排除 O / I / 0 / 1 的軟性提示</li><li>透過 URL param <code>?room=XXXXXX</code> 自動預填</li><li>錯誤狀態：紅框 + 下方錯誤文字（ROOM_NOT_FOUND / ROOM_FULL 等）</li></ul>
 <p><strong>NicknameInput</strong></p>
 <ul><li>單行 <code>&lt;input&gt;</code> ，1-20 字 Unicode 限制</li><li>即時 character count 提示（<code>x / 20</code>）</li><li>前端驗證失敗：inline 錯誤（不 submit）</li></ul>
 <p><strong>ActionButton（主要）</strong></p>
@@ -193,7 +193,7 @@
 <p><strong>PlayerList</strong></p>
 <ul><li>每個 PlayerItem：頭像占位符（首字母圓形背景）+ 暱稱 + 狀態 badge</li><li>主持人顯示 👑 badge</li><li>自己顯示「（你）」標示</li><li>離線玩家：暱稱灰色 + <code>◌ 離線</code> chip</li><li>主持人專屬：每個非主持人旁顯示 [踢] 按鈕（<code>waiting</code> 狀態才顯示）</li><li>玩家加入 / 離線：無刷新即時更新（ROOM_STATE 事件觸發）</li></ul>
 <p><strong>WinnerCountInput</strong></p>
-<ul><li>Stepper（[−] 數字輸入 [+]）</li><li>範圍限制：1 ≤ W ≤ N-1（即時 validate，N = 含離線玩家的總人數）</li><li>設定後立即送出 <code>UPDATE<em>WINNER</em>COUNT</code></li></ul>
+<ul><li>Stepper（[−] 數字輸入 [+]）</li><li>範圍限制：1 ≤ W ≤ N-1（即時 validate，N = 含離線玩家的總人數）</li><li>設定後立即送出 <code>UPDATE_WINNER_COUNT</code></li></ul>
 <p><strong>StartGameButton</strong></p>
 <ul><li>Disabled 條件：W 未設定 OR N &lt; 2</li><li>Disabled 時顯示原因 tooltip（「需至少 2 位玩家」或「請設定中獎名額」）</li></ul>
 <hr>
@@ -335,12 +335,12 @@ requestAnimationFrame loop 開始
 <tr><td>info</td><td><code>PLAYER_KICKED</code>（他人被踢）</td><td>「Carol 已被主持人移出」</td></tr>
 <tr><td>warning</td><td>玩家離線</td><td>「Carol 離線中」</td></tr>
 <tr><td>warning</td><td><code>INVALID_STATE</code></td><td>「操作與目前房間狀態不符，請重試」</td></tr>
-<tr><td>warning</td><td><code>INVALID<em>AUTO</em>REVEAL_INTERVAL</code></td><td>「自動揭曉間隔需介於 1–30 秒之間」</td></tr>
-<tr><td>warning</td><td><code>INSUFFICIENT<em>ONLINE</em>PLAYERS</code>（再玩一局）</td><td>「在線玩家不足 2 人，請等候玩家上線後重試」</td></tr>
+<tr><td>warning</td><td><code>INVALID_AUTO_REVEAL_INTERVAL</code></td><td>「自動揭曉間隔需介於 1–30 秒之間」</td></tr>
+<tr><td>warning</td><td><code>INSUFFICIENT_ONLINE_PLAYERS</code>（再玩一局）</td><td>「在線玩家不足 2 人，請等候玩家上線後重試」</td></tr>
 <tr><td>warning</td><td>Room TTL 即將到期（前端倒數提示，剩 5 分鐘）</td><td>「房間將在 5 分鐘內關閉」</td></tr>
-<tr><td>error</td><td>伺服器錯誤 / <code>SYS<em>REDIS</em>ERROR</code></td><td>「伺服器暫時不可用，請稍後再試」</td></tr>
+<tr><td>error</td><td>伺服器錯誤 / <code>SYS_REDIS_ERROR</code></td><td>「伺服器暫時不可用，請稍後再試」</td></tr>
 <tr><td>error</td><td><code>ROOM_FULL</code>（加入時）</td><td>「此房間已滿 50 人，無法加入」</td></tr>
-<tr><td>error</td><td><code>AUTH<em>TOKEN</em>EXPIRED</code>（玩家 token）</td><td>「連線憑證已過期，請重新整理後加入」</td></tr>
+<tr><td>error</td><td><code>AUTH_TOKEN_EXPIRED</code>（玩家 token）</td><td>「連線憑證已過期，請重新整理後加入」</td></tr>
 <tr><td>success</td><td>中獎名額更新</td><td>「中獎名額已更新」</td></tr>
 <tr><td>success</td><td>房間碼複製成功</td><td>「房間碼已複製至剪貼簿」</td></tr>
 </table>
@@ -355,7 +355,7 @@ requestAnimationFrame loop 開始
 <ul><li>WebSocket 連線立即關閉</li><li>不提供重新加入同一局的入口</li></ul>
 <h3>8.5 ErrorBoundary</h3>
 <p>全域 WebSocket 錯誤顯示（阻塞型，覆蓋當前畫面）：</p>
-<ul><li><code>ROOM<em>NOT</em>FOUND</code>：「找不到此房間，請確認房間碼」→ [回首頁]</li><li><code>AUTH<em>TOKEN</em>EXPIRED</code>（主持人）：「主持人身份已過期，請重新整理頁面」→ [重新整理]</li><li><code>AUTH<em>TOKEN</em>EXPIRED</code>（玩家）：「連線憑證已過期，請重新整理後加入」→ [回首頁]</li><li><code>SESSION_REPLACED</code>：「你的連線已在另一裝置開啟，請重新整理」→ [重新整理]</li><li><code>SYS<em>REDIS</em>ERROR</code>：「伺服器暫時不可用，請稍後再試」→ [重試]（自動觸發斷線重連）</li><li>Room TTL 自然過期（WS 斷開，重連失敗 <code>ROOM<em>NOT</em>FOUND</code>）：顯示「此房間已結束或過期」→ [回首頁]</li></ul>
+<ul><li><code>ROOM_NOT_FOUND</code>：「找不到此房間，請確認房間碼」→ [回首頁]</li><li><code>AUTH_TOKEN_EXPIRED</code>（主持人）：「主持人身份已過期，請重新整理頁面」→ [重新整理]</li><li><code>AUTH_TOKEN_EXPIRED</code>（玩家）：「連線憑證已過期，請重新整理後加入」→ [回首頁]</li><li><code>SESSION_REPLACED</code>：「你的連線已在另一裝置開啟，請重新整理」→ [重新整理]</li><li><code>SYS_REDIS_ERROR</code>：「伺服器暫時不可用，請稍後再試」→ [重試]（自動觸發斷線重連）</li><li>Room TTL 自然過期（WS 斷開，重連失敗 <code>ROOM_NOT_FOUND</code>）：顯示「此房間已結束或過期」→ [回首頁]</li></ul>
 <hr>
 <h2>9. 互動流程</h2>
 <h3>9.1 玩家加入流程</h3>
@@ -422,11 +422,11 @@ requestAnimationFrame loop：
 <tr><td><code>ROOM_STATE</code> status=<code>running</code></td><td>rowCount</td><td>顯示梯子佔位（全灰虛線 N 欄，梯子結構尚未下發）；主持人出現「開始揭曉」按鈕；此時 ladderMap 為 null</td></tr>
 <tr><td><code>ROOM_STATE</code> status=<code>revealing</code></td><td>ladderMap, resultSlots, revealedCount</td><td>梯子以 ladderMap 渲染完整結構；主持人出現揭曉控制面板；非主持人靜待揭曉</td></tr>
 <tr><td><code>ROOM_STATE</code> status=<code>finished</code></td><td>results, seed</td><td>切換至結果頁面；顯示得獎名單 + seed</td></tr>
-<tr><td><code>ROOM<em>STATE</em>FULL</code></td><td>完整 Room snapshot</td><td>重連恢復：依 status 渲染對應頁面（revealing 直接跳 final frame，不重播動畫）</td></tr>
+<tr><td><code>ROOM_STATE_FULL</code></td><td>完整 Room snapshot</td><td>重連恢復：依 status 渲染對應頁面（revealing 直接跳 final frame，不重播動畫）</td></tr>
 <tr><td><code>REVEAL_INDEX</code></td><td>index, result</td><td>播放對應玩家路徑動畫；更新揭曉進度計數</td></tr>
 <tr><td><code>REVEAL_ALL</code></td><td>revealData[]</td><td>同時播放所有剩餘路徑（壓縮時長）；2s 超時跳 final frame；房間仍維持 <code>revealing</code>，等待主持人點擊「結束本局」才轉 <code>finished</code></td></tr>
-<tr><td><code>SET<em>REVEAL</em>MODE</code> ack（<code>ROOM_STATE</code>）</td><td>mode, intervalSec</td><td>主持人控制面板切換手動 / 自動模式；自動模式顯示倒數秒數；intervalSec 不合法時顯示 error toast <code>INVALID<em>AUTO</em>REVEAL_INTERVAL</code></td></tr>
-<tr><td><code>UPDATE<em>TITLE</code> ack（<code>ROOM</em>STATE</code>）</td><td>title</td><td>StatusBar / 等待大廳標題即時更新；非主持人無感知（後端廣播 ROOM_STATE）</td></tr>
+<tr><td><code>SET_REVEAL_MODE</code> ack（<code>ROOM_STATE</code>）</td><td>mode, intervalSec</td><td>主持人控制面板切換手動 / 自動模式；自動模式顯示倒數秒數；intervalSec 不合法時顯示 error toast <code>INVALID_AUTO_REVEAL_INTERVAL</code></td></tr>
+<tr><td><code>UPDATE_TITLE</code> ack（<code>ROOM_STATE</code>）</td><td>title</td><td>StatusBar / 等待大廳標題即時更新；非主持人無感知（後端廣播 ROOM_STATE）</td></tr>
 <tr><td><code>PLAYER_KICKED</code></td><td>playerId</td><td>若 playerId === self：顯示 KickedScreen；否則 Toast info「X 已被移出」+ 玩家列表更新</td></tr>
 <tr><td><code>SESSION_REPLACED</code></td><td>—</td><td>顯示「連線已被取代」提示，關閉舊連線</td></tr>
 <tr><td><code>ERROR</code></td><td>code, message</td><td>Toast 顯示 message；依 code 決定是否阻塞操作（見 8.3 錯誤碼映射）</td></tr>

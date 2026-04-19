@@ -116,6 +116,7 @@ body {
   width: 100%;
   min-height: calc(100vh - var(--nav-h) - 7rem);
   align-items: start;
+  transition: grid-template-columns 200ms ease;
 }
 
 /* ─── Sidebar ────────────────────────────────────── */
@@ -257,7 +258,14 @@ body {
 /* ─── Sidebar Collapsed State ────────────────── */
 .page-wrapper.sidebar-collapsed { grid-template-columns: 0 4px 1fr; }
 .page-wrapper.sidebar-collapsed .sidebar {
-  overflow: hidden; min-width: 0; padding: 0; border: none;
+  overflow: hidden; min-width: 0; width: 0; padding: 0; border: none; visibility: hidden;
+}
+
+/* ─── Badge Fallback ─────────────────────────── */
+.badge-fallback {
+  display: inline-block; padding: 2px 8px; font-size: 0.75rem;
+  font-family: var(--font-mono); background: #e1e4e8;
+  border-radius: 4px; color: var(--text-muted); vertical-align: middle;
 }
 
 /* Responsive */

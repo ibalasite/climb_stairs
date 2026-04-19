@@ -109,7 +109,7 @@
 <tr><td><code>presentation/routes/players.ts</code></td><td>處理玩家 HTTP 路由（POST /rooms/:code/players、DELETE /rooms/:code/players/:id）</td></tr>
 <tr><td><code>presentation/schemas/</code></td><td>定義 Fastify AJV JSON Schema，對所有 HTTP 請求/回應做格式驗證</td></tr>
 <tr><td><code>application/services/RoomService.ts</code></td><td>協調房間建立、加入、踢出等業務流程，呼叫 RoomRepository 並發布 ROOM_STATE 廣播</td></tr>
-<tr><td><code>application/services/GameService.ts</code></td><td>協調遊戲開局（START<em>GAME，僅生成 seedSource，不生成梯子）、開始揭示（BEGIN</em>REVEAL，<code>running → revealing</code>，<strong>此時才原子生成 LadderData + ResultSlots</strong>）、逐一揭示（REVEAL<em>NEXT）、全揭（REVEAL</em>ALL<em>TRIGGER）、結束（END</em>GAME，<code>revealing → finished</code>，seed 首次公開）、再玩一局（PLAY<em>AGAIN，取代 RESET</em>ROOM）流程，呼叫 GenerateLadder/ComputeResults 並觸發廣播</td></tr>
+<tr><td><code>application/services/GameService.ts</code></td><td>協調遊戲開局（START_GAME，僅生成 seedSource，不生成梯子）、開始揭示（BEGIN_REVEAL，<code>running → revealing</code>，<strong>此時才原子生成 LadderData + ResultSlots</strong>）、逐一揭示（REVEAL_NEXT）、全揭（REVEAL_ALL_TRIGGER）、結束（END_GAME，<code>revealing → finished</code>，seed 首次公開）、再玩一局（PLAY_AGAIN，取代 RESET_ROOM）流程，呼叫 GenerateLadder/ComputeResults 並觸發廣播</td></tr>
 <tr><td><code>application/handlers/WsMessageHandler.ts</code></td><td>解析 ClientEnvelope，執行<strong>二次</strong> role + room.hostId 驗證（主要 JWT 簽章驗證已在 WsServer.handleUpgrade 完成），分派至對應 Service 方法</td></tr>
 <tr><td><code>application/handlers/PubSubHandler.ts</code></td><td>訂閱 Redis <code>room:*:events</code> 頻道，將收到的 PubSubMessage 轉發至房間內所有本地 WsSession</td></tr>
 <tr><td><code>infrastructure/redis/RedisClient.ts</code></td><td>建立並匯出 ioredis 單例（含連線重試設定）</td></tr>
@@ -122,7 +122,7 @@
 <p>Pod 本地記憶體中存在兩種 <code>setTimeout</code>/<code>setInterval</code> 計時器，其所有者與恢復策略如下：</p>
 <table>
 <tr><th>計時器</th><th>所有者模組</th><th>觸發條件</th><th>Pod 重啟後恢復</th></tr>
-<tr><td>auto-reveal interval</td><td><code>GameService</code>（靜態 Map <code>roomCode → NodeJS.Timeout</code>）</td><td>SET<em>REVEAL</em>MODE mode=auto；intervalSec 1-30s</td><td>重連客戶端收到 ROOM<em>STATE</em>FULL（status=revealing）後，Host 須重新送 SET<em>REVEAL</em>MODE 恢復計時；服務端<strong>不</strong>自動恢復計時，以避免幽靈計時器。<strong>客戶端恢復觸發機制：</strong> Client 收到 ROOM<em>STATE</em>FULL 且 <code>autoRevealActive === true</code>（payload 欄位）時，Host UI 顯示「重新啟動自動揭示」提示並自動重發 SET<em>REVEAL</em>MODE；非 Host 客戶端無需操作</td></tr>
+<tr><td>auto-reveal interval</td><td><code>GameService</code>（靜態 Map <code>roomCode → NodeJS.Timeout</code>）</td><td>SET_REVEAL_MODE mode=auto；intervalSec 1-30s</td><td>重連客戶端收到 ROOM_STATE_FULL（status=revealing）後，Host 須重新送 SET_REVEAL_MODE 恢復計時；服務端<strong>不</strong>自動恢復計時，以避免幽靈計時器。<strong>客戶端恢復觸發機制：</strong> Client 收到 ROOM_STATE_FULL 且 <code>autoRevealActive === true</code>（payload 欄位）時，Host UI 顯示「重新啟動自動揭示」提示並自動重發 SET_REVEAL_MODE；非 Host 客戶端無需操作</td></tr>
 <tr><td>(Out of Scope for MVP) host-transfer grace（60s）</td><td><code>WsSession</code>（<code>disconnect</code> event 觸發，Timer ID 存於 Session）</td><td>WS close event（host 斷線）；playerId === room.hostId</td><td>重啟後 timer 消失；若 host 60s 內未重連，下一個連線至該房間的請求（心跳或新訊息）觸發 GameService 補跑 hostTransferIfNeeded() 邏輯（檢查 room.hostId.isOnline === false 且 updatedAt + 60s &lt; now）</td></tr>
 </table>
 <p><strong>設計決策：</strong> 計時器不序列化至 Redis，以保持 Pod 無狀態。Pod 重啟後，auto-reveal 依賴 Host 主動恢復，host-transfer 依賴下一個到達事件補跑。此為 MVP 單 Pod 下可接受的 trade-off；Post-MVP 多 Pod 時，計時器只在擁有 Host Session 的 Pod 上存在，廣播仍透過 Pub/Sub 正確傳遞。</p>
@@ -144,7 +144,7 @@
 <p><strong>決策：</strong> 每個 Pod SUBSCRIBE <code>room:*:events</code>，任一 Pod 觸發事件時 PUBLISH 至對應頻道，所有 Pod 的 PubSubHandler 負責轉發至本地 WsSession。</p>
 <p><strong>理由：</strong></p>
 <ul><li>Redis 是唯一共享狀態層，Pub/Sub 不需要引入第三方訊息佇列（Kafka、RabbitMQ）即可完成 Pod 間廣播。</li><li><code>room:*:events</code> pattern subscription 確保新房間自動被訂閱，無需手動管理 channel 清單。</li><li>MVP 為單實例，Pub/Sub 退化為本地呼叫，overhead 可忽略。</li></ul>
-<p><strong>取捨：</strong> Redis Pub/Sub 為 at-most-once 語意，訊息不持久化；若 Pod 在 PUBLISH 後崩潰，尚未收到廣播的客戶端需依賴 WS 重連後的 ROOM<em>STATE</em>FULL 補齊狀態。</p>
+<p><strong>取捨：</strong> Redis Pub/Sub 為 at-most-once 語意，訊息不持久化；若 Pod 在 PUBLISH 後崩潰，尚未收到廣播的客戶端需依賴 WS 重連後的 ROOM_STATE_FULL 補齊狀態。</p>
 <hr>
 <h3>4.4 不使用 ORM</h3>
 <p><strong>決策：</strong> 直接使用 ioredis 命令，Room 以 JSON 字串儲存於單一 Redis key。</p>
@@ -172,7 +172,7 @@
 <ul><li>PRD NFR-02 目標 5,000 WS 連線（100 房 × 50 人）在單實例 Node.js 上可達成。</li><li>避免 MVP 過早投入 sticky session、Nginx affinity、Redis Sentinel 等複雜度。</li><li>架構已預留多 Pod 設計（Pub/Sub、RoomRepository 無本地狀態）：Post-MVP 啟用 HPA 只需改 k8s manifest。</li></ul>
 <p><strong>取捨：</strong> 單實例無高可用；Pod 重啟期間所有 WS 連線中斷，客戶端依賴指數退避重連恢復。</p>
 <p><strong>Redis 失敗降級策略（MVP）：</strong> Redis 單節點是 MVP SPOF。當 ioredis <code>error</code> 事件觸發（連線斷開）時：</p>
-<ul><li><code>RoomRepository</code> 所有方法拋出 <code>SYS<em>REDIS</em>ERROR</code>，由 Application 層捕捉後對觸發方 WS Session 發送 <code>ERROR { code: &quot;SYS<em>REDIS</em>ERROR&quot; }</code> 並保持連線。</li><li>新的 HTTP 加入請求（POST /rooms/:code/players）回傳 <code>503 Service Unavailable</code>。</li><li><code>GET /api/v1/health</code> 回傳 <code>{ redis: &quot;error&quot; }</code> 讓 Kubernetes readinessProbe 立即將 Pod 移出 Service endpoints，避免繼續接收流量。</li><li>ioredis 內建指數退避重連（<code>retryStrategy</code>），Redis 重啟後自動恢復；WS 客戶端透過重連收到最新 ROOM<em>STATE</em>FULL。</li></ul>
+<ul><li><code>RoomRepository</code> 所有方法拋出 <code>SYS_REDIS_ERROR</code>，由 Application 層捕捉後對觸發方 WS Session 發送 <code>ERROR { code: &quot;SYS_REDIS_ERROR&quot; }</code> 並保持連線。</li><li>新的 HTTP 加入請求（POST /rooms/:code/players）回傳 <code>503 Service Unavailable</code>。</li><li><code>GET /api/v1/health</code> 回傳 <code>{ redis: &quot;error&quot; }</code> 讓 Kubernetes readinessProbe 立即將 Pod 移出 Service endpoints，避免繼續接收流量。</li><li>ioredis 內建指數退避重連（<code>retryStrategy</code>），Redis 重啟後自動恢復；WS 客戶端透過重連收到最新 ROOM_STATE_FULL。</li></ul>
 <p><strong>Post-MVP Redis HA：</strong> 升級路徑為 Redis Sentinel（單 master + replica 自動 failover）或 Redis Cluster（分片）；PubSubBroker 改用 ioredis Cluster/Sentinel 模式，業務邏輯無需修改。</p>
 <hr>
 <h2>5. 依賴注入 (DI) 設計</h2>
@@ -231,7 +231,7 @@ Key TTL:
   status=finished         → seed 首次對客戶端公開（含於 ROOM_STATE 廣播，PRD AC-H03-1, NFR-05）</code></pre>
 <p><strong><code>revealedCount</code> 雙欄位說明（一致性關鍵）：</strong></p>
 <p><code>room:{code}:revealedCount</code> Redis key 是唯一計數真相來源，以 INCR 保證原子性。Room JSON 內的 <code>revealedCount</code> 欄位是快照值，<strong>僅</strong>在下列時機同步寫入：</p>
-<ol><li>START_GAME MULTI/EXEC：在 Room JSON 內置 0，同時 DEL <code>room:{code}:revealedCount</code>（或 SET 0）。</li><li>REVEAL_NEXT 流程（見第 7.1 節）：先 INCR 取得 <code>newCount</code>，再以 MULTI/EXEC 原子更新 Room JSON（<code>room.revealedCount = newCount</code>）與 PUBLISH，確保 JSON 與 INCR key 同步。</li><li>ROOM<em>STATE</em>FULL（重連）：GameService 在組裝 payload 前，以 <code>GET room:{code}:revealedCount</code> 取最新值覆蓋 Room JSON 的 <code>revealedCount</code> 欄位後再回傳。</li></ol>
+<ol><li>START_GAME MULTI/EXEC：在 Room JSON 內置 0，同時 DEL <code>room:{code}:revealedCount</code>（或 SET 0）。</li><li>REVEAL_NEXT 流程（見第 7.1 節）：先 INCR 取得 <code>newCount</code>，再以 MULTI/EXEC 原子更新 Room JSON（<code>room.revealedCount = newCount</code>）與 PUBLISH，確保 JSON 與 INCR key 同步。</li><li>ROOM_STATE_FULL（重連）：GameService 在組裝 payload 前，以 <code>GET room:{code}:revealedCount</code> 取最新值覆蓋 Room JSON 的 <code>revealedCount</code> 欄位後再回傳。</li></ol>
 <p>如此可避免 INCR 成功但 JSON SET 失敗造成的 split-brain。</p>
 <h3>6.2 記憶體中保存的內容</h3>
 <pre><code class="">Pod 本地記憶體（重啟後消失）：
@@ -245,16 +245,16 @@ Key TTL:
     - 維護：連線時 set，斷線時 delete；若同一 playerId 新連線建立，覆蓋舊值後關閉舊 Session（SESSION_REPLACED）
 
   PubSubBroker 的訂閱 socket（ioredis duplicate connection）</code></pre>
-<p><strong>設計決策：</strong> WsSessionMap 存記憶體而非 Redis，因 WebSocket socket 物件本身無法序列化。使用雙索引（sessionId 主索引 + playerId 副索引）可避免 O(n) 線性掃描；廣播時 PubSubHandler 依 roomCode 篩選本地 WsSession 集合，SESSION<em>REPLACED / KICK</em>PLAYER 透過 PlayerSessionIndex 做 O(1) 定址。</p>
+<p><strong>設計決策：</strong> WsSessionMap 存記憶體而非 Redis，因 WebSocket socket 物件本身無法序列化。使用雙索引（sessionId 主索引 + playerId 副索引）可避免 O(n) 線性掃描；廣播時 PubSubHandler 依 roomCode 篩選本地 WsSession 集合，SESSION_REPLACED / KICK_PLAYER 透過 PlayerSessionIndex 做 O(1) 定址。</p>
 <h3>6.3 一致性保證</h3>
 <table>
 <tr><th>操作</th><th>一致性機制</th></tr>
 <tr><td>START_GAME</td><td>WATCH + MULTI/EXEC；EXEC null → 重試最多 3 次；同時 DEL revealedCount key；<strong>不生成梯子，不廣播 seed</strong></td></tr>
 <tr><td>BEGIN_REVEAL</td><td>Lua Script 原子執行：GenerateLadder/ComputeResults 在應用層計算，Lua 原子寫入 ladder/results/status=revealing；同時 DEL revealedCount key</td></tr>
 <tr><td>END_GAME</td><td>WATCH + MULTI/EXEC：status → finished；成功後廣播含 seed 的 ROOM_STATE；Redis TTL 延長至 1h</td></tr>
-<tr><td>PLAY<em>AGAIN（取代 RESET</em>ROOM）</td><td>WATCH + MULTI/EXEC 原子更新整包 Room JSON；清空 ladder/kickedPlayerIds/revealedCount</td></tr>
+<tr><td>PLAY_AGAIN（取代 RESET_ROOM）</td><td>WATCH + MULTI/EXEC 原子更新整包 Room JSON；清空 ladder/kickedPlayerIds/revealedCount</td></tr>
 <tr><td>REVEAL_NEXT（revealedCount 遞增）</td><td>先 INCR 取得 newCount，再 WATCH + MULTI/EXEC 將 newCount 寫入 Room JSON 並 PUBLISH；三步操作確保 JSON 與 INCR key 同步（若 EXEC null 則重試，最多 3 次）</td></tr>
-<tr><td>ROOM<em>STATE</em>FULL（重連）</td><td>GameService 以 GET room:{code}:revealedCount 取最新值覆蓋 Room JSON 的快照後再組裝 payload；revealing 狀態回傳 LadderDataPublic（省略 seed）</td></tr>
+<tr><td>ROOM_STATE_FULL（重連）</td><td>GameService 以 GET room:{code}:revealedCount 取最新值覆蓋 Room JSON 的快照後再組裝 payload；revealing 狀態回傳 LadderDataPublic（省略 seed）</td></tr>
 <tr><td>玩家加入/離線</td><td>以 Room JSON 整包 SET，配合 WATCH 防止 lost update</td></tr>
 </table>
 <hr>
@@ -282,7 +282,7 @@ Key TTL:
   readonly excludeSessionId?: string;       // 排除觸發方（避免重複收訊）
 }</code></pre>
 <h3>7.3 訂閱拓撲</h3>
-<ul><li>每個 Pod 啟動時建立一條獨立的 ioredis 連線（<code>redis.duplicate()</code>）並 PSUBSCRIBE <code>room:*:events</code></li><li>Pattern subscription 確保新建房間頻道無需手動 SUBSCRIBE</li><li>MVP 單 Pod 時 PUBLISH 觸發自身訂閱，行為與多 Pod 完全一致（零差異）</li><li>PUBLISH 失敗時進行指數退避重試（100ms / 200ms / 400ms）；三次失敗後觸發 critical alert（以 <code>pino.error</code> 輸出 <code>{ event: &quot;PUBSUB<em>PUBLISH</em>FAILED&quot;, roomCode, attempt: 3 }</code> JSON 日誌，由 fluent-bit 傳遞至集中 log 系統；生產環境另設 Prometheus counter <code>pubsub<em>publish</em>failed_total</code> 供 Alertmanager 觸發 PagerDuty 告警）</li></ul>
+<ul><li>每個 Pod 啟動時建立一條獨立的 ioredis 連線（<code>redis.duplicate()</code>）並 PSUBSCRIBE <code>room:*:events</code></li><li>Pattern subscription 確保新建房間頻道無需手動 SUBSCRIBE</li><li>MVP 單 Pod 時 PUBLISH 觸發自身訂閱，行為與多 Pod 完全一致（零差異）</li><li>PUBLISH 失敗時進行指數退避重試（100ms / 200ms / 400ms）；三次失敗後觸發 critical alert（以 <code>pino.error</code> 輸出 <code>{ event: &quot;PUBSUB_PUBLISH_FAILED&quot;, roomCode, attempt: 3 }</code> JSON 日誌，由 fluent-bit 傳遞至集中 log 系統；生產環境另設 Prometheus counter <code>pubsub_publish_failed_total</code> 供 Alertmanager 觸發 PagerDuty 告警）</li></ul>
 <hr>
 <h2>8. 安全邊界</h2>
 <div class="diagram-container"><pre class="mermaid">graph TD
@@ -341,7 +341,7 @@ services:
 <tr><td>Redis</td><td>StatefulSet 兩副本（master + replica）</td><td>單節點</td></tr>
 <tr><td>水平擴展</td><td>HPA（Post-MVP）；MVP 固定 replicas: 1</td><td>無</td></tr>
 <tr><td>Sticky Session</td><td>Nginx <code>nginx.ingress.kubernetes.io/affinity: cookie</code>；<strong>MVP 即部署此 annotation</strong>（replicas:1 下為 no-op，但確保 HPA 啟用時無需改 manifest）</td><td>無需要</td></tr>
-<tr><td>Secrets</td><td>k8s Secret（JWT<em>SECRET、REDIS</em>PASSWORD）</td><td><code>.env</code> 檔案</td></tr>
+<tr><td>Secrets</td><td>k8s Secret（JWT_SECRET、REDIS_PASSWORD）</td><td><code>.env</code> 檔案</td></tr>
 <tr><td>Log</td><td>pino JSON → fluent-bit DaemonSet → 集中 log 系統</td><td>終端機輸出</td></tr>
 <tr><td>監控</td><td>Prometheus + <code>/metrics</code> port 8080</td><td>無</td></tr>
 <tr><td>Image</td><td>Distroless Node.js 20（distroless/nodejs20-debian12）</td><td>Node.js 直接執行</td></tr>
@@ -372,7 +372,7 @@ services:
 <p>&gt;</p>
 <blockquote><p>MVP manifest 已包含 Nginx affinity annotation（no-op 於單 Pod），確保升級 Post-MVP 時不需修改 Ingress 設定。</p></blockquote>
 <p><strong>有序升級步驟（避免生產中斷）：</strong></p>
-<ol><li><strong>先升級 Redis</strong>：將 Redis StatefulSet <code>replicas</code> 從 1 改為 2，等待 replica 同步完成再繼續。</li><li><strong>驗證 Pub/Sub</strong>：部署前確認 <code>prom-client</code> 已暴露 <code>ws<em>active</em>connections</code> Gauge（main.ts 已預留）。</li><li><strong>Deployment 啟用多 Pod</strong>：移除固定 <code>replicas: 1</code>，新增 HPA 資源（minReplicas: 2, maxReplicas: 10, metric: ws<em>active</em>connections 目標 200）。</li><li><strong>確認 Ingress affinity</strong>：<code>nginx.ingress.kubernetes.io/affinity: cookie</code>（MVP 已設定，此步驟確認即可）。</li><li><strong>滾動更新觀察</strong>：在 Pod 滾動過程中，在線 WS 連線會因 Pod 更換而中斷；客戶端指數退避重連後收到 ROOM<em>STATE</em>FULL 恢復狀態（Redis 狀態不受 Pod 重啟影響）。</li><li><strong>Pub/Sub 驗證</strong>：部署後確認跨 Pod 廣播正常（可用 k6 模擬兩 Pod 上各有玩家的房間執行 REVEAL_NEXT）。</li></ol>
+<ol><li><strong>先升級 Redis</strong>：將 Redis StatefulSet <code>replicas</code> 從 1 改為 2，等待 replica 同步完成再繼續。</li><li><strong>驗證 Pub/Sub</strong>：部署前確認 <code>prom-client</code> 已暴露 <code>ws_active_connections</code> Gauge（main.ts 已預留）。</li><li><strong>Deployment 啟用多 Pod</strong>：移除固定 <code>replicas: 1</code>，新增 HPA 資源（minReplicas: 2, maxReplicas: 10, metric: ws_active_connections 目標 200）。</li><li><strong>確認 Ingress affinity</strong>：<code>nginx.ingress.kubernetes.io/affinity: cookie</code>（MVP 已設定，此步驟確認即可）。</li><li><strong>滾動更新觀察</strong>：在 Pod 滾動過程中，在線 WS 連線會因 Pod 更換而中斷；客戶端指數退避重連後收到 ROOM_STATE_FULL 恢復狀態（Redis 狀態不受 Pod 重啟影響）。</li><li><strong>Pub/Sub 驗證</strong>：部署後確認跨 Pod 廣播正常（可用 k6 模擬兩 Pod 上各有玩家的房間執行 REVEAL_NEXT）。</li></ol>
 <hr>
 <p><em>ARCH 版本：v1.3</em></p>
 <p><em>生成時間：2026-04-19</em></p>
@@ -381,9 +381,9 @@ services:
 <p><em>修訂時間：2026-04-19（STEP-08 Round 1：P1 × 1、P2 × 4、P3 × 2 修正）</em></p>
 <p><em>修訂時間：2026-04-19（STEP-08 Round 2：P3 × 1 修正—補充 REDIS_PASSWORD 環境變數說明）</em></p>
 <p><em>修訂重點（v1.2 vs v1.1）：</em></p>
-<p><em>1. GameService 職責描述更新：BEGIN<em>REVEAL 才原子生成 LadderData，END</em>GAME 新增，PLAY<em>AGAIN 取代 RESET</em>ROOM</em></p>
+<p><em>1. GameService 職責描述更新：BEGIN_REVEAL 才原子生成 LadderData，END_GAME 新增，PLAY_AGAIN 取代 RESET_ROOM</em></p>
 <p><em>2. Redis Key Schema 補充 room:{code}:ladder 說明（BEGIN_REVEAL 時才創建）及 seed 公開時機安全邊界</em></p>
-<p><em>3. 一致性保證表新增 BEGIN<em>REVEAL（Lua Script）、END</em>GAME、PLAY<em>AGAIN；ROOM</em>STATE_FULL 說明 LadderDataPublic</em></p>
+<p><em>3. 一致性保證表新增 BEGIN_REVEAL（Lua Script）、END_GAME、PLAY_AGAIN；ROOM_STATE_FULL 說明 LadderDataPublic</em></p>
 <p><em>修訂重點（v1.3 vs v1.2）：</em></p>
 <p><em>4. Mermaid 依賴方向修正（PRES → APP，符合 Clean Architecture）</em></p>
 <p><em>5. WsMessageHandler 職責說明：明確標注「二次驗證」</em></p>

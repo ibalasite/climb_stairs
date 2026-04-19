@@ -173,7 +173,7 @@ room:ALPHA1:sessions</code></pre>
 }</code></pre>
 <p><code>room:ALPHA1:revealedCount</code> → <code>&quot;2&quot;</code> （已揭示 2 位玩家）</p>
 <p><code>room:ALPHA1:ladder</code> → <strong>BEGIN_REVEAL 時原子生成</strong>，此時已存在（含 seed、seedSource、segments、results）。</p>
-<ul><li><code>seed</code> 存在於 Redis，但 <code>ROOM<em>STATE</em>FULL</code> 以 <strong>LadderDataPublic</strong>（省略 seed/seedSource）傳送客戶端（PRD AC-H03-1, NFR-05）</li><li><code>seed</code> 至 END_GAME（status=finished）時才首次對客戶端公開</li></ul>
+<ul><li><code>seed</code> 存在於 Redis，但 <code>ROOM_STATE_FULL</code> 以 <strong>LadderDataPublic</strong>（省略 seed/seedSource）傳送客戶端（PRD AC-H03-1, NFR-05）</li><li><code>seed</code> 至 END_GAME（status=finished）時才首次對客戶端公開</li></ul>
 <hr>
 <h3>Stage 4: finished（全部揭示完畢）</h3>
 <pre><code class="language-json">{
@@ -409,7 +409,7 @@ type ResultSlotPublic = Omit&lt;ResultSlot, &#x27;path&#x27;&gt;;</code></pre>
 <tr><td><code>LadderData.rowCount</code></td><td><code>room:{code}:ladder</code></td><td>JSON 頂層 <code>rowCount</code> 欄位</td><td>LadderDataPublic 中保留</td></tr>
 <tr><td><code>LadderData.colCount</code></td><td><code>room:{code}:ladder</code></td><td>JSON 頂層 <code>colCount</code> 欄位</td><td>LadderDataPublic 中保留</td></tr>
 <tr><td><code>LadderData.segments[]</code></td><td><code>room:{code}:ladder</code></td><td>JSON 頂層 <code>segments</code> 陣列</td><td>LadderDataPublic 中保留</td></tr>
-<tr><td><code>LadderData.results[]</code></td><td><code>room:{code}:ladder</code></td><td>JSON 頂層 <code>results</code> 陣列</td><td>null 直到 <strong>BEGIN<em>REVEAL</strong>（非 START</em>GAME）；BEGIN_REVEAL 時原子填入</td></tr>
+<tr><td><code>LadderData.results[]</code></td><td><code>room:{code}:ladder</code></td><td>JSON 頂層 <code>results</code> 陣列</td><td>null 直到 <strong>BEGIN_REVEAL</strong>（非 START_GAME）；BEGIN_REVEAL 時原子填入</td></tr>
 <tr><td><code>ResultSlot.playerIndex</code></td><td><code>room:{code}:ladder</code></td><td><code>results[n].playerIndex</code></td><td></td></tr>
 <tr><td><code>ResultSlot.playerId</code></td><td><code>room:{code}:ladder</code></td><td><code>results[n].playerId</code></td><td>UUID v4</td></tr>
 <tr><td><code>ResultSlot.startCol</code></td><td><code>room:{code}:ladder</code></td><td><code>results[n].startCol</code></td><td>ResultSlotPublic 中保留</td></tr>
@@ -444,7 +444,7 @@ EVAL &quot;
 <hr>
 <h3>5.2 開始遊戲（<code>START_GAME</code>）</h3>
 <p><strong>需要原子性的原因</strong>：必須同時寫入 room status 與 seedSource，防止部分更新導致狀態不一致。</p>
-<p><strong>重要</strong>：START<em>GAME <strong>不生成梯子</strong>（LadderData、ResultSlots）。梯子在 BEGIN</em>REVEAL 時才原子生成（PRD AC-H03-1, NFR-05）。<code>room:{code}:ladder</code> 鍵在此步驟不存在。</p>
+<p><strong>重要</strong>：START_GAME <strong>不生成梯子</strong>（LadderData、ResultSlots）。梯子在 BEGIN_REVEAL 時才原子生成（PRD AC-H03-1, NFR-05）。<code>room:{code}:ladder</code> 鍵在此步驟不存在。</p>
 <pre><code class="language-redis">WATCH room:ALPHA1
 
 # 讀取當前狀態並驗證（status 必須為 waiting，請求者必須是 host，N&gt;=2，1&lt;=W&lt;=N-1）
@@ -533,10 +533,10 @@ MULTI
 EXEC
 # EXEC 返回 nil 時重試</code></pre>
 <hr>
-<h3>5.6 再玩一局（<code>PLAY<em>AGAIN</code>，取代舊版 <code>RESET</em>ROOM</code>）</h3>
+<h3>5.6 再玩一局（<code>PLAY_AGAIN</code>，取代舊版 <code>RESET_ROOM</code>）</h3>
 <p><strong>需要原子性的原因</strong>：必須原子地清除梯子資料、結果、計數器、踢除名單，並重設 players 狀態，避免重置中途有玩家讀取到半清空的狀態。</p>
 <p><strong>流程（對應 EDD §12.3）</strong>：</p>
-<ol><li>驗證 status === &#x27;finished&#x27;，請求者是 host</li><li>計算 onlinePlayers（過濾 isOnline=false）</li><li>若 onlinePlayers.length &lt; 2 → INSUFFICIENT<em>ONLINE</em>PLAYERS</li><li>若 winnerCount &gt;= onlinePlayers.length → winnerCount = null</li><li>kickedPlayerIds 清空（PRD AC-H07-5：被踢者可用新 playerId 重新加入）</li></ol>
+<ol><li>驗證 status === &#x27;finished&#x27;，請求者是 host</li><li>計算 onlinePlayers（過濾 isOnline=false）</li><li>若 onlinePlayers.length &lt; 2 → INSUFFICIENT_ONLINE_PLAYERS</li><li>若 winnerCount &gt;= onlinePlayers.length → winnerCount = null</li><li>kickedPlayerIds 清空（PRD AC-H07-5：被踢者可用新 playerId 重新加入）</li></ol>
 <pre><code class="language-redis">WATCH room:ALPHA1
 
 # 讀取當前 room，過濾掉離線玩家（prune offline players）
@@ -664,7 +664,7 @@ MULTI
 EXEC</code></pre>
 <hr>
 <h3>8.2 開始遊戲流程（START_GAME）</h3>
-<p><strong>注意</strong>：START<em>GAME 不生成梯子。梯子由 BEGIN</em>REVEAL 生成（見 §5.3-B）。</p>
+<p><strong>注意</strong>：START_GAME 不生成梯子。梯子由 BEGIN_REVEAL 生成（見 §5.3-B）。</p>
 <pre><code class="language-redis"># Step 1: 讀取並驗證
 WATCH room:ALPHA1
 GET room:ALPHA1
@@ -820,7 +820,7 @@ PUBLISH room:ALPHA1:events &quot;{type:&#x27;REVEAL_INDEX&#x27;, payload:{player
 <p><strong>關鍵原子性保證</strong>：INCR 本身是 O(1) 原子操作，保證多個 WS 連線同時觸發時每個 INCR 返回唯一遞增值，不存在兩個客戶端取得相同 index 的競態。status 轉換（revealing → finished）需由 Host 的 END_GAME 明確觸發（見 §5.4-B），不自動發生。</p>
 <hr>
 <h3>9.3 自動揭示計時器（Auto-Reveal Timer）</h3>
-<p><strong>前提</strong>：主持人發送 <code>SET<em>REVEAL</em>MODE { mode: &quot;auto&quot;, intervalSec: 3 }</code>，伺服器啟動計時器。</p>
+<p><strong>前提</strong>：主持人發送 <code>SET_REVEAL_MODE { mode: &quot;auto&quot;, intervalSec: 3 }</code>，伺服器啟動計時器。</p>
 <pre><code class="language-redis"># ── Step 1：切換模式時原子更新 room JSON ─────────────────────────
 WATCH room:ALPHA1
 GET room:ALPHA1
@@ -853,7 +853,7 @@ MULTI
   EXPIRE room:ALPHA1 86400
 EXEC
 # 應用層在 EXEC 成功後清除 setTimeout/setInterval handle</code></pre>
-<p><strong>邊界案例</strong>：計時器 tick 與 REVEAL<em>ALL</em>TRIGGER 的競態——兩者均觸發 INCR，INCR 保證原子，第一個 INCR 使 revealedCount == N（觸發 finished），第二個 INCR 返回 N+1，應用層偵測 &gt; N 後丟棄並記錄 warn log。</p>
+<p><strong>邊界案例</strong>：計時器 tick 與 REVEAL_ALL_TRIGGER 的競態——兩者均觸發 INCR，INCR 保證原子，第一個 INCR 使 revealedCount == N（觸發 finished），第二個 INCR 返回 N+1，應用層偵測 &gt; N 後丟棄並記錄 warn log。</p>
 <hr>
 <h3>9.4 主持人移交（Host Transfer）</h3>
 <p><strong>前提</strong>：當前主持人 <code>player-uuid-001</code> 斷線超過 60s，伺服器 grace timer 到期，選取下一位 <code>isOnline=true</code> 的玩家為新主持人。</p>
@@ -909,7 +909,7 @@ EXPIRE room:ALPHA1:revealedCount 300
 EXPIRE room:ALPHA1:kicked 300
 EXPIRE room:ALPHA1:sessions 300
 # 300s 後 Redis 自動回收所有鍵，無需主動清理</code></pre>
-<p><strong>場景 C：PLAY<em>AGAIN（再玩一局，取代 RESET</em>ROOM）部分清理</strong></p>
+<p><strong>場景 C：PLAY_AGAIN（再玩一局，取代 RESET_ROOM）部分清理</strong></p>
 <pre><code class="language-redis">WATCH room:ALPHA1
 GET room:ALPHA1
 # 應用層篩選 onlinePlayers，調整 winnerCount
@@ -928,7 +928,7 @@ EXEC
 <tr><th>使用案例</th><th>關鍵命令</th><th>複雜度</th><th>潛在瓶頸</th></tr>
 <tr><td>重連</td><td>SISMEMBER、GET × 3 pipeline、HSET、WATCH/MULTI/EXEC</td><td>O(1)</td><td>WATCH 重試（高並發房間）</td></tr>
 <tr><td>揭示下一位</td><td>INCR、GET、PUBLISH（不自動轉 finished）</td><td>O(1)</td><td>PUBLISH fan-out（50 訂閱者）</td></tr>
-<tr><td>自動揭示計時器</td><td>GET（模式確認）、INCR、WATCH/MULTI/EXEC</td><td>O(1)</td><td>計時器與 REVEAL<em>ALL</em>TRIGGER 競態</td></tr>
+<tr><td>自動揭示計時器</td><td>GET（模式確認）、INCR、WATCH/MULTI/EXEC</td><td>O(1)</td><td>計時器與 REVEAL_ALL_TRIGGER 競態</td></tr>
 <tr><td>主持人移交</td><td>WATCH/MULTI/EXEC、PUBLISH</td><td>O(1)</td><td>WATCH 競態（60s grace 期間並發寫入）</td></tr>
 <tr><td>房間清理</td><td>UNLINK × 5 / EXPIRE × 5 / DEL（在 MULTI 中）</td><td>O(1)</td><td>無（UNLINK 非同步）</td></tr>
 </table>
@@ -968,12 +968,12 @@ finished（降至 1h）
 <p><em>1. Stage 2 running 說明修正：梯子在 START_GAME 時尚未生成（room:{code}:ladder 不存在）</em></p>
 <p><em>2. Stage 3 revealing 說明新增：BEGIN_REVEAL 原子生成梯子；seed 存在 Redis 但以 LadderDataPublic 傳客戶端（省略 seed/seedSource）</em></p>
 <p><em>3. TypeScript 介面新增：LadderDataPublic（省略 seed）、ResultSlotPublic（省略 path）</em></p>
-<p><em>4. 欄位對應表更新：seed/seedSource 省略說明；results 填入時機改為 BEGIN<em>REVEAL（非 START</em>GAME）</em></p>
-<p><em>5. §5.2 START<em>GAME 修正：不寫入 ladder；新增 §5.3-B BEGIN</em>REVEAL（Lua Script）、§5.4-B END_GAME 原子操作</em></p>
-<p><em>6. §5.5 RESET<em>ROOM 重命名為 §5.6 PLAY</em>AGAIN；ladder 使用 DEL（非 SET &quot;&quot;）</em></p>
+<p><em>4. 欄位對應表更新：seed/seedSource 省略說明；results 填入時機改為 BEGIN_REVEAL（非 START_GAME）</em></p>
+<p><em>5. §5.2 START_GAME 修正：不寫入 ladder；新增 §5.3-B BEGIN_REVEAL（Lua Script）、§5.4-B END_GAME 原子操作</em></p>
+<p><em>6. §5.5 RESET_ROOM 重命名為 §5.6 PLAY_AGAIN；ladder 使用 DEL（非 SET &quot;&quot;）</em></p>
 <p><em>7. §8.2 開始遊戲流程修正：不寫入 ladder</em></p>
-<p><em>8. §9.2 揭示下一位修正：REVEAL<em>NEXT 後不自動轉 finished，等待 END</em>GAME</em></p>
-<p><em>9. §9.5 場景 C：RESET<em>ROOM 更名為 PLAY</em>AGAIN；ladder DEL 修正</em></p>
+<p><em>8. §9.2 揭示下一位修正：REVEAL_NEXT 後不自動轉 finished，等待 END_GAME</em></p>
+<p><em>9. §9.5 場景 C：RESET_ROOM 更名為 PLAY_AGAIN；ladder DEL 修正</em></p>
 <p><em>基於 EDD v1.3 + PRD v1.3（Ladder Room Online）</em></p></main>
   </div>
   <script type="module">

@@ -2,7 +2,7 @@
   "index.html": {
     "url": "index.html",
     "title": "首頁",
-    "excerpt": "Ladder Room Online — 線上多人爬樓梯抽獎\nstairs/actions/workflows/ci.yml\">stairs/actions/workflows/ci.yml/badge.svg\" alt=\"CI\"> \nHTML5 多人線上房間制爬樓梯抽獎遊戲。主持人建立房間，最多 "
+    "excerpt": "Ladder Room Online — 線上多人爬樓梯抽獎\n \nHTML5 多人線上房間制爬樓梯抽獎遊戲。主持人建立房間，最多 50 人同時參與，透過 WebSocket 即時同步遊戲狀態，HTML5 Canvas 渲染動態揭曉動畫。\n\n📋 專案說明\nLadder Room Online 是一款基"
   },
   "pdd.html": {
     "url": "pdd.html",

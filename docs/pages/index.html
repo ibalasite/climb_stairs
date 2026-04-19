@@ -41,7 +41,7 @@
     </aside>
     <div class="sidebar-resizer" id="sidebarResizer"></div>
     <main class="doc-content"><h1>Ladder Room Online — 線上多人爬樓梯抽獎</h1>
-<p><a href="https://github.com/ibalasite/climb</em>stairs/actions/workflows/ci.yml"><img src="https://github.com/ibalasite/climb<em>stairs/actions/workflows/ci.yml/badge.svg" alt="CI"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></p>
+<p><a href="https://github.com/ibalasite/climb_stairs/actions/workflows/ci.yml" target="_blank" rel="noopener"><img src="https://github.com/ibalasite/climb_stairs/actions/workflows/ci.yml/badge.svg" alt="CI" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{className:\'badge-fallback\',textContent:this.alt}))"></a> <a href="LICENSE" target="_blank" rel="noopener"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{className:\'badge-fallback\',textContent:this.alt}))"></a></p>
 <blockquote><p>HTML5 多人線上房間制爬樓梯抽獎遊戲。主持人建立房間，最多 50 人同時參與，透過 WebSocket 即時同步遊戲狀態，HTML5 Canvas 渲染動態揭曉動畫。</p></blockquote>
 <hr>
 <h2>📋 專案說明</h2>
@@ -49,7 +49,7 @@
 <ul><li>產品名稱：Ladder Room Online</li><li>版本：v2.2（對應產品 MVP v1）</li><li>產品類型：多人線上房間制抽獎／派對互動遊戲</li><li>核心玩法參考：LINE 爬樓梯遊戲</li><li>最多支援 50 名玩家同時連線</li></ul>
 <hr>
 <h2>✨ 核心功能</h2>
-<ul><li>玩家輸入暱稱並透過 6 碼房間碼加入房間（1.5 秒內進入等待畫面）</li><li>等待室即時顯示玩家列表（WebSocket 廣播，2 秒內更新）</li><li>主持人一鍵開始遊戲，伺服器即時生成爬梯結構</li><li>逐人揭曉（manual）或自動循序揭曉（auto）兩種模式</li><li>HTML5 Canvas 動態路徑動畫，突顯自己的爬梯路徑（桌機 ≥30 FPS、手機 ≥24 FPS）</li><li>主持人可踢出玩家，玩家可隨時重連（JWT 長效連線）</li><li>END<em>GAME 結束遊戲，PLAY</em>AGAIN 重置房間保留在線玩家</li><li>支援最多 50 人同時連線，Redis 原子操作保障一致性</li></ul>
+<ul><li>玩家輸入暱稱並透過 6 碼房間碼加入房間（1.5 秒內進入等待畫面）</li><li>等待室即時顯示玩家列表（WebSocket 廣播，2 秒內更新）</li><li>主持人一鍵開始遊戲，伺服器即時生成爬梯結構</li><li>逐人揭曉（manual）或自動循序揭曉（auto）兩種模式</li><li>HTML5 Canvas 動態路徑動畫，突顯自己的爬梯路徑（桌機 ≥30 FPS、手機 ≥24 FPS）</li><li>主持人可踢出玩家，玩家可隨時重連（JWT 長效連線）</li><li>END_GAME 結束遊戲，PLAY_AGAIN 重置房間保留在線玩家</li><li>支援最多 50 人同時連線，Redis 原子操作保障一致性</li></ul>
 <hr>
 <h2>🏗️ 系統架構</h2>
 <div class="diagram-container"><pre class="mermaid">graph TD
@@ -98,7 +98,7 @@
     TS --> |"HTTPS /api"| NginxHTTP
     NginxHTTP --> |"sticky session"| SVC
     NginxWS --> |"sticky session"| SVC</pre></div>
-<p>詳細設計：<a href="https://ibalasite.github.io/climb_stairs/edd.html">EDD — 工程設計文件</a></p>
+<p>詳細設計：<a href="https://ibalasite.github.io/climb_stairs/edd.html" target="_blank" rel="noopener">EDD — 工程設計文件</a></p>
 <hr>
 <h2>🛠️ 技術棧</h2>
 <p><code>ts-fastify-ws-redis-vanillajs-vite</code></p>
@@ -154,21 +154,21 @@ npm run dev --workspace=packages/server</code></pre>
 <tr><td><code>REDIS_HOST</code></td><td>Redis 主機位址</td><td>✅</td><td><code>localhost</code></td></tr>
 <tr><td><code>REDIS_PORT</code></td><td>Redis port</td><td>✅</td><td><code>6379</code></td></tr>
 <tr><td><code>REDIS_DB</code></td><td>Redis DB 編號</td><td>✅</td><td><code>0</code></td></tr>
-<tr><td><code>REDIS_PASSWORD</code></td><td>Redis 認證密碼</td><td>✅</td><td><code>REPLACE<em>WITH</em>STRONG_PASSWORD</code></td></tr>
-<tr><td><code>JWT_SECRET</code></td><td>JWT 簽名密鑰（至少 64 bytes hex）</td><td>✅</td><td><code>REPLACE<em>WITH</em>64<em>BYTE</em>HEX_SECRET</code></td></tr>
+<tr><td><code>REDIS_PASSWORD</code></td><td>Redis 認證密碼</td><td>✅</td><td><code>REPLACE_WITH_STRONG_PASSWORD</code></td></tr>
+<tr><td><code>JWT_SECRET</code></td><td>JWT 簽名密鑰（至少 64 bytes hex）</td><td>✅</td><td><code>REPLACE_WITH_64_BYTE_HEX_SECRET</code></td></tr>
 <tr><td><code>JWT_ALGORITHM</code></td><td>JWT 簽名演算法</td><td>✅</td><td><code>HS256</code></td></tr>
-<tr><td><code>JWT<em>TTL</em>SECONDS</code></td><td>JWT 有效期（秒）</td><td>✅</td><td><code>21600</code></td></tr>
-<tr><td><code>JWT<em>CLOCK</em>SKEW_SECONDS</code></td><td>JWT 時鐘偏移容忍值</td><td>✅</td><td><code>30</code></td></tr>
+<tr><td><code>JWT_TTL_SECONDS</code></td><td>JWT 有效期（秒）</td><td>✅</td><td><code>21600</code></td></tr>
+<tr><td><code>JWT_CLOCK_SKEW_SECONDS</code></td><td>JWT 時鐘偏移容忍值</td><td>✅</td><td><code>30</code></td></tr>
 <tr><td><code>ALLOWED_ORIGINS</code></td><td>CORS 允許來源（production 用）</td><td>✅</td><td><code>https://your-frontend-domain.com</code></td></tr>
-<tr><td><code>ROOM<em>TTL</em>SECONDS</code></td><td>房間最長存活時間（秒）</td><td>✅</td><td><code>86400</code></td></tr>
-<tr><td><code>ROOM<em>IDLE</em>EXPIRE_SECONDS</code></td><td>空閒房間過期時間（秒）</td><td>✅</td><td><code>300</code></td></tr>
-<tr><td><code>MAX<em>PLAYERS</em>PER_ROOM</code></td><td>每房間最大玩家數</td><td>✅</td><td><code>50</code></td></tr>
-<tr><td><code>WS<em>MAX</em>PAYLOAD_BYTES</code></td><td>WebSocket 最大訊息大小</td><td>✅</td><td><code>65536</code></td></tr>
-<tr><td><code>WS<em>RATE</em>LIMIT<em>PER</em>MIN</code></td><td>WebSocket 每分鐘訊息上限</td><td>✅</td><td><code>60</code></td></tr>
+<tr><td><code>ROOM_TTL_SECONDS</code></td><td>房間最長存活時間（秒）</td><td>✅</td><td><code>86400</code></td></tr>
+<tr><td><code>ROOM_IDLE_EXPIRE_SECONDS</code></td><td>空閒房間過期時間（秒）</td><td>✅</td><td><code>300</code></td></tr>
+<tr><td><code>MAX_PLAYERS_PER_ROOM</code></td><td>每房間最大玩家數</td><td>✅</td><td><code>50</code></td></tr>
+<tr><td><code>WS_MAX_PAYLOAD_BYTES</code></td><td>WebSocket 最大訊息大小</td><td>✅</td><td><code>65536</code></td></tr>
+<tr><td><code>WS_RATE_LIMIT_PER_MIN</code></td><td>WebSocket 每分鐘訊息上限</td><td>✅</td><td><code>60</code></td></tr>
 <tr><td><code>LOG_LEVEL</code></td><td>日誌級別（info / debug / warn / error）</td><td>✅</td><td><code>info</code></td></tr>
 <tr><td><code>LOG_PRETTY</code></td><td>開發用美化日誌輸出</td><td>✅</td><td><code>true</code></td></tr>
 </table>
-<p>完整說明：<a href=".env.example">.env.example</a></p>
+<p>完整說明：<a href=".env.example" target="_blank" rel="noopener">.env.example</a></p>
 <hr>
 <h2>📡 API 快速參考</h2>
 <table>
@@ -179,7 +179,7 @@ npm run dev --workspace=packages/server</code></pre>
 <tr><td><code>GET /health</code></td><td>Health check</td></tr>
 <tr><td><code>DELETE /api/rooms/:code/players/:playerId</code></td><td>踢除玩家（需主持人 token）</td></tr>
 </table>
-<p>📖 完整 API 文件：<a href="https://ibalasite.github.io/climb_stairs/api.html">docs/API.md</a></p>
+<p>📖 完整 API 文件：<a href="https://ibalasite.github.io/climb_stairs/api.html" target="_blank" rel="noopener">docs/API.md</a></p>
 <hr>
 <h2>📁 目錄結構</h2>
 <pre><code class="">climb_stairs/
@@ -200,16 +200,16 @@ npm run dev --workspace=packages/server</code></pre>
 <h2>📚 文件</h2>
 <table>
 <tr><th>文件</th><th>說明</th><th>HTML 線上版</th></tr>
-<tr><td><a href="docs/PDD.md">PDD</a></td><td>產品設計文件 — 目標、範疇、驗收標準</td><td><a href="https://ibalasite.github.io/climb_stairs/pdd.html">🌐</a></td></tr>
-<tr><td><a href="docs/PRD.md">PRD</a></td><td>產品需求文件 — User Stories、AC</td><td><a href="https://ibalasite.github.io/climb_stairs/prd.html">🌐</a></td></tr>
-<tr><td><a href="docs/EDD.md">EDD</a></td><td>工程設計文件 — 架構、技術選型</td><td><a href="https://ibalasite.github.io/climb_stairs/edd.html">🌐</a></td></tr>
-<tr><td><a href="docs/ARCH.md">ARCH</a></td><td>系統架構設計</td><td><a href="https://ibalasite.github.io/climb_stairs/arch.html">🌐</a></td></tr>
-<tr><td><a href="docs/API.md">API</a></td><td>API 文件 — Endpoints、WebSocket Events</td><td><a href="https://ibalasite.github.io/climb_stairs/api.html">🌐</a></td></tr>
-<tr><td><a href="docs/SCHEMA.md">SCHEMA</a></td><td>Redis Schema、Lua Scripts</td><td><a href="https://ibalasite.github.io/climb_stairs/schema.html">🌐</a></td></tr>
-<tr><td><a href="docs/DESIGN.md">DESIGN</a></td><td>前端 UI 規範、Canvas 座標系</td><td><a href="https://ibalasite.github.io/climb_stairs/design.html">🌐</a></td></tr>
-<tr><td><a href="features/">BDD</a></td><td>Gherkin Feature Files</td><td><a href="https://ibalasite.github.io/climb_stairs/bdd.html">🌐</a></td></tr>
+<tr><td><a href="docs/PDD.md" target="_blank" rel="noopener">PDD</a></td><td>產品設計文件 — 目標、範疇、驗收標準</td><td><a href="https://ibalasite.github.io/climb_stairs/pdd.html" target="_blank" rel="noopener">🌐</a></td></tr>
+<tr><td><a href="docs/PRD.md" target="_blank" rel="noopener">PRD</a></td><td>產品需求文件 — User Stories、AC</td><td><a href="https://ibalasite.github.io/climb_stairs/prd.html" target="_blank" rel="noopener">🌐</a></td></tr>
+<tr><td><a href="docs/EDD.md" target="_blank" rel="noopener">EDD</a></td><td>工程設計文件 — 架構、技術選型</td><td><a href="https://ibalasite.github.io/climb_stairs/edd.html" target="_blank" rel="noopener">🌐</a></td></tr>
+<tr><td><a href="docs/ARCH.md" target="_blank" rel="noopener">ARCH</a></td><td>系統架構設計</td><td><a href="https://ibalasite.github.io/climb_stairs/arch.html" target="_blank" rel="noopener">🌐</a></td></tr>
+<tr><td><a href="docs/API.md" target="_blank" rel="noopener">API</a></td><td>API 文件 — Endpoints、WebSocket Events</td><td><a href="https://ibalasite.github.io/climb_stairs/api.html" target="_blank" rel="noopener">🌐</a></td></tr>
+<tr><td><a href="docs/SCHEMA.md" target="_blank" rel="noopener">SCHEMA</a></td><td>Redis Schema、Lua Scripts</td><td><a href="https://ibalasite.github.io/climb_stairs/schema.html" target="_blank" rel="noopener">🌐</a></td></tr>
+<tr><td><a href="docs/DESIGN.md" target="_blank" rel="noopener">DESIGN</a></td><td>前端 UI 規範、Canvas 座標系</td><td><a href="https://ibalasite.github.io/climb_stairs/design.html" target="_blank" rel="noopener">🌐</a></td></tr>
+<tr><td><a href="features/" target="_blank" rel="noopener">BDD</a></td><td>Gherkin Feature Files</td><td><a href="https://ibalasite.github.io/climb_stairs/bdd.html" target="_blank" rel="noopener">🌐</a></td></tr>
 </table>
-<p>📖 <strong>完整文件網站</strong>：<a href="https://ibalasite.github.io/climb</em>stairs/">https://ibalasite.github.io/climb<em>stairs/</a></p>
+<p>📖 <strong>完整文件網站</strong>：<a href="https://ibalasite.github.io/climb_stairs/" target="_blank" rel="noopener">https://ibalasite.github.io/climb_stairs/</a></p>
 <hr>
 <h2>🧪 測試</h2>
 <pre><code class="language-bash"># 安裝依賴
@@ -222,19 +222,19 @@ npm test --workspace=packages/server
 # 測試覆蓋率
 npm run coverage --workspace=packages/shared
 npm run coverage --workspace=packages/server</code></pre>
-<p>測試覆蓋率目標：<strong>shared ≥ 90%　server ≥ 80%</strong>　CI 狀態：<a href="https://github.com/ibalasite/climb</em>stairs/actions/workflows/ci.yml"><img src="https://github.com/ibalasite/climb<em>stairs/actions/workflows/ci.yml/badge.svg" alt="CI"></a></p>
+<p>測試覆蓋率目標：<strong>shared ≥ 90%　server ≥ 80%</strong>　CI 狀態：<a href="https://github.com/ibalasite/climb_stairs/actions/workflows/ci.yml" target="_blank" rel="noopener"><img src="https://github.com/ibalasite/climb_stairs/actions/workflows/ci.yml/badge.svg" alt="CI" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{className:\'badge-fallback\',textContent:this.alt}))"></a></p>
 <hr>
 <h2>⚠️ 已知限制</h2>
 <ul><li>WebSocket 整合測試標記為 MANUAL（需真實 Redis 環境）</li><li><code>packages/client/</code> 前端 Vite 應用尚在開發中</li><li>k8s 部署需自行提供 <code>KUBECONFIG</code> secret</li></ul>
 <hr>
 <h2>📝 Changelog</h2>
-<p>完整版本歷程：<a href="https://github.com/ibalasite/climb_stairs/releases">GitHub Releases</a></p>
+<p>完整版本歷程：<a href="https://github.com/ibalasite/climb_stairs/releases" target="_blank" rel="noopener">GitHub Releases</a></p>
 <hr>
 <h2>📄 License</h2>
-<p>MIT License — 詳見 <a href="LICENSE">LICENSE</a></p>
+<p>MIT License — 詳見 <a href="LICENSE" target="_blank" rel="noopener">LICENSE</a></p>
 <hr>
 <h2>🤝 開發說明</h2>
-<p>本專案由 <a href="https://github.com/ibalasite/MYDEVSOP">MYDEVSOP AutoDev</a> 全自動生成，</p>
+<p>本專案由 <a href="https://github.com/ibalasite/MYDEVSOP" target="_blank" rel="noopener">MYDEVSOP AutoDev</a> 全自動生成，</p>
 <p>涵蓋 PRD / EDD / BDD / TDD / k8s / CI/CD / HTML 文件網站全流程。</p><section style="margin-top:3rem;padding:1.5rem;background:#fff;border:1px solid var(--border);border-radius:8px;"><h2 style="margin-top:0;border-bottom:none">📊 專案健康狀態</h2><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-top:1rem"><div style="text-align:center;padding:1rem;background:var(--page-bg);border-radius:6px"><div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.25rem">已完成 STEP</div><div style="font-size:1.5rem;font-weight:700;color:var(--accent)">0/20</div></div></div></section></main>
   </div>
   <script type="module">
