@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -27,14 +27,14 @@ jobs:
 
       - name: Verify pages directory exists
         run: |
-          if [ ! -d "pages" ]; then
-            echo "Error: pages/ directory not found. Run STEP-19 to generate HTML docs."
+          if [ ! -d "docs/pages" ]; then
+            echo "Error: docs/pages/ directory not found."
             exit 1
           fi
-          count=$(ls pages/*.html 2>/dev/null | wc -l)
-          echo "Found ${count} HTML pages"
+          count=$(ls docs/pages/*.html 2>/dev/null | wc -l)
+          echo "Found ${count} HTML pages in docs/pages/"
           if [ "$count" -lt 1 ]; then
-            echo "Error: No HTML files found in pages/"
+            echo "Error: No HTML files found in docs/pages/"
             exit 1
           fi
 
@@ -42,10 +42,10 @@ jobs:
         run: |
           required_pages=(index pdd prd edd arch api schema bdd)
           for page in "${required_pages[@]}"; do
-            if [ ! -f "pages/${page}.html" ]; then
-              echo "Warning: pages/${page}.html missing"
+            if [ ! -f "docs/pages/${page}.html" ]; then
+              echo "Warning: docs/pages/${page}.html missing"
             else
-              echo "OK: pages/${page}.html"
+              echo "OK: docs/pages/${page}.html"
             fi
           done
 
@@ -55,7 +55,7 @@ jobs:
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: pages/
+          path: docs/pages/
 
   deploy-pages:
     name: Deploy to GitHub Pages
