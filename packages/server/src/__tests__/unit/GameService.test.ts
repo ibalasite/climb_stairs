@@ -13,7 +13,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     colorIndex: 0,
     isHost: true,
     isOnline: true,
-    joinedAt: '2024-01-01T00:00:00.000Z',
+    joinedAt: 1713484800000,
     result: null,
     ...overrides,
   };
@@ -32,8 +32,8 @@ function makeRoom(overrides: Partial<Room> = {}): Room {
     revealMode: 'manual',
     autoRevealIntervalSec: null,
     kickedPlayerIds: [],
-    createdAt: '2024-01-01T00:00:00.000Z',
-    updatedAt: '2024-01-01T00:00:00.000Z',
+    createdAt: 1713484800000,
+    updatedAt: 1713484800000,
     ...overrides,
   };
 }
@@ -306,11 +306,16 @@ describe('GameService', () => {
       };
       const svc = new GameService(repo);
 
-      const { results: revealed } = await svc.revealAll('ABCD12', 'player-1');
+      const { results: revealed, room } = await svc.revealAll('ABCD12', 'player-1');
 
       // Only playerIndex 1 and 2 should remain (index 0 was already revealed)
       expect(revealed).toHaveLength(2);
       expect(revealed[0]?.playerIndex).toBe(1);
+      // Assert that getRevealedCount was called with the room code
+      expect(repo.getRevealedCount).toHaveBeenCalledWith('ABCD12');
+      // Structural validation: room should be finished with full revealedCount
+      expect(room.status).toBe('finished');
+      expect(room.revealedCount).toBe(3);
     });
   });
 
@@ -418,12 +423,45 @@ describe('GameService', () => {
       expect(room.results).toBeNull();
       expect(room.revealedCount).toBe(0);
     });
+
+    it('keeps offline host player when resetting, removes offline non-host players', async () => {
+      const players = [
+        makePlayer({ id: 'player-1', isHost: true, isOnline: true }),
+        makePlayer({ id: 'player-2', isHost: false, nickname: 'Bob', colorIndex: 1, isOnline: false }),
+        makePlayer({ id: 'player-3', isHost: false, nickname: 'Carol', colorIndex: 2, isOnline: true }),
+      ];
+      const repo = makeMockRepo({ status: 'finished', players });
+      const svc = new GameService(repo);
+
+      const room = await svc.resetRoom('ABCD12', 'player-1');
+
+      // Online host stays, offline non-host removed, online non-host stays
+      expect(room.players).toHaveLength(2);
+      expect(room.players.some((p) => p.id === 'player-1')).toBe(true);
+      expect(room.players.some((p) => p.id === 'player-2')).toBe(false);
+      expect(room.players.some((p) => p.id === 'player-3')).toBe(true);
+    });
+
+    it('sets winnerCount to null when old winnerCount >= new player count (AC-H02-3)', async () => {
+      // Start with winnerCount=5, but only 2 players remain after reset
+      const players = [
+        makePlayer({ id: 'player-1', isHost: true, isOnline: true }),
+        makePlayer({ id: 'player-2', isHost: false, nickname: 'Bob', colorIndex: 1, isOnline: true }),
+      ];
+      const repo = makeMockRepo({ status: 'finished', players, winnerCount: 5 });
+      const svc = new GameService(repo);
+
+      const room = await svc.resetRoom('ABCD12', 'player-1');
+
+      // winnerCount=5 >= 2 players, so it should be reset to null
+      expect(room.winnerCount).toBeNull();
+    });
   });
 
   // ── ROOM_NOT_FOUND ─────────────────────────────────────────────────────────
 
   describe('missing room', () => {
-    it('throws ROOM_NOT_FOUND when room does not exist', async () => {
+    it('throws ROOM_NOT_FOUND when room does not exist (startGame)', async () => {
       const repo: IRoomRepository = {
         ...makeMockRepo(),
         findByCode: vi.fn(async () => null),
@@ -433,6 +471,56 @@ describe('GameService', () => {
       await expect(svc.startGame('ZZZZZZ', 'player-1')).rejects.toSatisfy(
         (e: unknown) => e instanceof DomainError && e.code === 'ROOM_NOT_FOUND'
       );
+    });
+
+    it('throws ROOM_NOT_FOUND when room does not exist (beginReveal)', async () => {
+      const repo: IRoomRepository = {
+        ...makeMockRepo(),
+        findByCode: vi.fn(async () => null),
+      };
+      const svc = new GameService(repo);
+
+      await expect(svc.beginReveal('ZZZZZZ', 'player-1')).rejects.toMatchObject({ code: 'ROOM_NOT_FOUND' });
+    });
+
+    it('throws ROOM_NOT_FOUND when room does not exist (revealNext)', async () => {
+      const repo: IRoomRepository = {
+        ...makeMockRepo(),
+        findByCode: vi.fn(async () => null),
+      };
+      const svc = new GameService(repo);
+
+      await expect(svc.revealNext('ZZZZZZ', 'player-1')).rejects.toMatchObject({ code: 'ROOM_NOT_FOUND' });
+    });
+
+    it('throws ROOM_NOT_FOUND when room does not exist (revealAll)', async () => {
+      const repo: IRoomRepository = {
+        ...makeMockRepo(),
+        findByCode: vi.fn(async () => null),
+      };
+      const svc = new GameService(repo);
+
+      await expect(svc.revealAll('ZZZZZZ', 'player-1')).rejects.toMatchObject({ code: 'ROOM_NOT_FOUND' });
+    });
+
+    it('throws ROOM_NOT_FOUND when room does not exist (resetRoom)', async () => {
+      const repo: IRoomRepository = {
+        ...makeMockRepo(),
+        findByCode: vi.fn(async () => null),
+      };
+      const svc = new GameService(repo);
+
+      await expect(svc.resetRoom('ZZZZZZ', 'player-1')).rejects.toMatchObject({ code: 'ROOM_NOT_FOUND' });
+    });
+
+    it('throws ROOM_NOT_FOUND when room does not exist (kickPlayer)', async () => {
+      const repo: IRoomRepository = {
+        ...makeMockRepo(),
+        findByCode: vi.fn(async () => null),
+      };
+      const svc = new GameService(repo);
+
+      await expect(svc.kickPlayer('ZZZZZZ', 'player-1', 'player-2')).rejects.toMatchObject({ code: 'ROOM_NOT_FOUND' });
     });
   });
 });

@@ -158,12 +158,19 @@ export class GameService {
     // Reset player results
     const resetPlayers = onlinePlayers.map((p) => ({ ...p, result: null }));
 
+    // AC-H02-3: if the old winnerCount would be invalid for the new player count,
+    // null it out so the host must re-configure before starting.
+    const newPlayerCount = onlinePlayers.length;
+    const adjustedWinnerCount =
+      room.winnerCount !== null && room.winnerCount >= newPlayerCount ? null : room.winnerCount;
+
     return this.repo.update(roomCode, {
       status: 'waiting',
       ladder: null,
       results: null,
       revealedCount: 0,
       players: resetPlayers,
+      winnerCount: adjustedWinnerCount,
     });
   }
 

@@ -13,7 +13,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     colorIndex: 0,
     isHost: true,
     isOnline: true,
-    joinedAt: '2024-01-01T00:00:00.000Z',
+    joinedAt: 1713484800000,
     result: null,
     ...overrides,
   };
@@ -32,8 +32,8 @@ function makeRoom(overrides: Partial<Room> = {}): Room {
     revealMode: 'manual',
     autoRevealIntervalSec: null,
     kickedPlayerIds: [],
-    createdAt: '2024-01-01T00:00:00.000Z',
-    updatedAt: '2024-01-01T00:00:00.000Z',
+    createdAt: 1713484800000,
+    updatedAt: 1713484800000,
     ...overrides,
   };
 }
@@ -121,6 +121,7 @@ describe('RoomService', () => {
       expect(room.players[0]?.nickname).toBe('Alice');
       expect(room.players[0]?.isHost).toBe(true);
       expect(room.players[0]?.colorIndex).toBe(0);
+      expect(room.players[0]?.isOnline).toBe(true);
       expect(room.ladder).toBeNull();
       expect(room.results).toBeNull();
     });
@@ -165,6 +166,16 @@ describe('RoomService', () => {
       );
     });
 
+    it('accepts a decimal winnerCount (no integer enforcement in domain layer)', async () => {
+      // RoomService only enforces >= 1; decimal values like 1.9 are stored as-is.
+      // If integer enforcement is required, it should be added to the validation layer.
+      const repo = makeMockRepo();
+      const svc = new RoomService(repo);
+
+      const { room } = await svc.createRoom('Alice', 1.9);
+      expect(room.winnerCount).toBe(1.9);
+    });
+
     it('throws INVALID_NICKNAME when nickname contains injection characters', async () => {
       const repo = makeMockRepo();
       const svc = new RoomService(repo);
@@ -180,16 +191,19 @@ describe('RoomService', () => {
     it('throws CODE_COLLISION when all code generation attempts collide', async () => {
       // Repo always returns an existing room, forcing every attempt to fail
       const existingRoom = makeRoom();
+      const findByCode = vi.fn(async () => existingRoom);
       const repo: IRoomRepository = {
         ...makeMockRepo(existingRoom),
         // Always return a non-null room to simulate code collision on every attempt
-        findByCode: vi.fn(async () => existingRoom),
+        findByCode,
       };
       const svc = new RoomService(repo);
 
       await expect(svc.createRoom('Alice', 1)).rejects.toSatisfy(
         (e: unknown) => e instanceof DomainError && e.code === 'CODE_COLLISION'
       );
+      // All 10 attempts should have been made before giving up
+      expect(findByCode).toHaveBeenCalledTimes(10);
     });
 
     it('stores the host player with isHost=true', async () => {
@@ -211,6 +225,13 @@ describe('RoomService', () => {
       await expect(svc.joinRoom('ABCD12', '')).rejects.toSatisfy(
         (e: unknown) => e instanceof DomainError && e.code === 'INVALID_NICKNAME'
       );
+    });
+
+    it('throws INVALID_NICKNAME for whitespace-only nickname', async () => {
+      const repo = makeMockRepo(makeRoom());
+      const svc = new RoomService(repo);
+
+      await expect(svc.joinRoom('ABCD12', '   ')).rejects.toMatchObject({ code: 'INVALID_NICKNAME' });
     });
 
     it('throws INVALID_NICKNAME when nickname contains injection characters', async () => {
