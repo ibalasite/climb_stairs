@@ -450,9 +450,17 @@ export interface RoomStateFullPayload extends RoomStatePayload {
 
 export interface RevealIndexPayload {
   readonly playerIndex: number;
-  readonly result: ResultSlot;
+  readonly result: ResultSlot;  // includes path (single player, safe within 64KB)
   readonly revealedCount: number;
   readonly totalCount: number;
+}
+
+/** ResultSlotPublic — used in REVEAL_ALL payload; path omitted to stay within 64KB maxPayload (PRD NFR-05) */
+export type ResultSlotPublic = Omit<ResultSlot, "path">;
+
+export interface RevealAllPayload {
+  // Contains all remaining (unrevealed) paths; path omitted — frontend computes animation from LadderDataPublic
+  readonly results: readonly ResultSlotPublic[];
 }
 
 export interface HostTransferredPayload {
@@ -539,7 +547,14 @@ Server Upgrade 階段驗證 JWT token，失敗直接 403。
 { type: "REVEAL_INDEX", ts, payload: RevealIndexPayload }
 
 // REVEAL_ALL — 全部（或剩餘全部）揭示完畢
-{ type: "REVEAL_ALL", ts, payload: { results: readonly ResultSlot[] } }
+// NOTE: ResultSlot 含完整 path（N×rowCount PathStep）；N=50, rowCount=60 時
+//   原始 JSON ≈ 50×60×50B ≈ 150KB，超過 maxPayload 64KB。
+//   伺服器須以 REVEAL_ALL 分批廣播或壓縮路徑：
+//   Option A（MVP）：REVEAL_ALL payload 省略 path 欄位（前端以 startCol/endCol/segments 自行重算路徑）
+//   Option B（Post-MVP）：ws.perMessageDeflate: true（ws 內建壓縮，通常 5-10x 壓縮比）
+//   MVP 採 Option A：REVEAL_ALL 只含 results（不含 path），前端以已收到的 ladderData 計算動畫路徑
+{ type: "REVEAL_ALL", ts, payload: RevealAllPayload }
+// REVEAL_INDEX 仍含完整 ResultSlot（含 path，單一玩家，資料量小）；REVEAL_ALL 省略 path 以符合 64KB 限制
 
 // PLAYER_KICKED — unicast 給被踢玩家（若仍在線）；其他玩家透過後續 ROOM_STATE 廣播得知名單變更
 { type: "PLAYER_KICKED", ts, payload: { kickedPlayerId: string, reason: string } }
@@ -567,8 +582,9 @@ Server Upgrade 階段驗證 JWT token，失敗直接 403。
 { type: "REVEAL_ALL_TRIGGER", ts, payload: {} }
 
 // SET_REVEAL_MODE — 切換手動/自動揭示模式（揭示中可隨時切換）
-{ type: "SET_REVEAL_MODE", ts, payload: { mode: "manual" | "auto"; intervalSec?: number } }
-// intervalSec 必填當 mode=="auto"，範圍 1-30
+// mode="auto" 時 intervalSec 必填（正整數 1-30）；缺少或不合法回傳 INVALID_AUTO_REVEAL_INTERVAL（PRD AC-H05-3）
+// mode="manual" 時 intervalSec 忽略
+{ type: "SET_REVEAL_MODE", ts, payload: { mode: "manual"; intervalSec?: never } | { mode: "auto"; intervalSec: number } }
 
 // END_GAME — Host only, revealing state only; all paths must be revealed (revealedCount === totalCount)
 // Transitions revealing→finished; broadcasts ROOM_STATE { status: finished, seed, results }
@@ -780,9 +796,10 @@ Feature: 房間生命週期
 
   @AC-ROOM-001
   Scenario: 成功建立房間
-    When 玩家 "Alice" 發送 POST /api/v1/rooms 帶獎項 ["A", "B"]
+    When 玩家 "Alice" 發送 POST /api/rooms 帶 hostNickname="Alice", winnerCount=1
     Then 回應狀態碼為 201
-    And 回應包含 6 碼 roomCode（字元集 A-HJ-NP-Z2-9）
+    And 回應包含 6 碼 roomCode（字元集 ABCDEFGHJKLMNPQRSTUVWXYZ23456789）
+    And 回應包含 playerId（UUID v4）及 sessionToken（JWT）
     And Redis 中存在 key "room:{roomCode}"
 
   @AC-GAME-001
