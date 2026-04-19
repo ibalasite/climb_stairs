@@ -3,53 +3,60 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>系統架構設計 (ARCH) — Ladder Room Online</title>
+  <title>ARCH — Ladder Room Online 文件</title>
   <link rel="stylesheet" href="assets/style.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'default' });
+  </script>
 </head>
 <body>
-  <header class="top-nav">
-    <a href="index.html" class="nav-brand">🪜 Ladder Room</a>
-    <div class="nav-controls">
-      <div class="search-wrap">
-        <input class="search-input" type="search" placeholder="搜尋文件...">
-        <div class="search-results"></div>
-      </div>
+<nav class="top-nav">
+  <a class="nav-brand" href="index.html">Ladder Room Online</a>
+  <div class="nav-controls">
+    <div class="search-wrap">
+      <input class="search-input" type="search" placeholder="搜尋文件…" aria-label="搜尋">
+      <div class="search-results" role="listbox"></div>
     </div>
-  </header>
-
-  <div class="doc-page-banner">
-    <p class="banner-breadcrumb"><a href="index.html">Ladder Room</a> › 系統架構設計 (ARCH)</p>
-    <h1 class="banner-title">系統架構設計 (ARCH)</h1>
-    <p class="banner-desc">元件設計、資料流、部署架構圖</p>
+    <a class="nav-gh-link" href="https://github.com/tobala/climb_stairs" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
   </div>
+</nav>
 
-  <div class="page-wrapper">
-    <aside class="sidebar">
-      <div class="sidebar__section">
-        <div class="sidebar__label">文件</div>
-        <a class="sidebar__link" href="index.html">🏠 首頁</a>
-        <a class="sidebar__link" href="pdd.html">📋 PDD</a>
-        <a class="sidebar__link" href="prd.html">📝 PRD</a>
-        <a class="sidebar__link" href="edd.html">🏗️ EDD</a>
-        <a class="sidebar__link" href="arch.html">🧩 ARCH</a>
-        <a class="sidebar__link" href="api.html">🔌 API</a>
-        <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
-        <a class="sidebar__link" href="design.html">🎨 Design</a>
-        <a class="sidebar__link" href="bdd.html">🧪 BDD</a>
-      </div>
-    </aside>
-    <main class="doc-content">
-      <h1>ARCH — Ladder Room Online Architecture Design Document</h1>
-      <p><strong>Version</strong>: v1.2 &nbsp; <strong>Date</strong>: 2026-04-19 &nbsp; <strong>Based on</strong>: EDD v1.3, PRD v1.3, PDD v2.2</p>
+<div class="doc-page-banner">
+  <div class="banner-breadcrumb"><a href="index.html">首頁</a> › ARCH</div>
+  <h1 class="banner-title">ARCH — 架構設計文件</h1>
+  <p class="banner-desc">Clean Architecture 分層、DI 設計、狀態管理、安全邊界 · v1.2</p>
+</div>
 
-      <hr>
+<div class="page-wrapper">
+  <nav class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">文件</div>
+      <a class="sidebar__link" href="index.html">🏠 首頁</a>
+      <a class="sidebar__link" href="pdd.html">📋 PDD 產品需求</a>
+      <a class="sidebar__link" href="prd.html">📝 PRD 功能規格</a>
+      <a class="sidebar__link" href="edd.html">⚙️ EDD 工程設計</a>
+      <a class="sidebar__link active" href="arch.html">🏗️ ARCH 架構</a>
+      <a class="sidebar__link" href="api.html">🔌 API 參考</a>
+      <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
+      <a class="sidebar__link" href="design.html">🎨 UI Design</a>
+      <a class="sidebar__link" href="bdd.html">✅ BDD 測試</a>
+    </div>
+  </nav>
 
-      <h2>1. 架構概覽</h2>
-      <p>Ladder Room Online 採用 <strong>Clean Architecture</strong> 分層設計，核心原則為依賴方向永遠指向內層 (Domain)，外層 (Infrastructure/Presentation) 依賴抽象介面而非具體實作。</p>
+  <main class="doc-content">
+    <h1>ARCH — 架構設計文件</h1>
+    <p><strong>Version:</strong> v1.2 · <strong>Date:</strong> 2026-04-19 · Based on EDD v1.3, PRD v1.3, PDD v2.2</p>
 
-      <div class="diagram-container">
-        <pre class="mermaid">graph TD
+    <h2>1. 架構概覽</h2>
+    <p>Ladder Room Online 採用 <strong>Clean Architecture</strong> 分層設計，核心原則為依賴方向永遠指向內層 (Domain)，外層 (Infrastructure/Presentation) 依賴抽象介面而非具體實作。</p>
+
+    <div class="diagram-container">
+      <pre class="mermaid">
+graph TD
     subgraph shared["packages/shared (前後端共用)"]
         D["Domain Layer\nRoom · Player · Ladder · DomainError\n純 Entity / Value Object"]
         UC["Use Cases Layer\nGenerateLadder · ValidateGameStart · ComputeResults\n純函式，零 I/O"]
@@ -64,121 +71,253 @@
 
     UC --> APP
     APP --> INF
-    PRES --> APP</pre>
-      </div>
+    PRES --> APP
+      </pre>
+    </div>
 
-      <table>
-        <thead><tr><th>層級</th><th>所在套件</th><th>職責</th><th>外部依賴</th></tr></thead>
-        <tbody>
-          <tr><td>Domain</td><td>packages/shared</td><td>Entity、Value Object、純業務規則、DomainError</td><td>無</td></tr>
-          <tr><td>Use Cases</td><td>packages/shared</td><td>協調 Domain 物件完成業務流程，回傳純資料結構</td><td>僅依賴 Domain</td></tr>
-          <tr><td>Application</td><td>packages/server/src/application</td><td>呼叫 Use Cases、協調 Repository 介面、發布 WS 事件</td><td>Use Cases + 抽象 Interface</td></tr>
-          <tr><td>Infrastructure</td><td>packages/server/src/infrastructure</td><td>Redis 實作、WebSocket 封裝、ioredis / jose SDK</td><td>實作 Application Interface</td></tr>
-          <tr><td>Presentation</td><td>packages/server/src/presentation</td><td>HTTP Route、AJV Schema 驗證、WS 訊息分派</td><td>Application Service</td></tr>
-        </tbody>
-      </table>
+    <table>
+      <thead><tr><th>層級</th><th>所在套件</th><th>職責</th><th>外部依賴</th></tr></thead>
+      <tbody>
+        <tr><td>Domain</td><td>packages/shared</td><td>Entity、Value Object、純業務規則、DomainError</td><td>無</td></tr>
+        <tr><td>Use Cases</td><td>packages/shared</td><td>協調 Domain 物件完成業務流程，回傳純資料結構</td><td>僅依賴 Domain</td></tr>
+        <tr><td>Application</td><td>packages/server/src/application</td><td>呼叫 Use Cases、協調 Repository 介面、發布 WS 事件</td><td>Use Cases + 抽象 Interface</td></tr>
+        <tr><td>Infrastructure</td><td>packages/server/src/infrastructure</td><td>Redis 實作、WebSocket 封裝、ioredis / jose SDK</td><td>實作 Application Interface</td></tr>
+        <tr><td>Presentation</td><td>packages/server/src/presentation</td><td>HTTP Route、AJV Schema 驗證、WS 訊息分派</td><td>Application Service</td></tr>
+      </tbody>
+    </table>
+    <blockquote><strong>黃金法則：</strong> 任何模組只能 import 同層或內層的模組；packages/shared 不得 import 任何 Node.js 內建 I/O 模組。</blockquote>
 
-      <blockquote><p><strong>黃金法則：</strong> 任何模組只能 import 同層或內層的模組；<code>packages/shared</code> 不得 import 任何 Node.js 內建 I/O 模組（fs、net、http 等）。</p></blockquote>
+    <h2>2. 套件依賴關係</h2>
 
-      <hr>
-
-      <h2>2. 套件依賴關係</h2>
-      <div class="diagram-container">
-        <pre class="mermaid">graph LR
+    <div class="diagram-container">
+      <pre class="mermaid">
+graph LR
     CLIENT["packages/client\nVanilla TS + Vite + Canvas"]
     SHARED["packages/shared\nDomain + Use Cases + PRNG\nzero I/O"]
     SERVER["packages/server\nFastify + ws + Redis"]
 
     CLIENT -->|"import types,\nGenerateLadder,\nComputeResults,\nPRNG"| SHARED
-    SERVER -->|"import types,\nValidateGameStart,\nGenerateLadder,\nComputeResults"| SHARED</pre>
-      </div>
+    SERVER -->|"import types,\nValidateGameStart,\nGenerateLadder,\nComputeResults"| SHARED
+      </pre>
+    </div>
 
-      <h3>packages/shared — 輸出清單</h3>
-      <table>
-        <thead><tr><th>路徑</th><th>輸出內容</th><th>限制</th></tr></thead>
-        <tbody>
-          <tr><td><code>src/domain/entities/</code></td><td>Room, Player, Ladder, LadderSegment</td><td>純 TypeScript class/interface</td></tr>
-          <tr><td><code>src/domain/value-objects/</code></td><td>RoomCode, RoomStatus</td><td>純函式驗證</td></tr>
-          <tr><td><code>src/domain/errors/</code></td><td>DomainError 基類及子類</td><td>無外部依賴</td></tr>
-          <tr><td><code>src/use-cases/</code></td><td>GenerateLadder, ValidateGameStart, ComputeResults</td><td>純函式，可在瀏覽器執行</td></tr>
-          <tr><td><code>src/prng/</code></td><td>djb2, createMulberry32, fisherYatesShuffle</td><td>無 Math.random()</td></tr>
-          <tr><td><code>src/types/index.ts</code></td><td>所有共用 TypeScript interface/type</td><td>不含 class 實作</td></tr>
-        </tbody>
-      </table>
+    <h3>packages/shared — 輸出清單</h3>
+    <table>
+      <thead><tr><th>路徑</th><th>輸出內容</th><th>限制</th></tr></thead>
+      <tbody>
+        <tr><td><code>src/domain/entities/</code></td><td>Room, Player, Ladder, LadderSegment</td><td>純 TypeScript class/interface</td></tr>
+        <tr><td><code>src/domain/value-objects/</code></td><td>RoomCode, RoomStatus</td><td>純函式驗證</td></tr>
+        <tr><td><code>src/domain/errors/</code></td><td>DomainError 基類及子類</td><td>無外部依賴</td></tr>
+        <tr><td><code>src/use-cases/</code></td><td>GenerateLadder, ValidateGameStart, ComputeResults</td><td>純函式，可在瀏覽器執行</td></tr>
+        <tr><td><code>src/prng/</code></td><td>djb2, createMulberry32, fisherYatesShuffle</td><td>無 Math.random()</td></tr>
+        <tr><td><code>src/types/index.ts</code></td><td>所有共用 TypeScript interface/type</td><td>不含 class 實作</td></tr>
+      </tbody>
+    </table>
 
-      <hr>
+    <h2>3. 模組職責</h2>
+    <table>
+      <thead><tr><th>模組路徑</th><th>職責</th></tr></thead>
+      <tbody>
+        <tr><td><code>container.ts</code></td><td>以工廠函式組裝所有依賴（DI 根），回傳完整注入樹，不含業務邏輯</td></tr>
+        <tr><td><code>main.ts</code></td><td>啟動 Fastify 伺服器、掛載 WsServer、初始化 PubSubBroker，設定 graceful shutdown</td></tr>
+        <tr><td><code>presentation/routes/rooms.ts</code></td><td>處理房間 CRUD HTTP 路由（POST /rooms、GET /rooms/:code 等）</td></tr>
+        <tr><td><code>presentation/routes/players.ts</code></td><td>處理玩家 HTTP 路由（POST /rooms/:code/players、DELETE /rooms/:code/players/:id）</td></tr>
+        <tr><td><code>application/services/RoomService.ts</code></td><td>協調房間建立、加入、踢出等業務流程，呼叫 RoomRepository 並發布 ROOM_STATE 廣播</td></tr>
+        <tr><td><code>application/services/GameService.ts</code></td><td>協調開局（START_GAME）、開始揭示（BEGIN_REVEAL，原子生成 LadderData）、REVEAL_NEXT、END_GAME、PLAY_AGAIN</td></tr>
+        <tr><td><code>application/handlers/WsMessageHandler.ts</code></td><td>解析 ClientEnvelope，執行 role + room.hostId 驗證，分派至對應 Service 方法</td></tr>
+        <tr><td><code>application/handlers/PubSubHandler.ts</code></td><td>訂閱 Redis room:*:events 頻道，轉發至房間內所有本地 WsSession</td></tr>
+        <tr><td><code>infrastructure/redis/RedisClient.ts</code></td><td>建立並匯出 ioredis 單例（含連線重試設定）</td></tr>
+        <tr><td><code>infrastructure/redis/RoomRepository.ts</code></td><td>實作 IRoomRepository：Room CRUD、TTL 管理；BEGIN_REVEAL 使用 Lua Script 原子寫入</td></tr>
+        <tr><td><code>infrastructure/redis/PubSubBroker.ts</code></td><td>封裝 Redis PUBLISH 與 SUBSCRIBE，抽象跨 Pod 廣播細節</td></tr>
+        <tr><td><code>infrastructure/websocket/WsServer.ts</code></td><td>封裝 ws.Server，處理 HTTP Upgrade、JWT 驗證、踢除攔截（close 4003），建立 WsSession</td></tr>
+        <tr><td><code>infrastructure/websocket/WsSession.ts</code></td><td>管理單一 WS 連線生命週期：心跳、訊息序列化、速率限制（60 msg/min）、斷線計時</td></tr>
+      </tbody>
+    </table>
 
-      <h2>3. 模組職責</h2>
-      <table>
-        <thead><tr><th>模組路徑</th><th>職責</th></tr></thead>
-        <tbody>
-          <tr><td><code>container.ts</code></td><td>以工廠函式組裝所有依賴（DI 根），不含任何業務邏輯</td></tr>
-          <tr><td><code>main.ts</code></td><td>啟動 Fastify、掛載 WsServer、初始化 PubSubBroker，設定 graceful shutdown</td></tr>
-          <tr><td><code>presentation/routes/rooms.ts</code></td><td>處理房間 CRUD HTTP 路由</td></tr>
-          <tr><td><code>presentation/routes/players.ts</code></td><td>處理玩家 HTTP 路由</td></tr>
-          <tr><td><code>application/services/RoomService.ts</code></td><td>協調房間建立、加入、踢出等業務流程</td></tr>
-          <tr><td><code>application/services/GameService.ts</code></td><td>協調遊戲開局、揭示、結束、再玩一局流程</td></tr>
-          <tr><td><code>application/handlers/WsMessageHandler.ts</code></td><td>解析 ClientEnvelope，執行 role + room.hostId 驗證，分派至對應 Service</td></tr>
-          <tr><td><code>application/handlers/PubSubHandler.ts</code></td><td>訂閱 Redis 頻道，轉發 PubSubMessage 至本地 WsSession</td></tr>
-          <tr><td><code>infrastructure/redis/RoomRepository.ts</code></td><td>IRoomRepository 實作：Redis CRUD、TTL 管理、Lua Script</td></tr>
-          <tr><td><code>infrastructure/websocket/WsServer.ts</code></td><td>封裝 ws.Server，處理 HTTP Upgrade、JWT 驗證、踢除攔截</td></tr>
-          <tr><td><code>infrastructure/websocket/WsSession.ts</code></td><td>管理單一 WS 連線生命週期：心跳、序列化、速率限制（60 msg/min）</td></tr>
-        </tbody>
-      </table>
+    <h2>4. 主要設計決策</h2>
 
-      <hr>
+    <h3>4.1 選用原生 ws 而非 Socket.IO</h3>
+    <p><strong>理由：</strong> Socket.IO 的 polling fallback 在本專案無需求；ws bundle size 遠小於 Socket.IO；跨語言客戶端可直接使用標準 WS 協定。</p>
+    <p><strong>取捨：</strong> 需自行實作房間廣播、心跳、重連邏輯；透過 WsSession 封裝後複雜度可控。</p>
 
-      <h2>3.1 本地計時器所有權</h2>
-      <table>
-        <thead><tr><th>計時器</th><th>所有者模組</th><th>觸發條件</th><th>Pod 重啟後恢復</th></tr></thead>
-        <tbody>
-          <tr><td>auto-reveal interval</td><td><code>GameService</code>（靜態 Map <code>roomCode → NodeJS.Timeout</code>）</td><td>SET_REVEAL_MODE mode=auto；intervalSec 1-30s</td><td>Host 須重新送 SET_REVEAL_MODE 恢復計時</td></tr>
-          <tr><td>host-transfer grace（60s）</td><td><code>WsSession</code>（Out of Scope for MVP）</td><td>WS close event（host 斷線）</td><td>重啟後 timer 消失；由下一個事件補跑</td></tr>
-        </tbody>
-      </table>
+    <h3>4.2 Monorepo 結構</h3>
+    <p><strong>理由：</strong> packages/shared 在前後端共用梯子生成算法，確保兩端結果可獨立驗證；單一 CI pipeline 跨套件類型檢查；tsconfig 互相引用，型別變更即時傳播。</p>
+    <p><strong>取捨：</strong> npm workspace 增加初始設定複雜度；Turborepo 在 MVP 階段略顯過重，以 npm workspaces 即可。</p>
 
-      <hr>
+    <h3>4.3 Redis Pub/Sub 用於跨 Pod 廣播</h3>
+    <p><strong>理由：</strong> Redis 是唯一共享狀態層；pattern subscription 確保新房間自動被訂閱；MVP 為單實例，Pub/Sub 退化為本地呼叫，overhead 可忽略。</p>
+    <p><strong>取捨：</strong> Redis Pub/Sub 為 at-most-once 語意，訊息不持久化；Pod 崩潰後客戶端依賴 WS 重連後的 ROOM_STATE_FULL 補齊狀態。</p>
 
-      <h2>4. 主要設計決策</h2>
-      <h3>4.1 選用原生 ws 而非 Socket.IO</h3>
-      <p>Socket.IO 的 polling fallback 在本專案中無需求。ws bundle size 遠小，降低冷啟動時間。跨語言客戶端直接使用標準 WS 協定。</p>
+    <h3>4.4 不使用 ORM</h3>
+    <p><strong>理由：</strong> Room 是聚合根，以 JSON 整包讀取/寫入更符合 Redis 用途；ORM 為 SQL 導向；原子操作需直接控制 Redis 命令。</p>
+    <p><strong>取捨：</strong> 需手動維護 JSON 序列化/反序列化；RoomRepository 單元測試須 mock RedisClient。</p>
 
-      <h3>4.2 Monorepo 結構</h3>
-      <p>三套件 monorepo：<code>packages/shared</code>、<code>packages/server</code>、<code>packages/client</code>。shared 在前後端共用梯子生成算法，確保兩端結果可獨立驗證。</p>
+    <h3>4.5 Constructor Injection + container.ts 工廠</h3>
+    <p><strong>理由：</strong> 無框架 DI 對 Vitest 測試友善，直接傳入 mock 物件，不需 @injectable() 裝飾器；container.ts 作為組裝根，依賴圖一目了然；避免引入 reflect-metadata polyfill 增加 bundle 大小。</p>
 
-      <h3>4.3 Redis Pub/Sub 用於跨 Pod 廣播</h3>
-      <p>Redis 是唯一共享狀態層，Pub/Sub 不需要引入第三方訊息佇列即可完成 Pod 間廣播。<code>room:*:events</code> pattern subscription 確保新房間自動被訂閱。</p>
+    <h3>4.6 JWT HS256 (jose) 作為 Session Token</h3>
+    <p><strong>Payload：</strong> <code>{ playerId, roomCode, role: "host" | "player", exp }</code>。<strong>Token 有效期：</strong> 6 小時（21600 秒）。</p>
+    <p><strong>已知安全取捨：</strong> JWT exp 僅在 WS Upgrade 握手時驗證；連線建立後不重驗 exp。此為 MVP 接受的安全取捨——遊戲時長通常遠低於 6h。Post-MVP 可在 WsSession 加入定時 token 輪替機制。</p>
 
-      <h3>4.4 不使用 ORM</h3>
-      <p>直接使用 ioredis 命令，Room 以 JSON 字串儲存於單一 Redis key。Room 是聚合根，整包讀取/寫入符合 Redis 用途。原子操作需直接控制命令，ORM 抽象層反而降低可控性。</p>
+    <h3>4.7 MVP 單實例，HPA 為 Post-MVP</h3>
+    <p><strong>理由：</strong> PRD 目標 50 人連線在單實例 Node.js 可達成；避免過早投入 sticky session、Redis Sentinel 等複雜度；架構已預留多 Pod 設計（Pub/Sub、RoomRepository 無本地狀態）。</p>
+    <p><strong>Redis 失敗降級：</strong> ioredis error 事件觸發時，GET /ready 回傳 503，K8s readinessProbe 將 Pod 移出 Service endpoints；ioredis 指數退避重連，恢復後 WS 客戶端重連取得最新 ROOM_STATE_FULL。</p>
 
-      <h3>4.5 JWT HS256 (jose) 作為 Session Token</h3>
-      <p>無狀態驗證：每個請求自帶身份資訊，不需額外 Redis 查詢。jose 支援 Web Crypto API。HS256 在 shared secret 模型下實作簡單。Token 有效期：<strong>6 小時</strong>（21600 秒）。</p>
+    <h2>5. 依賴注入 (DI) 設計</h2>
 
-      <h3>4.6 MVP 單實例，HPA 為 Post-MVP</h3>
-      <p>MVP 部署單一 Node.js 實例。架構已預留多 Pod 設計（Pub/Sub、RoomRepository 無本地狀態）：Post-MVP 啟用 HPA 只需改 k8s manifest。</p>
+    <h3>5.1 Constructor Injection 模式</h3>
+    <pre><code>// 正確：依賴從外部注入
+class GameService {
+  constructor(
+    private readonly roomRepo: IRoomRepository,
+    private readonly pubSub: IPubSubBroker,
+  ) {}
+}
 
-      <hr>
+// 錯誤：內部直接建立依賴
+class GameService {
+  private roomRepo = new RoomRepository(redis); // 禁止
+}</code></pre>
 
-      <h2>5. Import 規則</h2>
-      <ul>
-        <li><code>packages/client</code> 可 import shared 的全部匯出</li>
-        <li><code>packages/server</code> 可 import shared 的全部匯出</li>
-        <li><code>packages/shared</code> 不得 import client 或 server 的任何模組</li>
-        <li>client 與 server 之間無直接 import（透過 WS/HTTP 通訊）</li>
-      </ul>
-    </main>
-  </div>
+    <h3>5.2 container.ts 工廠結構</h3>
+    <pre><code>container.ts
+  ├── redisClient      = new RedisClient(config.REDIS_URL)
+  ├── roomRepo         = new RoomRepository(redisClient)
+  ├── pubSubBroker     = new PubSubBroker(redisClient)
+  ├── roomService      = new RoomService(roomRepo, pubSubBroker)
+  ├── gameService      = new GameService(roomRepo, pubSubBroker)
+  ├── wsMessageHandler = new WsMessageHandler(roomService, gameService)
+  ├── pubSubHandler    = new PubSubHandler(pubSubBroker, wsSessionMap)
+  └── wsServer         = new WsServer(config, wsMessageHandler, wsSessionMap)</code></pre>
 
-  <script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({ startOnLoad: true, theme: 'default', flowchart: { curve: 'basis' }, er: { layoutDirection: 'TD' } });
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
-  <script src="assets/app.js"></script>
+    <h3>5.3 測試時替換 Test Double</h3>
+    <pre><code>// 單元測試：直接傳入 mock，不需要 DI 框架
+const mockRepo: IRoomRepository = {
+  findByCode: vi.fn().mockResolvedValue(room),
+  save: vi.fn().mockResolvedValue(undefined),
+};
+const svc = new GameService(mockRepo, mockPubSub);</code></pre>
+
+    <h2>6. 狀態管理策略</h2>
+
+    <h3>6.1 Redis 為唯一真相來源</h3>
+    <p>所有房間狀態（Room JSON）以 <code>room:{code}</code> key 儲存於 Redis，Pod 本地記憶體不快取業務狀態。</p>
+    <table>
+      <thead><tr><th>Redis Key</th><th>內容</th><th>TTL</th></tr></thead>
+      <tbody>
+        <tr><td><code>room:{code}</code></td><td>Room JSON（含 players、kickedPlayerIds、revealedCount 快照）</td><td>waiting/running: 24h；finished: 1h</td></tr>
+        <tr><td><code>room:{code}:ladder</code></td><td>LadderData JSON（seed、seedSource、segments、results）；BEGIN_REVEAL 時才創建</td><td>同上</td></tr>
+        <tr><td><code>room:{code}:revealedCount</code></td><td>Integer，INCR 原子遞增</td><td>同上</td></tr>
+      </tbody>
+    </table>
+
+    <h3>seed 安全邊界（公開時機）</h3>
+    <table>
+      <thead><tr><th>房間狀態</th><th>seed 存在</th><th>seed 對客戶端可見</th></tr></thead>
+      <tbody>
+        <tr><td>waiting / running</td><td>否（尚未生成）</td><td>否</td></tr>
+        <tr><td>revealing</td><td>是（存於 Redis）</td><td>否（LadderDataPublic 省略 seed）</td></tr>
+        <tr><td>finished</td><td>是</td><td>是（含於 ROOM_STATE 廣播）</td></tr>
+      </tbody>
+    </table>
+
+    <h2>7. 本地計時器所有權</h2>
+    <table>
+      <thead><tr><th>計時器</th><th>所有者模組</th><th>觸發條件</th><th>Pod 重啟後恢復</th></tr></thead>
+      <tbody>
+        <tr><td>auto-reveal interval</td><td>GameService（靜態 Map roomCode → NodeJS.Timeout）</td><td>SET_REVEAL_MODE mode=auto；intervalSec 1-30s</td><td>Host 須重新送 SET_REVEAL_MODE 恢復計時；Client 收到 ROOM_STATE_FULL 且 autoRevealActive=true 時自動重發</td></tr>
+        <tr><td>host-transfer grace（60s）</td><td>WsSession（disconnect event 觸發）</td><td>WS close event（host 斷線）</td><td>Pod 重啟後 timer 消失；下一個到達事件補跑 hostTransferIfNeeded()</td></tr>
+      </tbody>
+    </table>
+    <blockquote>計時器不序列化至 Redis，以保持 Pod 無狀態。Pod 重啟後，auto-reveal 依賴 Host 主動恢復，host-transfer 依賴下一個到達事件補跑。此為 MVP 單 Pod 下可接受的 trade-off。</blockquote>
+
+    <h2>8. 安全邊界設計</h2>
+
+    <h3>8.1 JWT 驗證層級</h3>
+    <ol>
+      <li><strong>WS Upgrade 握手</strong>：<code>WsServer.handleUpgrade</code> 驗證 JWT 簽章、exp、roomCode、playerId 一致性</li>
+      <li><strong>WsMessageHandler</strong>：二次驗證 role（host/player）+ <code>room.hostId</code> 比對，防止 JWT role 偽造</li>
+      <li><strong>HTTP 路由</strong>：Fastify preHandler 驗證 Authorization header JWT</li>
+    </ol>
+
+    <h3>8.2 速率限制</h3>
+    <ul>
+      <li>WS 訊息：WsSession 限制 60 msg/min/連線</li>
+      <li>HTTP POST /rooms：10 req/min/IP</li>
+      <li>HTTP POST /rooms/:code/players：20 req/min/IP</li>
+      <li>其他 HTTP：100 req/min/IP</li>
+    </ul>
+
+    <h3>8.3 被踢除玩家 WS 攔截</h3>
+    <p>若 playerId 在 kickedPlayerIds 清單中，WS Upgrade 使用 close code <code>4003</code>（Application-level: Player Kicked）關閉連線，並在關閉前發送 JSON frame <code>{ type: "PLAYER_KICKED", ... }</code>，讓前端可區分一般認證失敗（403）與被踢（4003）。</p>
+
+    <h2>9. 部署架構圖</h2>
+    <div class="diagram-container">
+      <pre class="mermaid">
+graph TD
+    subgraph NS["Namespace: ladder-room"]
+        subgraph IngressLayer["Ingress Layer"]
+            ING["Ingress nginx\naffinity: cookie\nwebsocket-services: server-svc"]
+        end
+
+        subgraph AppLayer["Application Layer"]
+            DEP["Deployment: ladder-server\nreplicas: 2 min\nimage: distroless/nodejs20"]
+            POD1["Pod-1 server:latest port:3000"]
+            POD2["Pod-2 server:latest port:3000"]
+            DEP --> POD1
+            DEP --> POD2
+            HPA["HPA minReplicas:2 maxReplicas:10\nmetric: ws_connections target:200"]
+            HPA --> DEP
+        end
+
+        subgraph ServiceLayer["Service Layer"]
+            SVC["Service: server-svc\nClusterIP port:80->3000"]
+        end
+
+        subgraph StatefulLayer["Redis"]
+            RSTS["StatefulSet: redis replicas:2"]
+            RPOD0["redis-0 master port:6379"]
+            RPOD1["redis-1 replica port:6379"]
+            RSVC["Service: redis-svc ClusterIP"]
+            RSTS --> RPOD0
+            RSTS --> RPOD1
+            RPOD0 --> |"replication"| RPOD1
+        end
+
+        subgraph ConfigLayer["Config"]
+            CM["ConfigMap REDIS_HOST PORT LOG_LEVEL"]
+            SEC["Secret JWT_SECRET REDIS_PASSWORD"]
+        end
+
+        ING --> SVC
+        SVC --> POD1
+        SVC --> POD2
+        POD1 --> RSVC
+        POD2 --> RSVC
+        RSVC --> RPOD0
+        POD1 --> CM
+        POD1 --> SEC
+        POD2 --> CM
+        POD2 --> SEC
+    end
+
+    GHP["GitHub Pages Static Client"] --> ING
+      </pre>
+    </div>
+
+    <h2>10. 測試策略摘要</h2>
+    <table>
+      <thead><tr><th>類型</th><th>工具</th><th>重點模組</th></tr></thead>
+      <tbody>
+        <tr><td>Unit (70%)</td><td>Vitest</td><td>GenerateLadder、ComputeResults、mulberry32、ValidateGameStart、DomainErrors</td></tr>
+        <tr><td>Integration (20%)</td><td>Vitest + testcontainers</td><td>RoomRepository（真實 Redis）、RoomService、GameService 跨層流程</td></tr>
+        <tr><td>E2E (10%)</td><td>Playwright</td><td>完整遊戲流程：建立房間 → 加入 → 開始 → 揭曉 → 結束 → 再玩一局</td></tr>
+      </tbody>
+    </table>
+    <blockquote>PRNG 一致性測試：以相同 seed 在前後端（shared）分別執行 generateLadder，斷言輸出結果 100% 相同（PRD AC-SYS-01）。</blockquote>
+  </main>
+</div>
+
+<script src="assets/app.js"></script>
 </body>
 </html>

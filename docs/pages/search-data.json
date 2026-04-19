@@ -2,46 +2,46 @@
   "index.html": {
     "url": "index.html",
     "title": "首頁 — Ladder Room Online 文件中心",
-    "excerpt": "基於 LINE 爬樓梯玩法的 HTML5 線上多人互動抽獎遊戲。技術棧：Node.js 20 + TypeScript + Fastify + ws + Redis，Mulberry32 PRNG 確保 100% 一致。"
+    "excerpt": "基於 LINE 爬樓梯玩法的 HTML5 線上多人互動抽獎遊戲。技術棧：Node.js 20 + TypeScript + Fastify + ws + Redis，Mulberry32 PRNG 確保 100% 一致。支援最多 50 名玩家、WebSocket 即時同步、HTML5 Canvas 揭示動畫。"
   },
   "pdd.html": {
     "url": "pdd.html",
-    "title": "產品設計文件 (PDD) v2.2",
-    "excerpt": "Ladder Room Online 是一款基於 LINE 爬樓梯玩法的 HTML5 線上多人互動遊戲。玩家從不同地點使用瀏覽器進入同一 Room，主持人建立房間並掌控揭曉節奏。"
+    "title": "PDD — 產品需求文件",
+    "excerpt": "HTML5 線上多人爬樓梯遊戲 PDD v2.2。產品概述、產品目標（建立房間成功率 > 99.5%、50 人設計上限）、角色定義（Host / Player）、核心玩法規則、功能需求（房間系統、玩家管理、揭曉控制）。"
   },
   "prd.html": {
     "url": "prd.html",
-    "title": "產品需求文件 (PRD) v1.3",
-    "excerpt": "User Stories（US-H01~US-H08, US-P01~US-P06）、驗收標準（AC）、功能需求（FR-01~FR-12）、非功能需求（NFR-01~NFR-08）。Canvas 動畫 ≥30fps。"
+    "title": "PRD — 產品功能規格",
+    "excerpt": "User Stories、功能需求（FR-01 ~ FR-08）、非功能需求（NFR-01 ~ NFR-10）、驗收條件（AC-H01 ~ AC-SYS-03）。涵蓋房間生命週期、玩家加入、遊戲開始、梯子生成、揭曉流程、斷線重連、玩家踢除、再玩一局。"
   },
   "edd.html": {
     "url": "edd.html",
-    "title": "工程設計文件 (EDD) v1.3",
-    "excerpt": "Clean Architecture 分層設計：Domain → Use Cases → Application → Infrastructure → Presentation。Fastify + ws + Redis + Mulberry32 PRNG + Fisher-Yates。"
+    "title": "EDD — 工程設計文件",
+    "excerpt": "技術棧（Node.js 20、TypeScript strict、Fastify、ws、Redis、Vite、Vitest、Playwright）、Clean Architecture 分層設計、PRNG 設計（Mulberry32 + djb2 + Fisher-Yates）、Redis 原子操作策略、K8s 部署架構。"
   },
   "arch.html": {
     "url": "arch.html",
-    "title": "架構設計 (ARCH) v1.2",
-    "excerpt": "模組職責清單（RoomService, GameService, WsServer, RoomRepository 等）、主要設計決策（ws vs Socket.IO、Monorepo、Redis Pub/Sub、無 ORM、JWT HS256）。"
+    "title": "ARCH — 架構設計文件",
+    "excerpt": "Clean Architecture 分層（Domain / Use Cases / Application / Infrastructure / Presentation）、套件依賴關係、模組職責、DI 設計（constructor injection + container.ts）、狀態管理（Redis 唯一真相來源）、安全邊界設計。"
   },
   "api.html": {
     "url": "api.html",
-    "title": "API 文件 v1.1",
-    "excerpt": "10 個 HTTP REST 端點（POST /api/rooms, GET /api/rooms/:code, POST players, DELETE player, game/start, reveal, end, play-again, /health, /ready）及 WebSocket 協議。"
+    "title": "API 參考文件",
+    "excerpt": "10 個 HTTP REST 端點（POST /api/rooms、GET /api/rooms/:code、踢出玩家、開始遊戲、揭示結果、再玩一局）、WebSocket 事件（ROOM_STATE、ROOM_STATE_FULL、REVEAL_INDEX、REVEAL_ALL、PLAYER_KICKED）、JWT HS256 規格、錯誤碼完整列表。"
   },
   "schema.html": {
     "url": "schema.html",
-    "title": "Schema 文件 v1.1 — Redis Schema Design",
-    "excerpt": "Redis 是唯一持久層。Key Schema：room:{code}, room:{code}:ladder, room:{code}:revealedCount, room:{code}:kicked, room:{code}:sessions。TTL 策略 4h/1h/5min。"
+    "title": "Schema — Redis 資料模型",
+    "excerpt": "Redis 為唯一持久層。Key Schema（room:{code}、room:{code}:ladder、room:{code}:revealedCount、room:{code}:kicked、room:{code}:sessions）、Room JSON 四個 Stage 結構、LadderData JSON、TypeScript 介面、原子操作策略、記憶體估算（每房間 ~88 KB）。"
   },
   "design.html": {
     "url": "design.html",
-    "title": "UI 設計規格 (DESIGN) v1.1",
-    "excerpt": "輕量遊戲感 × 現代簡約設計風格。CSS Token（OKLCH 色彩系統）、頁面清單（SPA 路由）、Canvas 渲染規格（FPS 目標、行走動畫、REVEAL_ALL）、響應式設計 320px。"
+    "title": "UI Design — 前端設計規格",
+    "excerpt": "深色活動遊戲風格（Dark Party Game UI）。CSS Design Token（色彩系統、字體、動畫）、頁面清單（Lobby / 等待大廳 / 遊戲主畫面 / 結果頁）、Canvas 規格（rowCount = clamp(N×3,20,60)）、路徑顏色語意、揭曉動畫流程、響應式設計（320px 最小）。"
   },
   "bdd.html": {
     "url": "bdd.html",
-    "title": "BDD Scenarios — 11 個 Feature Files",
-    "excerpt": "room-lifecycle, game-flow, reveal-flow, player-management, host-actions, reconnect, prng, client-canvas, client-navigation, client-reconnect, client-error 共 11 個 Feature Files。"
+    "title": "BDD — 行為驅動測試規格",
+    "excerpt": "11 個 Feature 檔案的 Gherkin 場景彙整：遊戲流程控制、路徑揭曉流程（手動/自動/一鍵全揭）、玩家管理（踢除、再玩一局）、重連處理、PRNG 確定性驗證、Canvas 渲染行為、頁面流程切換、錯誤狀態 UI 回饋、房間生命週期。P0/P1/P2 優先級標注。"
   }
 }

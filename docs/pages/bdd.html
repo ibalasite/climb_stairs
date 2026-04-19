@@ -3,68 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BDD 測試規格 — Ladder Room Online</title>
+  <title>BDD — Ladder Room Online 文件</title>
   <link rel="stylesheet" href="assets/style.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
 </head>
 <body>
-  <header class="top-nav">
-    <a href="index.html" class="nav-brand">🪜 Ladder Room</a>
-    <div class="nav-controls">
-      <div class="search-wrap">
-        <input class="search-input" type="search" placeholder="搜尋文件...">
-        <div class="search-results"></div>
-      </div>
+<nav class="top-nav">
+  <a class="nav-brand" href="index.html">Ladder Room Online</a>
+  <div class="nav-controls">
+    <div class="search-wrap">
+      <input class="search-input" type="search" placeholder="搜尋文件…" aria-label="搜尋">
+      <div class="search-results" role="listbox"></div>
     </div>
-  </header>
-
-  <div class="doc-page-banner">
-    <p class="banner-breadcrumb"><a href="index.html">Ladder Room</a> › BDD 測試規格</p>
-    <h1 class="banner-title">BDD 測試規格</h1>
-    <p class="banner-desc">Gherkin Feature Files — 11 個功能模組，40+ 測試場景</p>
+    <a class="nav-gh-link" href="https://github.com/tobala/climb_stairs" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
   </div>
+</nav>
 
-  <div class="page-wrapper">
-    <aside class="sidebar">
-      <div class="sidebar__section">
-        <div class="sidebar__label">文件</div>
-        <a class="sidebar__link" href="index.html">🏠 首頁</a>
-        <a class="sidebar__link" href="pdd.html">📋 PDD</a>
-        <a class="sidebar__link" href="prd.html">📝 PRD</a>
-        <a class="sidebar__link" href="edd.html">🏗️ EDD</a>
-        <a class="sidebar__link" href="arch.html">🧩 ARCH</a>
-        <a class="sidebar__link" href="api.html">🔌 API</a>
-        <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
-        <a class="sidebar__link" href="design.html">🎨 Design</a>
-        <a class="sidebar__link" href="bdd.html">🧪 BDD</a>
-      </div>
-    </aside>
-    <main class="doc-content">
-      <h1>BDD — Ladder Room Online 行為驅動開發規格</h1>
-      <p>共 11 個 Feature 檔案，覆蓋伺服器端業務邏輯（6 個）與客戶端 UI 行為（5 個）。所有場景以 Gherkin 語法描述，搭配 Vitest + Playwright 執行。</p>
+<div class="doc-page-banner">
+  <div class="banner-breadcrumb"><a href="index.html">首頁</a> › BDD</div>
+  <h1 class="banner-title">BDD — 行為驅動測試規格</h1>
+  <p class="banner-desc">Gherkin Feature 場景覆蓋：遊戲流程、揭曉控制、玩家管理、重連、Canvas 渲染、錯誤處理</p>
+</div>
 
-      <table>
-        <thead><tr><th>Feature</th><th>檔案</th><th>類別</th></tr></thead>
-        <tbody>
-          <tr><td>遊戲流程控制</td><td>game-flow.feature</td><td>Server</td></tr>
-          <tr><td>PRNG 確定性與正確性</td><td>prng.feature</td><td>Server</td></tr>
-          <tr><td>房間生命週期</td><td>room-lifecycle.feature</td><td>Server</td></tr>
-          <tr><td>玩家加入與管理</td><td>player-management.feature</td><td>Server</td></tr>
-          <tr><td>斷線與重連行為</td><td>reconnect.feature</td><td>Server</td></tr>
-          <tr><td>路徑揭曉流程</td><td>reveal-flow.feature</td><td>Server</td></tr>
-          <tr><td>主持人管理操作</td><td>host-actions.feature</td><td>Server</td></tr>
-          <tr><td>梯子 Canvas 渲染行為</td><td>client-canvas.feature</td><td>Client</td></tr>
-          <tr><td>頁面流程與視圖切換</td><td>client-navigation.feature</td><td>Client</td></tr>
-          <tr><td>前端斷線重連 UI 行為</td><td>client-reconnect.feature</td><td>Client</td></tr>
-          <tr><td>錯誤狀態的 UI 回饋行為</td><td>client-error.feature</td><td>Client</td></tr>
-        </tbody>
-      </table>
+<div class="page-wrapper">
+  <nav class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">文件</div>
+      <a class="sidebar__link" href="index.html">🏠 首頁</a>
+      <a class="sidebar__link" href="pdd.html">📋 PDD 產品需求</a>
+      <a class="sidebar__link" href="prd.html">📝 PRD 功能規格</a>
+      <a class="sidebar__link" href="edd.html">⚙️ EDD 工程設計</a>
+      <a class="sidebar__link" href="arch.html">🏗️ ARCH 架構</a>
+      <a class="sidebar__link" href="api.html">🔌 API 參考</a>
+      <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
+      <a class="sidebar__link" href="design.html">🎨 UI Design</a>
+      <a class="sidebar__link active" href="bdd.html">✅ BDD 測試</a>
+    </div>
+  </nav>
 
-      <hr>
+  <main class="doc-content">
+    <h1>BDD — 行為驅動測試規格</h1>
+    <p>本文件彙整所有 <code>features/*.feature</code> 的 Gherkin 場景，涵蓋 11 個 Feature 檔案，共包含 P0/P1/P2 優先級的 Scenario。</p>
 
-      <h2>features/game-flow.feature</h2>
-      <pre><code class="language-gherkin"># features/game-flow.feature
-Feature: 遊戲流程控制
+    <h2>Feature 總覽</h2>
+    <table>
+      <thead><tr><th>Feature 檔案</th><th>主題</th><th>P0 Scenario</th></tr></thead>
+      <tbody>
+        <tr><td><code>game-flow.feature</code></td><td>遊戲流程控制（開始遊戲、中獎名額驗證）</td><td>6</td></tr>
+        <tr><td><code>reveal-flow.feature</code></td><td>路徑揭曉流程（手動、自動、全揭）</td><td>5</td></tr>
+        <tr><td><code>room-lifecycle.feature</code></td><td>房間生命週期（建立、加入、TTL）</td><td>4</td></tr>
+        <tr><td><code>player-management.feature</code></td><td>玩家管理（踢除、再玩一局）</td><td>4</td></tr>
+        <tr><td><code>host-actions.feature</code></td><td>主持人操作（title、winnerCount 更新）</td><td>3</td></tr>
+        <tr><td><code>reconnect.feature</code></td><td>後端重連處理</td><td>3</td></tr>
+        <tr><td><code>prng.feature</code></td><td>PRNG 確定性驗證</td><td>2</td></tr>
+        <tr><td><code>client-canvas.feature</code></td><td>Canvas 渲染行為</td><td>3</td></tr>
+        <tr><td><code>client-navigation.feature</code></td><td>頁面流程與視圖切換</td><td>4</td></tr>
+        <tr><td><code>client-reconnect.feature</code></td><td>前端重連 UI 行為</td><td>3</td></tr>
+        <tr><td><code>client-error.feature</code></td><td>錯誤狀態 UI 回饋</td><td>5</td></tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <h2>Feature: 遊戲流程控制（game-flow.feature）</h2>
+    <pre><code>Feature: 遊戲流程控制
   As a 主持人
   I want to 設定中獎名額並在玩家就緒後開始遊戲
   So that 伺服器生成確定性樓梯結構並讓所有客戶端同步進入揭曉流程
@@ -76,7 +80,7 @@ Feature: 遊戲流程控制
   @AC-GAME-WIN-001 @P0
   Scenario: 主持人設定合法中獎名額
     Given 房間有 5 名玩家（N=5，含主持人）
-    When 主持人設定中獎名額 W=2（1 ≤ W ≤ N-1=4）
+    When 主持人設定中獎名額 W=2（1 &lt;= W &lt;= N-1=4）
     Then 伺服器接受設定
     And 所有在線玩家收到廣播的 ROOM_STATE
     And ROOM_STATE payload 中 winnerCount 為 2
@@ -86,31 +90,28 @@ Feature: 遊戲流程控制
     Given 房間有 &lt;N&gt; 名玩家（含主持人）
     When 主持人設定中獎名額 W=&lt;W&gt;
     Then 伺服器回傳錯誤碼 "INVALID_PRIZES_COUNT"
-    And 錯誤訊息包含「中獎名額須介於 1 到玩家數減 1 之間」
     And 房間 winnerCount 維持不變
 
     Examples:
       | N  | W  | 說明              |
       | 5  | 0  | W=0，低於下限      |
-      | 5  | -1 | W&lt;0，負數          |
+      | 5  | -1 | W&lt;0，負數         |
       | 5  | 5  | W=N，等於上限違規  |
-      | 5  | 6  | W&gt;N，超過玩家數    |
+      | 5  | 6  | W&gt;N，超過玩家數   |
 
   @AC-GAME-START-001 @P0
   Scenario: 主持人滿足條件後成功開始遊戲
     Given 房間有 3 名玩家（N=3）且 winnerCount=1 已設定
     When 主持人點擊「開始遊戲」
     Then HTTP 回應狀態碼為 200
-    And 回應包含 LadderData（含 seed、seedSource、rowCount、segments）
     And 伺服器廣播 ROOM_STATE，status 為 "running"
     And 所有客戶端收到完全一致的 ladderMap
 
   @AC-GAME-START-002 @P0
   Scenario: W 尚未設定時主持人開始遊戲被拒絕
-    Given 房間有 3 名玩家（N=3）且 winnerCount 尚未設定（為 null）
+    Given 房間有 3 名玩家且 winnerCount 尚未設定（為 null）
     When 主持人點擊「開始遊戲」
     Then 伺服器回傳錯誤碼 "PRIZES_NOT_SET"
-    And 錯誤訊息包含「請先設定中獎名額」
     And 房間狀態維持 "waiting"
 
   @AC-GAME-START-003 @P0
@@ -128,380 +129,25 @@ Feature: 遊戲流程控制
     Then 伺服器廣播的 ROOM_STATE 中 ladder.rowCount 為 &lt;expected_rowCount&gt;
 
     Examples:
-      | N  | expected_rowCount | 說明                     |
-      | 2  | 20                | clamp(6, 20, 60)=20      |
-      | 3  | 20                | clamp(9, 20, 60)=20      |
-      | 10 | 30                | clamp(30, 20, 60)=30     |
-      | 20 | 60                | clamp(60, 20, 60)=60     |
-      | 21 | 60                | clamp(63, 20, 60)=60     |
-      | 50 | 60                | clamp(150, 20, 60)=60    |</code></pre>
+      | N  | expected_rowCount |
+      | 2  | 20                |
+      | 3  | 20                |
+      | 10 | 30                |
+      | 20 | 60                |
+      | 50 | 60                |</code></pre>
 
-      <hr>
+    <hr>
 
-      <h2>features/prng.feature</h2>
-      <pre><code class="language-gherkin"># features/prng.feature
-Feature: PRNG 確定性與正確性
-  As a 系統
-  I want to 以 Mulberry32+djb2 確定性算法生成樓梯結構
-  So that 相同輸入恆得相同輸出，確保所有客戶端 100% 結果一致且無法舞弊
-
-  @AC-PRNG-001 @P0
-  Scenario: 相同 seed 和 N 生成完全相同的樓梯結構（快照測試）
-    Given seedSource 為固定字串 "550e8400-e29b-41d4-a716-446655440000"
-    And N=5（玩家數）
-    When 以相同 seedSource 和 N 兩次呼叫 generateLadder
-    Then 第一次和第二次呼叫的 LadderData.segments 完全相等（深度比較）
-    And 兩次呼叫的 rowCount 相同
-    And 兩次呼叫的 colCount 相同
-
-  @AC-PRNG-002 @P0
-  Scenario: 同一 row 中不存在重疊的橫槓
-    Given seedSource 為 "550e8400-e29b-41d4-a716-446655440000"，N=10
-    When 呼叫 generateLadder 生成 LadderData
-    Then 對於 LadderData.segments 中所有 row 相同的橫槓對（col_a, col_b）
-    And 不存在任何兩條橫槓使得 |col_a - col_b| &lt;= 1（即不衝突）
-
-  @AC-PRNG-003 @P0
-  Scenario Outline: 多種 N 值下同一 row 均無重疊橫槓
-    Given seedSource 為 "test-seed-abc123"，N=&lt;N&gt;
-    When 呼叫 generateLadder 生成 LadderData
-    Then 所有 row 中均不存在重疊橫槓
-
-    Examples:
-      | N  |
-      | 2  |
-      | 5  |
-      | 20 |
-      | 50 |
-
-  @AC-PRNG-004 @P0
-  Scenario Outline: rowCount 精確符合 clamp(N*3, 20, 60) 公式
-    Given seedSource 為任意有效字串，N=&lt;N&gt;
-    When 呼叫 generateLadder 生成 LadderData
-    Then LadderData.rowCount 恰好等於 &lt;expected_rowCount&gt;
-
-    Examples:
-      | N  | expected_rowCount | 說明                  |
-      | 2  | 20                | clamp(6,20,60)=20    |
-      | 3  | 20                | clamp(9,20,60)=20    |
-      | 10 | 30                | clamp(30,20,60)=30   |
-      | 20 | 60                | clamp(60,20,60)=60   |
-      | 21 | 60                | clamp(63,20,60)=60   |
-      | 50 | 60                | clamp(150,20,60)=60  |
-
-  @AC-PRNG-005 @P0
-  Scenario: 結果雙射：N 個玩家對應 N 個唯一 endCol 值
-    Given seedSource 為 "550e8400-e29b-41d4-a716-446655440000"，N=8，winnerCount=3
-    When 呼叫 generateLadder 後再呼叫 computeResults 生成 ResultSlot[]
-    Then ResultSlot 陣列長度恰好為 8
-    And 所有 ResultSlot 的 endCol 值兩兩不相同（無重複，完整覆蓋 0～7）
-
-  @AC-PRNG-006 @P0
-  Scenario: 結果雙射：isWinner=true 的數量恰好等於 winnerCount
-    Given seedSource 為 "550e8400-e29b-41d4-a716-446655440000"，N=8，winnerCount=3
-    When 呼叫 generateLadder 後再呼叫 computeResults 生成 ResultSlot[]
-    Then ResultSlot 中 isWinner=true 的數量恰好為 3
-    And ResultSlot 中 isWinner=false 的數量恰好為 5
-
-  @AC-PRNG-007 @P0
-  Scenario Outline: 多種 N 和 winnerCount 組合均滿足雙射特性
-    Given seedSource 為 "deterministic-seed-xyz"，N=&lt;N&gt;，winnerCount=&lt;W&gt;
-    When 呼叫 generateLadder 後再呼叫 computeResults
-    Then ResultSlot 陣列長度為 &lt;N&gt;
-    And 所有 endCol 值唯一（無重複）
-    And isWinner=true 的數量等於 &lt;W&gt;
-
-    Examples:
-      | N  | W  |
-      | 2  | 1  |
-      | 5  | 2  |
-      | 10 | 3  |
-      | 50 | 10 |</code></pre>
-
-      <hr>
-
-      <h2>features/room-lifecycle.feature</h2>
-      <pre><code class="language-gherkin"># features/room-lifecycle.feature
-Feature: 房間生命週期
-  As a 主持人
-  I want to 建立並管理一個帶有唯一房間碼的房間
-  So that 玩家能快速找到並加入我的抽獎活動
-
-  @AC-ROOM-001 @P0
-  Scenario: 成功建立房間並取得合法 6 碼 Room Code
-    Given 主持人送出 POST /api/v1/rooms 請求（含 hostNickname 及 winnerCount）
-    When 系統處理請求成功
-    Then HTTP 回應狀態碼為 201
-    And 回應包含 6 碼 roomCode，字元集為大寫英數字（排除 O、0、I、1），符合正規表達式 [A-HJ-NP-Z2-9]{6}
-    And Redis 中存在以 "room:{roomCode}" 為 key 的資料
-    And 回應時間在 2 秒以內
-
-  @AC-ROOM-002 @P0
-  Scenario: 主持人建立房間後進入等待畫面
-    Given 主持人已成功建立房間，取得 roomCode 及 hostToken
-    When 主持人透過 WebSocket 連線至房間
-    Then 主持人收到 ROOM_STATE_FULL 事件
-    And 事件 payload 中 status 為 "waiting"
-    And 玩家列表為空（不含主持人以外的玩家）
-    And 頁面包含設定中獎名額的輸入框
-
-  @AC-ROOM-003 @P0
-  Scenario: 建立房間因網路異常失敗時不產生孤立房間
-    Given 後端模擬回應 HTTP 500 網路異常
-    When 主持人送出 POST /api/v1/rooms 請求
-    Then HTTP 回應狀態碼為 5xx
-    And Redis 中不存在任何對應此請求的 "room:{*}" 孤立 key
-    And 前端顯示「建立失敗，請重試」提示
-
-  @AC-ROOM-004 @P0
-  Scenario: Room Code 在 Redis 中設有 TTL 且碰撞時最多重試 10 次
-    Given 系統正常運作中
-    When 主持人成功建立房間
-    Then Redis 中 "room:{roomCode}" 的 TTL 大於 0 且不超過 14400 秒（4 小時）
-
-  @AC-ROOM-005 @P0
-  Scenario Outline: Room Code 碰撞時系統重試並最終成功
-    Given Redis 中已存在 &lt;collision_count&gt; 個佔用的 Room Code
-    When 主持人送出建立房間請求
-    Then 系統在重試不超過 10 次後成功回傳唯一 roomCode
-    And HTTP 回應狀態碼為 201
-
-    Examples:
-      | collision_count |
-      | 1               |
-      | 5               |
-      | 9               |
-
-  @AC-ROOM-006 @P0
-  Scenario: Room Code 碰撞超過 10 次後系統回傳 ROOM_CODE_GENERATION_FAILED
-    Given Redis 中已存在超過 10 個碰撞的 Room Code，導致每次嘗試均重複
-    When 主持人送出建立房間請求
-    Then HTTP 回應狀態碼為 500
-    And 回應錯誤碼為 "ROOM_CODE_GENERATION_FAILED"
-    And 前端顯示「建立失敗，請重試」提示
-    And Redis 中不存在任何孤立房間 key
-
-  @AC-WIN-001 @P0
-  Scenario: 主持人在 waiting 狀態成功更新中獎名額
-    Given 房間碼 "ALPHA2" 存在且狀態為 "waiting"
-    And 房間有 5 名玩家（N=5）且 winnerCount 尚未設定
-    When 主持人送出 UPDATE_WINNER_COUNT（winnerCount=2）
-    Then 伺服器接受並廣播 ROOM_STATE 給所有在線玩家
-    And ROOM_STATE payload 中 winnerCount 為 2
-
-  @AC-WIN-002 @P0
-  Scenario Outline: 主持人設定非法中獎名額時收到 INVALID_PRIZES_COUNT
-    Given 房間碼 "ALPHA2" 存在且狀態為 "waiting"
-    And 房間有 &lt;N&gt; 名玩家（N=&lt;N&gt;）
-    When 主持人送出 UPDATE_WINNER_COUNT（winnerCount=&lt;W&gt;）
-    Then 伺服器回傳錯誤碼 "INVALID_PRIZES_COUNT"
-    And 房間 winnerCount 維持不變
-
-    Examples:
-      | N | W | 說明             |
-      | 5 | 0 | W=0，低於下限     |
-      | 5 | 5 | W=N，等於上限違規 |
-
-  @AC-WIN-003 @P0
-  Scenario: 主持人在非 waiting 狀態更新中獎名額時被拒絕
-    Given 房間碼 "ALPHA2" 存在且狀態為 "running"
-    When 主持人送出 UPDATE_WINNER_COUNT（winnerCount=1）
-    Then 伺服器回傳錯誤碼 "UPDATE_WINNER_COUNT_NOT_ALLOWED_IN_STATE"
-    And 房間狀態維持 "running"</code></pre>
-
-      <hr>
-
-      <h2>features/player-management.feature</h2>
-      <pre><code class="language-gherkin"># features/player-management.feature
-Feature: 玩家加入與管理
-  As a 玩家
-  I want to 輸入暱稱並透過 6 碼房間碼加入房間
-  So that 能參與抽獎活動並即時看到玩家列表更新
-
-  Background:
-    Given 房間碼 "ALPHA2" 已存在且狀態為 "waiting"
-
-  @AC-PLAYER-001 @P0
-  Scenario: 玩家以有效暱稱成功加入房間
-    Given 玩家輸入有效暱稱 "Alice"（長度 1～20 Unicode 字元）
-    When 玩家送出 POST /api/v1/rooms/ALPHA2/players 並 WebSocket 握手成功
-    Then HTTP 回應狀態碼為 201
-    And 回應包含 playerId（UUID v4 格式）及 sessionToken
-    And WebSocket 連線於 1.5 秒內建立完成
-    And 主持人及所有在線玩家收到更新後的 ROOM_STATE（玩家列表含 "Alice"）
-
-  @AC-PLAYER-002 @P0
-  Scenario: 玩家輸入重複暱稱時收到 NICKNAME_TAKEN 錯誤
-    Given 房間內已有暱稱為 "Bob" 的玩家
-    When 新玩家嘗試以暱稱 "Bob" 加入同一房間
-    Then HTTP 回應狀態碼為 409
-    And 回應錯誤碼為 "NICKNAME_TAKEN"
-    And 錯誤訊息包含「此暱稱已被使用，請換一個」
-
-  @AC-PLAYER-003 @P0
-  Scenario Outline: 前端即時驗證暱稱格式不合規時禁用送出
-    Given 玩家在暱稱輸入框填入 "&lt;nickname&gt;"
-    When 前端執行即時驗證
-    Then 輸入框顯示欄位錯誤訊息
-    And 送出按鈕保持 disabled 狀態
-    And 不發送任何 HTTP 請求到伺服器
-
-    Examples:
-      | nickname                     | 說明              |
-      |                              | 空白暱稱          |
-      | ABCDEFGHIJKLMNOPQRSTU        | 超過 20 字元（21）|
-      | 一二三四五六七八九十一二三四五六七八九十甲 | 超過 20 Unicode 字元 |
-
-  @AC-PLAYER-004 @P0
-  Scenario: 房間已達 50 人上限時新玩家收到 ROOM_FULL 錯誤
-    Given 房間已有 50 名玩家（含主持人）
-    When 第 51 名玩家嘗試加入房間
-    Then HTTP 回應狀態碼為 409
-    And 回應錯誤碼為 "ROOM_FULL"
-    And 玩家看到「房間已滿，無法加入」提示
-
-  @AC-PLAYER-005 @P0
-  Scenario: 新玩家加入後所有在線玩家即時收到玩家列表更新
-    Given 房間內已有玩家 "Carol" 和 "Dave" 在線
-    When 新玩家 "Eve" 成功加入房間
-    Then 所有在線玩家於 2 秒內收到 ROOM_STATE 廣播
-    And ROOM_STATE payload 中玩家列表包含 "Carol"、"Dave"、"Eve" 三人
-
-  @AC-PLAYER-006 @P0
-  Scenario: 玩家斷線後其他玩家列表顯示離線標記
-    Given 房間內有玩家 "Frank" 在線（isOnline=true）
-    When 伺服器偵測到 "Frank" 的 WebSocket 連線中斷
-    Then 伺服器廣播 ROOM_STATE
-    And ROOM_STATE 中 "Frank" 的 isOnline 為 false
-    And 其他玩家的等待畫面在 2 秒內更新並顯示 "Frank" 為「離線」
-    And "Frank" 的名額與位置保留，不從玩家列表移除
-
-  @AC-PLAYER-007 @P0
-  Scenario Outline: 玩家嘗試加入非 waiting 狀態房間時收到 ROOM_NOT_ACCEPTING
-    Given 房間碼 "ALPHA2" 存在且狀態為 "&lt;room_status&gt;"
-    When 玩家嘗試以暱稱 "NewPlayer" 加入房間
-    Then HTTP 回應狀態碼為 409
-    And 回應錯誤碼為 "ROOM_NOT_ACCEPTING"
-    And 前端顯示「房間已在進行中，無法加入」提示
-
-    Examples:
-      | room_status |
-      | running     |
-      | revealing   |
-      | finished    |</code></pre>
-
-      <hr>
-
-      <h2>features/reconnect.feature</h2>
-      <pre><code class="language-gherkin"># features/reconnect.feature
-Feature: 斷線與重連行為
-  As a 玩家
-  I want to 在斷線後能重新連上房間並恢復完整狀態
-  So that 不因網路波動而遺失參與資格，並了解跨裝置登入時的 Session 替換行為
-
-  Background:
-    Given 房間碼 "EPS6" 已存在
-
-  @AC-RECONNECT-001 @P1
-  Scenario: 玩家斷線後以 localStorage 中的 playerId 重連並取得完整房間狀態
-    Given 玩家 "Alice" 的 localStorage 中存有 playerId="player-alice-uuid"
-    And 房間碼 "EPS6" 狀態為 "waiting"
-    When "Alice" 重新訪問房間連結並以 playerId="player-alice-uuid" 建立 WebSocket 連線
-    Then 伺服器驗證 playerId 後發送 ROOM_STATE_FULL 給 "Alice"
-    And ROOM_STATE_FULL payload 包含完整房間狀態（status、players、ladder、results、selfPlayerId）
-    And 重連完成時間在 3 秒以內
-
-  @AC-RECONNECT-002 @P1
-  Scenario: 玩家重連時房間已在揭曉進行中，顯示靜態結果不重播動畫
-    Given 玩家 "Bob" 的 localStorage 中存有 playerId="player-bob-uuid"
-    And 房間碼 "EPS6" 狀態為 "revealing"，已揭曉 3 條路徑（revealedCount=3）
-    When "Bob" 重新連線至房間
-    Then 伺服器發送 ROOM_STATE_FULL，其中包含已揭曉的 3 筆 ResultSlot 資料
-    And 前端直接渲染已揭曉路徑的靜態結果，不重播已完成的動畫
-
-  @AC-RECONNECT-003 @P1
-  Scenario: localStorage 中無 playerId 的 Ghost Player 被視為新玩家處理
-    Given 玩家的瀏覽器 localStorage 中不存在任何 playerId
-    And 房間碼 "EPS6" 狀態為 "waiting"，房間內已有暱稱 "Carol" 的玩家
-    When 玩家嘗試以暱稱 "Carol" 加入房間
-    Then 伺服器視為新玩家，但因暱稱重複回傳錯誤碼 "NICKNAME_TAKEN"
-    And 提示「此暱稱已被使用，請換一個」
-
-  @AC-RECONNECT-004 @P1
-  Scenario: Ghost Player 使用全新暱稱成功加入房間
-    Given 玩家的瀏覽器 localStorage 中不存在任何 playerId
-    And 房間碼 "EPS6" 狀態為 "waiting"
-    When 玩家以全新暱稱 "NewComer" 加入房間
-    Then 伺服器視為新玩家，HTTP 回應狀態碼為 201
-    And 回應包含新的 playerId（UUID v4 格式）
-
-  @AC-RECONNECT-005 @P1
-  Scenario: 同一 playerId 在新裝置登入時舊 session 收到 SESSION_REPLACED
-    Given 玩家 "Dave"（playerId="player-dave-uuid"）已在裝置 A 建立 WebSocket 連線（session-A）
-    And 房間碼 "EPS6" 狀態為 "waiting"
-    When "Dave" 在裝置 B 以相同 playerId="player-dave-uuid" 建立新的 WebSocket 連線
-    Then 伺服器更新 "Dave" 的 isOnline=true 關聯至裝置 B 的連線
-    And 裝置 A 的 session-A 收到 SESSION_REPLACED 事件
-    And 裝置 A 的 WebSocket 連線被關閉
-    And 裝置 B 收到 ROOM_STATE_FULL 事件（含完整房間狀態及 selfPlayerId）
-
-  @AC-RECONNECT-006 @P1
-  Scenario: 舊 session 在收到 SESSION_REPLACED 後連線關閉
-    Given 玩家 "Eve"（playerId="player-eve-uuid"）已在裝置 X 建立 WebSocket 連線（session-X）
-    And 房間碼 "EPS6" 狀態為 "waiting"
-    When "Eve" 在裝置 Y 以相同 playerId="player-eve-uuid" 建立新 WebSocket 連線
-    Then 裝置 X 的 session-X 收到 SESSION_REPLACED 事件，其 payload 包含 replacedAt 時間戳
-    And 裝置 X 的 WebSocket 連線以 close code 4001 關閉
-
-  @AC-RECONNECT-007 @P1
-  Scenario: 重連後玩家收到包含完整狀態的 ROOM_STATE_FULL
-    Given 玩家 "Frank"（playerId="player-frank-uuid"）已成功加入房間 "EPS6"
-    And 玩家 "Frank" 的 WebSocket 連線中斷
-    When "Frank" 以相同 playerId="player-frank-uuid" 重新建立 WebSocket 連線
-    Then 伺服器發送 ROOM_STATE_FULL 給 "Frank"
-    And ROOM_STATE_FULL payload 包含完整房間狀態（status、players、ladder、results、selfPlayerId）
-    And "Frank" 在 players 清單中的 isOnline 為 true
-
-  @AC-RECONNECT-008 @P1
-  Scenario: 玩家斷線後 isOnline 變為 false，重連後恢復 true
-    Given 玩家 "Grace"（playerId="player-grace-uuid"）已連線至房間 "EPS6"
-    When "Grace" 的 WebSocket 連線意外中斷
-    Then 伺服器廣播 ROOM_STATE，其中 "Grace" 的 isOnline 為 false
-    When "Grace" 重新建立 WebSocket 連線
-    Then 伺服器廣播 ROOM_STATE，其中 "Grace" 的 isOnline 為 true
-
-  @AC-RECONNECT-009 @P1
-  Scenario: 主持人斷線後房間繼續並等待主持人重連（grace period）
-    Given 主持人（playerId="host-uuid"）已連線至房間 "EPS6"，房間狀態為 "running"
-    When 主持人的 WebSocket 連線意外中斷
-    Then 伺服器廣播 ROOM_STATE，主持人的 isOnline 為 false
-    And 房間狀態維持 "running"（不中止遊戲）
-    And 其他玩家收到提示「主持人暫時離線，等待重連中」
-    When 主持人在 grace period 內重新建立 WebSocket 連線
-    Then 主持人收到 ROOM_STATE_FULL（含完整遊戲狀態）
-    And 房間狀態維持 "running"，遊戲繼續
-
-  @AC-RECONNECT-010 @P1
-  Scenario: 斷線重連後玩家暱稱與 colorIndex 等資料保持不變
-    Given 玩家 "Henry"（playerId="player-henry-uuid"，nickname="Henry"，colorIndex=3）已連線至房間 "EPS6"
-    When "Henry" 的 WebSocket 連線中斷後重新連線
-    Then ROOM_STATE_FULL 中 "Henry" 的 nickname 仍為 "Henry"
-    And "Henry" 的 colorIndex 仍為 3
-    And "Henry" 的 playerId 仍為 "player-henry-uuid"</code></pre>
-
-      <hr>
-
-      <h2>features/reveal-flow.feature</h2>
-      <pre><code class="language-gherkin"># features/reveal-flow.feature
-Feature: 路徑揭曉流程
+    <h2>Feature: 路徑揭曉流程（reveal-flow.feature）</h2>
+    <pre><code>Feature: 路徑揭曉流程
   As a 主持人
   I want to 手動逐步、自動定時或一鍵揭曉所有玩家的路徑
-  So that 能配合現場節奏製造懸念，或在時間緊迫時快速完成抽獎
+  So that 能配合現場節奏製造懸念
 
   Background:
-    Given 房間碼 "GAMMA4" 已存在且狀態為 "revealing"
+    Given 房間碼 "GAMMA4" 存在且狀態為 "revealing"
     And 房間有 4 名玩家（N=4），winnerCount=1
-    And 主持人已透過 hostToken 驗證身份
+    And 主持人已驗證身份
     And 尚有未揭曉的路徑
 
   @AC-REVEAL-001 @P0
@@ -512,19 +158,18 @@ Feature: 路徑揭曉流程
     And REVEAL_INDEX payload 包含 playerIndex、result 及 revealedCount=1
 
   @AC-REVEAL-002 @P0
-  Scenario: 所有路徑揭曉完畢後主持人再點擊「下一位」系統不回應
+  Scenario: 所有路徑揭曉完畢後再點擊「下一位」系統不回應
     Given 所有 4 條路徑已全數揭曉（revealedCount=4）
     When 主持人送出 WS 訊息 REVEAL_NEXT
     Then 伺服器不廣播任何 REVEAL_INDEX 事件
     And 伺服器回傳 ERROR 事件，code 為 "INVALID_STATE"
-    And 前端「下一位」按鈕保持 disabled 狀態
 
   @AC-REVEAL-003 @P1
   Scenario: 主持人設定自動揭曉間隔後系統定時廣播
     Given 目前已揭曉 0 條路徑
     When 主持人送出 SET_REVEAL_MODE（mode="auto"，intervalSec=3）
     Then 每隔 3 秒伺服器自動廣播下一個 REVEAL_INDEX
-    And 重複直到所有 4 條路徑全部揭曉（revealedCount=4）
+    And 重複直到所有 4 條路徑全部揭曉
 
   @AC-REVEAL-004 @P1
   Scenario: 自動揭曉進行中切換回手動模式後計時停止
@@ -532,219 +177,133 @@ Feature: 路徑揭曉流程
     When 主持人送出 SET_REVEAL_MODE（mode="manual"）
     Then 伺服器停止自動計時，不再自動廣播 REVEAL_INDEX
     And 已揭曉的 2 條路徑結果不受影響
-    And 後續揭曉需由主持人手動觸發 REVEAL_NEXT
 
   @AC-REVEAL-005 @P0
   Scenario: 主持人點擊「全部揭曉」後伺服器廣播 REVEAL_ALL
     Given 目前已揭曉 1 條路徑，剩餘 3 條未揭曉
     When 主持人送出 WS 訊息 REVEAL_ALL_TRIGGER
     Then 伺服器廣播 REVEAL_ALL 事件給所有客戶端
-    And REVEAL_ALL payload 包含所有剩餘 3 條路徑的完整 ResultSlot 資料
-    And 所有客戶端於 2 秒內完成剩餘路徑動畫渲染
-
-  @AC-REVEAL-AUTO-BOUNDARY @P1
-  Scenario Outline: 自動揭曉間隔 T 邊界值驗證
-    When 主持人送出 SET_REVEAL_MODE（mode="auto"，intervalSec=&lt;T&gt;）
-    Then &lt;expected_result&gt;
-
-    Examples:
-      | T  | expected_result                                         |
-      | 1  | 伺服器接受並開始每隔 1 秒廣播 REVEAL_INDEX（合法下限）    |
-      | 30 | 伺服器接受並開始每隔 30 秒廣播 REVEAL_INDEX（合法上限）   |
-      | 0  | 伺服器回傳錯誤碼 "INVALID_AUTO_REVEAL_INTERVAL"（T=0 非法）|
-      | 31 | 伺服器回傳錯誤碼 "INVALID_AUTO_REVEAL_INTERVAL"（T=31 非法）|
+    And REVEAL_ALL payload 包含所有剩餘 3 條路徑的 ResultSlot 資料
 
   @AC-BEGIN-REVEAL-001 @P0
   Scenario: 主持人在 running 狀態觸發 BEGIN_REVEAL 後房間進入 revealing 狀態
     Given 房間碼 "GAMMA4" 存在且狀態為 "running"
-    And 主持人已透過 hostToken 驗證身份
     When 主持人送出 WS 訊息 BEGIN_REVEAL
-    Then 伺服器廣播 ROOM_STATE 給所有客戶端
-    And ROOM_STATE payload 中 status 為 "revealing"
-    And ROOM_STATE payload 中 revealedCount 為 0
-    And 所有客戶端進入揭曉等待介面
+    Then 伺服器廣播 ROOM_STATE，status 為 "revealing"
+    And revealedCount 為 0</code></pre>
 
-  @AC-BEGIN-REVEAL-002 @P0
-  Scenario Outline: 非 running 狀態送出 BEGIN_REVEAL 時收到 INVALID_STATE 錯誤
-    Given 房間碼 "GAMMA4" 存在且狀態為 "&lt;room_status&gt;"
-    And 主持人已透過 hostToken 驗證身份
-    When 主持人送出 WS 訊息 BEGIN_REVEAL
-    Then 伺服器回傳 ERROR 事件，code 為 "INVALID_STATE"
-    And 房間狀態維持 "&lt;room_status&gt;"
+    <hr>
 
-    Examples:
-      | room_status |
-      | waiting     |
-      | revealing   |
-      | finished    |
-
-  @AC-END-GAME-001 @P0
-  Scenario: 所有路徑揭曉後主持人送出 END_GAME 使房間進入 finished 狀態
-    Given 房間碼 "GAMMA4" 存在且狀態為 "revealing"
-    And 主持人已透過 hostToken 驗證身份
-    And 所有 4 條路徑已全數揭曉（revealedCount=4）
-    When 主持人送出 WS 訊息 END_GAME
-    Then 伺服器廣播 ROOM_STATE 給所有客戶端
-    And ROOM_STATE payload 中 status 為 "finished"
-    And 所有客戶端顯示完整得獎名單
-
-  @AC-END-GAME-002 @P0
-  Scenario: 尚有未揭曉路徑時送出 END_GAME 收到 REVEALS_INCOMPLETE 錯誤
-    Given 房間碼 "GAMMA4" 存在且狀態為 "revealing"
-    And 主持人已透過 hostToken 驗證身份
-    And 目前已揭曉 2 條路徑，剩餘 2 條未揭曉（revealedCount=2，totalCount=4）
-    When 主持人送出 WS 訊息 END_GAME
-    Then 伺服器回傳 ERROR 事件，code 為 "REVEALS_INCOMPLETE"
-    And 錯誤訊息包含「尚有未揭曉的路徑，請先完成揭曉」
-    And 房間狀態維持 "revealing"
-
-  @AC-END-GAME-004 @P0
-  Scenario: REVEAL_ALL_TRIGGER 後伺服器自動完成揭曉並廣播 finished 狀態
-    Given 房間碼 "GAMMA4" 存在且狀態為 "revealing"
-    And 目前已揭曉 1 條路徑，剩餘 3 條未揭曉
-    When 主持人送出 WS 訊息 REVEAL_ALL_TRIGGER
-    Then 伺服器廣播 REVEAL_ALL 事件，payload 包含所有剩餘 3 條路徑的完整 ResultSlot 資料
-    And 伺服器隨後廣播 ROOM_STATE，status 為 "finished"
-    And 所有客戶端顯示完整得獎名單，無需主持人再送出 END_GAME</code></pre>
-
-      <hr>
-
-      <h2>features/host-actions.feature</h2>
-      <pre><code class="language-gherkin"># features/host-actions.feature
-Feature: 主持人管理操作
+    <h2>Feature: 玩家管理（player-management.feature）</h2>
+    <pre><code>Feature: 玩家管理
   As a 主持人
-  I want to 踢除特定玩家並在一局結束後發起再玩一局
-  So that 能移除不當參與者並用同一房間繼續下一輪抽獎
+  I want to 管理等待大廳中的玩家
+  So that 確保房間內玩家名單符合預期
 
-  Background:
-    Given 主持人已透過 hostToken 驗證身份
+  @AC-KICK-001 @P0
+  Scenario: 主持人踢除在線玩家，被踢玩家收到通知並導向首頁
+    Given 等待大廳有玩家 "Bob"（isOnline=true）
+    When 主持人踢除 "Bob"
+    Then "Bob" 的客戶端收到 PLAYER_KICKED 事件
+    And "Bob" 的 WS 連線立即被 Server 關閉（close code 4003）
+    And "Bob" 客戶端清除 localStorage 中的 playerId
+    And "Bob" 客戶端 3 秒後導向首頁
+    And 其他玩家收到 ROOM_STATE（"Bob" 不在 players 陣列）
 
-  @AC-HOST-KICK-001 @P1
-  Scenario: 主持人在 waiting 狀態踢除玩家後廣播 PLAYER_KICKED
-    Given 房間碼 "DELTA5" 存在且狀態為 "waiting"
-    And 房間內有玩家 "Tom"（playerId="player-tom-uuid"）
-    When 主持人送出 KICK_PLAYER（targetPlayerId="player-tom-uuid"）
-    Then 伺服器廣播 PLAYER_KICKED 事件給所有連線客戶端
-    And PLAYER_KICKED payload 包含 kickedPlayerId="player-tom-uuid"
-    And "Tom" 的客戶端收到後跳轉至「你已被主持人移出房間」頁面
-    And 玩家列表即時更新，不再顯示 "Tom"
+  @AC-KICK-002 @P0
+  Scenario: 被踢玩家嘗試重連，Server 回傳 PLAYER_KICKED 錯誤
+    Given "Bob" 已被踢除（playerId 在 kickedPlayerIds）
+    When "Bob" 以原 playerId 嘗試建立 WS 連線
+    Then Server 回傳 close code 4003
+    And 先發送 JSON frame { type: "PLAYER_KICKED", ... }
 
-  @AC-HOST-KICK-002 @P1
-  Scenario: 被踢玩家嘗試以相同 playerId 重連時被拒絕
-    Given 房間碼 "DELTA5" 中 playerId="player-tom-uuid" 已存在於 kickedPlayerIds
-    When "Tom" 嘗試以相同 playerId="player-tom-uuid" 重新建立 WebSocket 連線
-    Then WS Upgrade 被伺服器以 close code 4003 拒絕
-    And 前端顯示「你已被移出此房間，無法重新加入」
+  @AC-PLAY-AGAIN-001 @P0
+  Scenario: 主持人點擊「再玩一局」，離線玩家被移除，禁令清除
+    Given 房間狀態為 "finished"，有 2 名在線玩家、1 名離線玩家
+    And "Bob" 在前一局被踢除（在 kickedPlayerIds）
+    When 主持人點擊「再玩一局」
+    Then 離線玩家從 players 陣列移除
+    And kickedPlayerIds 清空（"Bob" 的踢除禁令解除）
+    And 房間狀態重置為 "waiting"
+    And Server 廣播 ROOM_STATE（status="waiting"）
 
-  @AC-HOST-KICK-003 @P1
-  Scenario Outline: 非 waiting 狀態踢除玩家時系統拒絕並回傳 INVALID_STATE
-    Given 房間碼 "DELTA5" 存在且狀態為 "&lt;room_status&gt;"
-    And 房間內有玩家 "Jerry"（playerId="player-jerry-uuid"）
-    When 主持人送出 KICK_PLAYER（targetPlayerId="player-jerry-uuid"）
-    Then 伺服器回傳錯誤碼 "INVALID_STATE"
-    And 房間狀態維持 "&lt;room_status&gt;"
-    And 玩家 "Jerry" 的連線不受影響
+  @AC-PLAY-AGAIN-002 @P0
+  Scenario: 再玩一局後，前一局被踢玩家可使用新暱稱重新加入
+    Given 主持人已點擊「再玩一局」，kickedPlayerIds 已清空
+    When 前一局被踢除的玩家以新暱稱 "Bob_New" 嘗試加入
+    Then Server 接受加入請求
+    And "Bob_New" 成為房間的正式玩家</code></pre>
 
-    Examples:
-      | room_status |
-      | running     |
-      | revealing   |
-      | finished    |
+    <hr>
 
-  @AC-HOST-KICK-SELF @P1
-  Scenario: 主持人嘗試踢除自己時收到 CANNOT_KICK_HOST 錯誤
-    Given 房間碼 "DELTA5" 存在且狀態為 "waiting"
-    And 主持人的 playerId 為 "host-player-uuid"
-    When 主持人送出 KICK_PLAYER（targetPlayerId="host-player-uuid"，即自己）
-    Then 伺服器回傳錯誤碼 "CANNOT_KICK_SELF"
-    And 主持人仍在房間玩家列表中
-    And 房間狀態維持 "waiting"
+    <h2>Feature: 重連處理（reconnect.feature）</h2>
+    <pre><code>Feature: 斷線與重連處理
+  As a 玩家或主持人
+  I want to 在網路短暫中斷後自動重連並恢復遊戲狀態
+  So that 不因短暫斷線而失去遊戲進度
 
-  @AC-PLAY-AGAIN-001 @P1
-  Scenario: 主持人在 finished 狀態送出 PLAY_AGAIN 成功重置房間
-    Given 房間碼 "DELTA5" 狀態為 "finished"
-    And 房間有 5 名玩家，其中 4 名在線（isOnline=true），1 名離線（isOnline=false）
-    When 主持人送出 WS 訊息 PLAY_AGAIN
-    Then 系統從玩家列表移除所有 isOnline=false 的玩家
-    And 伺服器廣播 ROOM_STATE（status="waiting"，含剩餘 4 名在線玩家）
-    And ladder 資料清空（ladder=null）
-    And results 資料清空（results=[]）
+  @AC-RECONNECT-001 @P0
+  Scenario: 玩家帶有效 playerId 重連，Server unicast ROOM_STATE_FULL
+    Given 玩家 "Carol" 在 "revealing" 狀態斷線
+    And 已揭曉 2 條路徑
+    When "Carol" 以原 playerId 重新建立 WS 連線
+    Then Server unicast ROOM_STATE_FULL 給 "Carol"
+    And ROOM_STATE_FULL 包含完整 players、ladder（LadderDataPublic）、results（已揭曉部分）
+    And "Carol" 的 isOnline 更新為 true
+    And Server 廣播 ROOM_STATE 至其他玩家（"Carol" isOnline=true）
 
-  @AC-PLAY-AGAIN-002 @P1
-  Scenario: PLAY_AGAIN 後 kickedPlayerIds 被清空，前次被踢玩家可以新暱稱加入
-    Given 房間碼 "DELTA5" 狀態為 "finished"
-    And kickedPlayerIds 包含 ["player-sam-uuid", "player-tom-uuid"]
-    When 主持人送出 WS 訊息 PLAY_AGAIN
-    Then 新局初始化完成後 Redis 中 kickedPlayerIds 為空陣列 []
-    And 前一局被踢玩家可使用新暱稱加入新局
+  @AC-RECONNECT-002 @P0
+  Scenario: Host 斷線超過 60 秒，主持權自動移交給下一位在線玩家
+    Given 主持人 "Alice" 斷線
+    And 房間有另一位在線玩家 "Bob"
+    When 60 秒過去，"Alice" 未重連
+    Then Server 廣播 HOST_TRANSFERRED 事件
+    And ROOM_STATE 廣播中 hostId 更新為 "Bob" 的 playerId
 
-  @AC-PLAY-AGAIN-003 @P1
-  Scenario: PLAY_AGAIN 後在線玩家減少導致 winnerCount 越界，系統自動重設為 null
-    Given 房間碼 "DELTA5" 狀態為 "finished"，winnerCount=4
-    And 剔除離線玩家後剩餘在線玩家數量為 4（新 N=4，W=4 &gt;= 新 N）
-    When 主持人送出 WS 訊息 PLAY_AGAIN
-    Then 伺服器將 winnerCount 設為 null
-    And 主持人收到「中獎名額已重設，請重新設定」提示
-    And 新局 ROOM_STATE 中 winnerCount 為 null
+  @AC-RECONNECT-003 @P0
+  Scenario: 同一 playerId 從新分頁登入，舊連線收到 SESSION_REPLACED
+    Given 玩家 "Dave" 已有活躍 WS 連線（舊分頁）
+    When "Dave" 從另一分頁以相同 playerId 建立 WS 連線
+    Then 舊連線收到 SESSION_REPLACED 事件
+    And 舊連線的 WS 斷線
+    And 新連線成為 "Dave" 的活躍 session</code></pre>
 
-  @AC-PLAY-AGAIN-004 @P1
-  Scenario Outline: 非 finished 狀態送出 PLAY_AGAIN 時收到 INVALID_STATE 錯誤
-    Given 房間碼 "DELTA5" 存在且狀態為 "&lt;room_status&gt;"
-    When 主持人送出 WS 訊息 PLAY_AGAIN
-    Then 伺服器回傳 ERROR 事件，code 為 "INVALID_STATE"
-    And 房間狀態維持 "&lt;room_status&gt;"
+    <hr>
 
-    Examples:
-      | room_status |
-      | waiting     |
-      | running     |
-      | revealing   |
+    <h2>Feature: PRNG 確定性驗證（prng.feature）</h2>
+    <pre><code>Feature: PRNG 確定性驗證
+  As a 系統
+  I want to 確保相同 seed 在前後端產生完全相同的梯子結構
+  So that 玩家可在 finished 後自行驗證抽獎公平性（PRD AC-SYS-01）
 
-  @AC-PLAY-AGAIN-005 @P1
-  Scenario: PLAY_AGAIN 時在線玩家不足兩人系統拒絕並回傳 INSUFFICIENT_ONLINE_PLAYERS
-    Given 房間碼 "DELTA5" 狀態為 "finished"
-    And 目前僅有主持人 1 名玩家在線（isOnline=true）
-    When 主持人送出 WS 訊息 PLAY_AGAIN
-    Then 伺服器回傳錯誤碼 "INSUFFICIENT_ONLINE_PLAYERS"
-    And 前端顯示「在線玩家不足，無法開始新局」
-    And 房間狀態維持 "finished"
+  @AC-PRNG-001 @P0
+  Scenario: 相同 seed 在 packages/shared 前後端共用，產生 100% 相同的梯子結構
+    Given 已知 seed = 3141592653，rowCount = 20，colCount = 3
+    When 後端（Node.js）以此 seed 執行 generateLadder
+    And 前端（Browser）以此 seed 執行 generateLadder
+    Then 兩端的 segments 陣列完全相同（長度、每個元素的 row/col 一致）
+    And 兩端的 ResultSlots 陣列完全相同（startCol、endCol、isWinner 一致）
 
-  @AC-AUTH-001 @P0
-  Scenario: 使用無效 JWT 執行 Host 操作時收到 401 AUTH_INVALID_TOKEN
-    Given 主持人使用格式錯誤或簽名不符的 JWT token
-    When 主持人嘗試送出 DELETE /api/rooms/DELTA5/players/some-player-id
-    Then HTTP 回應狀態碼為 401
-    And 回應錯誤碼為 "AUTH_INVALID_TOKEN"
+  @AC-PRNG-002 @P0
+  Scenario: 不同 seed 產生不同梯子結構
+    Given seed A = 100000001，seed B = 100000002，其餘參數相同
+    When 分別執行 generateLadder
+    Then 兩次生成的 segments 陣列不完全相同（至少有一個元素不同）</code></pre>
 
-  @AC-AUTH-002 @P0
-  Scenario: 使用過期 JWT 執行 Host 操作時收到 401 AUTH_TOKEN_EXPIRED
-    Given 主持人的 JWT token 已超過 6 小時過期
-    When 主持人嘗試送出 POST /api/rooms/DELTA5/game/start
-    Then HTTP 回應狀態碼為 401
-    And 回應錯誤碼為 "AUTH_TOKEN_EXPIRED"</code></pre>
+    <hr>
 
-      <hr>
-
-      <h2>features/client-canvas.feature</h2>
-      <pre><code class="language-gherkin"># features/client-canvas.feature
-Feature: 梯子 Canvas 渲染行為
+    <h2>Feature: Canvas 渲染行為（client-canvas.feature）</h2>
+    <pre><code>Feature: 梯子 Canvas 渲染行為
   As a 玩家
   I want to 在各個遊戲階段看到符合狀態的 Canvas 畫面
   So that 我能清楚掌握遊戲進行狀況並正確辨識自己的結果
 
-  Background:
-    Given 我已加入房間 "EPS6"
-    And Canvas 元素已掛載於頁面上
-
   @canvas @waiting @P1
   Scenario: 房間狀態為 waiting 時 Canvas 顯示佔位畫面
-    Given 房間狀態為 "waiting"
-    And 尚未生成梯子資料
+    Given 房間狀態為 "waiting"，尚未生成梯子資料
     When Canvas 完成初次渲染
     Then Canvas 顯示灰色佔位軌道，對應每位已加入的玩家
-    And Canvas 上方顯示每位玩家的暱稱標籤
-    And Canvas 不顯示任何橫槓（rung）或路徑
-    And Canvas 底部不顯示結果標籤
+    And Canvas 不顯示任何橫槓或路徑
 
   @canvas @running @P0
   Scenario: 房間狀態切換為 running 時 Canvas 渲染完整梯子結構
@@ -752,53 +311,32 @@ Feature: 梯子 Canvas 渲染行為
     And 伺服器廣播包含 ladderData 的 ROOM_STATE
     When Canvas 接收到新的梯子資料
     Then Canvas 顯示所有垂直軌道，數量等於玩家人數
-    And Canvas 顯示所有水平橫槓（rung），位置與伺服器資料一致
-    And 每條軌道以對應玩家的顏色繪製
-    And 尚未揭曉的路徑不顯示彩色高亮
+    And Canvas 顯示所有水平橫槓，位置與伺服器資料一致
 
   @canvas @revealing @P0
   Scenario: 觸發揭曉時 Canvas 播放路徑動畫
     Given 房間狀態為 "running"，梯子已渲染
     When 主持人觸發揭曉，Canvas 接收到 REVEAL_INDEX 事件
     Then Canvas 沿對應玩家的行進路徑播放移動動畫
-    And 動畫期間路徑以彩色高亮繪製
     And 動畫完成後路徑保持彩色高亮靜止顯示
-    And 動畫時間約為 1.5 秒
-
-  @canvas @revealing @P0
-  Scenario: 我的路徑揭曉時顯示金色高亮以示區分
-    Given 房間狀態為 "running"
-    When 我的路徑（自身玩家）被揭曉
-    Then Canvas 以金色（#ffd700）繪製我的路徑
-    And 其他玩家的路徑以各自的指定顏色繪製
-
-  @canvas @revealing @P1
-  Scenario: 重連時房間已揭曉部分路徑，Canvas 直接顯示靜態結果不重播動畫
-    Given 房間狀態為 "revealing"，已揭曉 3 條路徑
-    When 我重新連線並接收 ROOM_STATE_FULL
-    Then Canvas 直接以靜態方式繪製已揭曉的 3 條路徑
-    And Canvas 不播放任何動畫
 
   @canvas @finished @P0
   Scenario: 所有路徑揭曉完成後 Canvas 顯示最終結果標籤
     Given 所有玩家的路徑均已揭曉
     When Canvas 完成最後一條路徑的渲染
     Then Canvas 底部每條軌道終點顯示「中獎」或「未中獎」標籤
-    And 中獎標籤以金色顯示
-    And 未中獎標籤以灰色顯示</code></pre>
+    And 中獎標籤以金色顯示，未中獎標籤以灰色顯示</code></pre>
 
-      <hr>
+    <hr>
 
-      <h2>features/client-navigation.feature</h2>
-      <pre><code class="language-gherkin"># features/client-navigation.feature
-Feature: 頁面流程與視圖切換
+    <h2>Feature: 頁面流程與視圖切換（client-navigation.feature）</h2>
+    <pre><code>Feature: 頁面流程與視圖切換
   As a 玩家或主持人
   I want to 在不同遊戲階段被引導到對應的頁面
-  So that 我能看到符合當前狀態的 UI，並依直覺完成每個操作步驟
+  So that 我能看到符合當前狀態的 UI
 
   @navigation @lobby @P0
   Scenario: 首次進入應用程式時顯示首頁
-    Given 使用者開啟應用程式首頁
     When 頁面載入完成
     Then 顯示「建立房間」與「加入房間」兩個操作入口
     And 不顯示梯子 Canvas、玩家列表或結果列表
@@ -806,8 +344,7 @@ Feature: 頁面流程與視圖切換
   @navigation @lobby @P0
   Scenario: 主持人填寫暱稱後建立房間，進入等待大廳
     Given 使用者在首頁輸入暱稱 "Alice"
-    When 使用者點擊「建立房間」
-    And 伺服器回傳房間碼 "EPS6" 與 hostToken
+    When 使用者點擊「建立房間」，伺服器回傳房間碼 "EPS6"
     Then 畫面切換至等待大廳視圖
     And 等待大廳顯示房間碼 "EPS6"
     And 玩家列表中顯示 "Alice"（主持人標記）
@@ -816,130 +353,21 @@ Feature: 頁面流程與視圖切換
   Scenario: 玩家輸入房間碼與暱稱後加入房間，進入等待大廳
     Given 使用者在首頁輸入暱稱 "Bob" 與房間碼 "EPS6"
     When 使用者點擊「加入房間」
-    And 伺服器回傳 playerToken
     Then 畫面切換至等待大廳視圖
-    And 等待大廳顯示房間碼 "EPS6"
     And 玩家列表中顯示 "Bob"
 
   @navigation @waiting @P0
   Scenario: 主持人點擊「開始遊戲」後所有人切換至遊戲頁面
     Given 等待大廳有 3 名玩家且中獎名額已設定
     When 主持人點擊「開始遊戲」
-    And 伺服器廣播 ROOM_STATE（status="running"，含 ladderData）
+    And 伺服器廣播 ROOM_STATE（status="running"）
     Then 主持人畫面切換至遊戲頁面
-    And 所有玩家畫面同步切換至遊戲頁面
-    And 遊戲頁面顯示完整梯子 Canvas
+    And 所有玩家畫面同步切換至遊戲頁面</code></pre>
 
-  @navigation @game @P0
-  Scenario: 遊戲頁面顯示房間碼、狀態標籤、玩家列表與 Canvas
-    Given 房間狀態為 "running"
-    When 遊戲頁面渲染完成
-    Then 頁面標題區域顯示房間碼
-    And 顯示目前狀態標籤（例如「遊戲進行中」）
-    And 右側或下方顯示玩家列表
-    And 中央顯示梯子 Canvas
+    <hr>
 
-  @navigation @results @P0
-  Scenario: 所有路徑揭曉完成後頁面顯示最終結果
-    Given 房間狀態為 "revealing"，所有路徑逐一揭曉中
-    When 最後一條路徑揭曉完成
-    Then Canvas 顯示所有路徑的最終靜態結果
-    And 結果列表顯示每位玩家的中獎或未中獎狀態
-    And 我的結果以明顯方式標示
-
-  @navigation @refresh @P1
-  Scenario: 玩家刷新頁面後根據 localStorage 中的 token 恢復至正確視圖
-    Given 我已加入房間 "EPS6" 且 localStorage 存有 myToken 與 myPlayerId
-    When 我刷新瀏覽器頁面
-    Then 前端以 localStorage 中的 token 重新建立 WebSocket 連線
-    And 根據伺服器回傳的房間狀態自動切換至對應視圖（waiting 或 game）
-
-  @navigation @refresh @P1
-  Scenario: localStorage 無 token 時刷新頁面顯示首頁
-    Given 瀏覽器 localStorage 中無任何 token 資料
-    When 使用者開啟或刷新頁面
-    Then 直接顯示首頁視圖
-    And 不顯示任何載入中或錯誤訊息</code></pre>
-
-      <hr>
-
-      <h2>features/client-reconnect.feature</h2>
-      <pre><code class="language-gherkin"># features/client-reconnect.feature
-Feature: 前端斷線重連 UI 行為
-  As a 玩家
-  I want to 在網路中斷時看到明確提示，並在重連後恢復遊戲畫面
-  So that 我不會因短暫網路波動而感到困惑或失去遊戲進度
-
-  Background:
-    Given 我已加入房間 "EPS6" 並處於遊戲頁面
-
-  @reconnect @offline @P0
-  Scenario: WebSocket 斷線時顯示連線中斷 overlay
-    Given 我的 WebSocket 連線正常
-    When WebSocket 連線意外中斷
-    Then 頁面顯示連線中斷提示（例如灰色 overlay 或 Toast 訊息）
-    And 提示文字說明「連線中斷，嘗試重連中…」
-    And 連線狀態指示點變為灰色或紅色
-
-  @reconnect @retry @P0
-  Scenario: 前端自動嘗試重連並顯示倒數提示
-    Given WebSocket 連線已中斷
-    When 前端開始自動重連流程（第 1 次嘗試）
-    Then 頁面提示「正在嘗試重新連線（第 1 / 3 次）…」或類似文字
-    And 使用者無需手動操作
-
-  @reconnect @restore @P0
-  Scenario: 重連成功後 overlay 消失，UI 恢復正常
-    Given 連線中斷 overlay 正在顯示
-    When WebSocket 重新連線成功
-    Then 連線中斷 overlay 自動消失
-    And 連線狀態指示點變回綠色
-    And 遊戲頁面恢復正常操作狀態
-
-  @reconnect @restore @P0
-  Scenario: 重連後接收 ROOM_STATE_FULL 並恢復至正確視圖
-    Given 我斷線時房間狀態為 "running"
-    When 重連成功，伺服器發送 ROOM_STATE_FULL（status="running"）
-    Then 頁面維持在遊戲視圖
-    And Canvas 重新渲染包含最新狀態的梯子畫面
-    And 玩家列表更新為最新的上線狀態
-
-  @reconnect @restore @P1
-  Scenario: 重連時房間已進入 revealing 狀態，直接顯示靜態已揭曉結果
-    Given 我斷線時房間狀態為 "running"
-    When 重連成功，伺服器發送 ROOM_STATE_FULL（status="revealing"，revealedCount=3）
-    Then Canvas 直接顯示 3 條已揭曉路徑的靜態畫面
-    And 不播放已完成路徑的動畫
-    And 結果列表顯示 3 筆已揭曉結果
-
-  @reconnect @session-replaced @P0
-  Scenario: 在同一 playerId 從其他裝置登入時，目前頁面顯示 SESSION_REPLACED 提示
-    Given 我在裝置 A 上正在進行遊戲
-    When 我在裝置 B 以相同帳號登入同一房間
-    Then 裝置 A 的頁面顯示 Toast 訊息「你的帳號已在其他地方登入」
-    And 裝置 A 的 WebSocket 連線被關閉
-    And 裝置 A 的畫面切換回首頁（lobby 視圖）
-    And 裝置 A 的 localStorage token 被清除或失效
-
-  @reconnect @host-offline @P1
-  Scenario: 主持人斷線時玩家頁面顯示主持人離線提示
-    Given 我是普通玩家，主持人目前上線
-    When 伺服器廣播 ROOM_STATE，主持人的 isOnline 為 false
-    Then 頁面顯示提示「主持人暫時離線，等待重連中」
-    And 揭曉操作按鈕（若存在）變為停用狀態
-
-  @reconnect @host-offline @P1
-  Scenario: 主持人重連後提示消失，操作恢復正常
-    Given 主持人離線提示正在顯示
-    When 伺服器廣播 ROOM_STATE，主持人的 isOnline 恢復為 true
-    Then 主持人離線提示自動消失
-    And 揭曉操作按鈕恢復啟用狀態</code></pre>
-
-      <hr>
-
-      <h2>features/client-error.feature</h2>
-      <pre><code class="language-gherkin"># features/client-error.feature
-Feature: 錯誤狀態的 UI 回饋行為
+    <h2>Feature: 錯誤狀態 UI 回饋（client-error.feature）</h2>
+    <pre><code>Feature: 錯誤狀態的 UI 回饋行為
   As a 玩家或主持人
   I want to 在操作失敗時立刻看到清楚的錯誤提示
   So that 我能理解發生了什麼問題並採取正確的後續行動
@@ -950,7 +378,6 @@ Feature: 錯誤狀態的 UI 回饋行為
     When 我未填寫暱稱直接點擊「加入房間」
     Then 暱稱欄位旁顯示「請輸入暱稱」錯誤提示
     And 不送出任何 HTTP 請求
-    And 焦點移至暱稱輸入欄位
 
   @error @join @P0
   Scenario: 房間不存在時顯示 Toast 錯誤訊息
@@ -965,15 +392,6 @@ Feature: 錯誤狀態的 UI 回饋行為
     When 我以暱稱 "Carol" 嘗試加入房間 "EPS6"
     And 伺服器回傳錯誤碼 "NICKNAME_TAKEN"
     Then 頁面顯示 error Toast「此暱稱已被使用，請換一個」
-    And 頁面維持在首頁視圖
-
-  @error @join @P1
-  Scenario: 房間已滿時顯示 Toast 錯誤訊息
-    Given 房間 "EPS6" 已達玩家上限
-    When 我嘗試加入房間 "EPS6"
-    And 伺服器回傳錯誤碼 "ROOM_FULL"
-    Then 頁面顯示 error Toast「房間已滿，無法加入」
-    And 頁面維持在首頁視圖
 
   @error @host @P0
   Scenario: 人數不足時主持人開始遊戲，顯示 Toast 錯誤
@@ -981,14 +399,6 @@ Feature: 錯誤狀態的 UI 回饋行為
     When 主持人點擊「開始遊戲」
     And 伺服器回傳錯誤碼 "INSUFFICIENT_PLAYERS"
     Then 頁面顯示 error Toast「人數不足（至少需要 2 位玩家）」
-    And 房間視圖維持在等待大廳
-
-  @error @host @P0
-  Scenario: 中獎名額未設定時主持人開始遊戲，顯示 Toast 錯誤
-    Given 等待大廳有 3 名玩家但中獎名額尚未設定
-    When 主持人點擊「開始遊戲」
-    And 伺服器回傳錯誤碼 "PRIZES_NOT_SET"
-    Then 頁面顯示 error Toast「請先設定中獎名額」
     And 房間視圖維持在等待大廳
 
   @error @kicked @P0
@@ -999,33 +409,82 @@ Feature: 錯誤狀態的 UI 回饋行為
     And 畫面切換至首頁（lobby 視圖）
     And localStorage 中的 token 被清除
 
-  @error @ws @P1
-  Scenario: 伺服器回傳通用 ERROR 事件時顯示錯誤訊息
-    Given 我在遊戲頁面
-    When 伺服器發送 ERROR 事件，其 payload 包含 message="Unexpected error occurred"
-    Then 頁面顯示 error Toast 顯示 "Unexpected error occurred"
-
   @error @toast @P1
   Scenario: Toast 錯誤訊息在 3.5 秒後自動消失
     Given 頁面顯示一條 error Toast
     When 3.5 秒後
-    Then Toast 自動淡出並從畫面移除
+    Then Toast 自動淡出並從畫面移除</code></pre>
 
-  @error @toast @P2
-  Scenario: 新 Toast 出現時取代舊 Toast（不堆疊）
-    Given 頁面正在顯示第一條 Toast 訊息
-    When 第二條 Toast 觸發
-    Then 第一條 Toast 立即被第二條取代
-    And 畫面上同時只顯示一條 Toast</code></pre>
+    <hr>
 
-    </main>
-  </div>
+    <h2>Feature: 房間生命週期（room-lifecycle.feature）</h2>
+    <pre><code>Feature: 房間生命週期
+  As a 系統
+  I want to 正確管理房間的建立、狀態轉換與過期清除
+  So that 確保資源使用合理且不留殘餘狀態
 
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
-  <script src="assets/app.js"></script>
+  @lifecycle @P0
+  Scenario: 建立房間後 Redis 存在對應的 key，TTL 為 24h
+    When POST /api/rooms 成功
+    Then Redis key "room:{code}" 存在
+    And TTL 介於 86399 到 86400 秒之間（24h）
+
+  @lifecycle @P0
+  Scenario: waiting 狀態房間 4 小時無活動後自動清除
+    Given 房間建立後無任何玩家活動
+    When 4 小時後
+    Then Redis key "room:{code}" 不存在（TTL 到期）
+
+  @lifecycle @P0
+  Scenario: finished 狀態房間 TTL 縮短至 1 小時
+    Given 房間狀態轉為 "finished"
+    When END_GAME 觸發
+    Then Redis 為 "room:{code}" 設定 EXPIRE 3600（1h）
+
+  @lifecycle @P0
+  Scenario: 所有玩家斷線後 5 分鐘房間自動清除
+    Given 房間有 2 名玩家，均在線
+    When 所有玩家斷線，最後一個 WS 連線關閉
+    Then Redis 為 "room:{code}" 設定 EXPIRE 300（5min）
+    And 5 分鐘後房間消失</code></pre>
+
+    <hr>
+
+    <h2>測試執行說明</h2>
+
+    <h3>E2E 測試（Playwright）</h3>
+    <pre><code># 安裝 Playwright
+npm install -D @playwright/test
+npx playwright install
+
+# 執行所有 E2E 測試
+npx playwright test
+
+# 執行特定 feature（需有 Cucumber / Playwright 橋接）
+npx playwright test --grep "遊戲流程"</code></pre>
+
+    <h3>Unit / Integration 測試（Vitest）</h3>
+    <pre><code># 執行所有測試
+npm test
+
+# 執行 PRNG 相關測試
+npm test -- --grep "mulberry32"
+
+# 執行覆蓋率報告
+npm test -- --coverage</code></pre>
+
+    <h3>優先級說明</h3>
+    <table>
+      <thead><tr><th>優先級</th><th>說明</th><th>必須通過</th></tr></thead>
+      <tbody>
+        <tr><td>@P0</td><td>核心業務路徑，CI 必跑</td><td>是，阻擋部署</td></tr>
+        <tr><td>@P1</td><td>重要功能，建議在 PR 前通過</td><td>否，但建議</td></tr>
+        <tr><td>@P2</td><td>邊界條件或 UX 細節</td><td>否</td></tr>
+      </tbody>
+    </table>
+  </main>
+</div>
+
+<script src="assets/app.js"></script>
 </body>
 </html>

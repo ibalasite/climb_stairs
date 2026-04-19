@@ -3,220 +3,289 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>產品設計文件 (PDD) — Ladder Room Online</title>
+  <title>PDD — Ladder Room Online 文件</title>
   <link rel="stylesheet" href="assets/style.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
 </head>
 <body>
-  <header class="top-nav">
-    <a href="index.html" class="nav-brand">🪜 Ladder Room</a>
-    <div class="nav-controls">
-      <div class="search-wrap">
-        <input class="search-input" type="search" placeholder="搜尋文件...">
-        <div class="search-results"></div>
-      </div>
+<nav class="top-nav">
+  <a class="nav-brand" href="index.html">Ladder Room Online</a>
+  <div class="nav-controls">
+    <div class="search-wrap">
+      <input class="search-input" type="search" placeholder="搜尋文件…" aria-label="搜尋">
+      <div class="search-results" role="listbox"></div>
     </div>
-  </header>
-
-  <div class="doc-page-banner">
-    <p class="banner-breadcrumb"><a href="index.html">Ladder Room</a> › 產品設計文件 (PDD)</p>
-    <h1 class="banner-title">產品設計文件 (PDD)</h1>
-    <p class="banner-desc">產品目標、功能範圍、核心玩法設計</p>
+    <a class="nav-gh-link" href="https://github.com/tobala/climb_stairs" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
   </div>
+</nav>
 
-  <div class="page-wrapper">
-    <aside class="sidebar">
-      <div class="sidebar__section">
-        <div class="sidebar__label">文件</div>
-        <a class="sidebar__link" href="index.html">🏠 首頁</a>
-        <a class="sidebar__link" href="pdd.html">📋 PDD</a>
-        <a class="sidebar__link" href="prd.html">📝 PRD</a>
-        <a class="sidebar__link" href="edd.html">🏗️ EDD</a>
-        <a class="sidebar__link" href="arch.html">🧩 ARCH</a>
-        <a class="sidebar__link" href="api.html">🔌 API</a>
-        <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
-        <a class="sidebar__link" href="design.html">🎨 Design</a>
-        <a class="sidebar__link" href="bdd.html">🧪 BDD</a>
-      </div>
-    </aside>
-    <main class="doc-content">
-      <h1>HTML5 線上多人爬樓梯遊戲 PDD</h1>
-      <p><strong>產品名稱</strong>：Ladder Room Online<br>
-      <strong>版本</strong>：v2.2（對應產品 MVP v1）<br>
-      <strong>產品類型</strong>：多人線上房間制抽獎／派對互動遊戲<br>
-      <strong>核心玩法參考</strong>：LINE 爬樓梯遊戲<br>
-      <strong>文件狀態</strong>：Draft</p>
+<div class="doc-page-banner">
+  <div class="banner-breadcrumb"><a href="index.html">首頁</a> › PDD</div>
+  <h1 class="banner-title">PDD — 產品需求文件</h1>
+  <p class="banner-desc">HTML5 線上多人爬樓梯遊戲 · v2.2 · Ladder Room Online MVP</p>
+</div>
 
-      <hr>
+<div class="page-wrapper">
+  <nav class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">文件</div>
+      <a class="sidebar__link" href="index.html">🏠 首頁</a>
+      <a class="sidebar__link active" href="pdd.html">📋 PDD 產品需求</a>
+      <a class="sidebar__link" href="prd.html">📝 PRD 功能規格</a>
+      <a class="sidebar__link" href="edd.html">⚙️ EDD 工程設計</a>
+      <a class="sidebar__link" href="arch.html">🏗️ ARCH 架構</a>
+      <a class="sidebar__link" href="api.html">🔌 API 參考</a>
+      <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
+      <a class="sidebar__link" href="design.html">🎨 UI Design</a>
+      <a class="sidebar__link" href="bdd.html">✅ BDD 測試</a>
+    </div>
+  </nav>
 
-      <h2>1. 產品概述</h2>
-      <p>Ladder Room Online 是一款基於 LINE 爬樓梯玩法的 <strong>HTML5 線上多人互動遊戲</strong>。玩家可從不同地點使用瀏覽器進入同一個 Room，等待主持人開始。主持人設定中獎名額後，系統隨機生成樓梯，所有玩家沿各自起點向下走，最終對應到底部的中獎或未中獎結果。</p>
-      <p><strong>一句話定義</strong>：一款以 LINE 爬樓梯規則為基礎，支援異地玩家加入同一 Room，由主持人控制開局與揭曉的 HTML5 線上多人抽獎遊戲。</p>
+  <main class="doc-content">
+    <h1>PDD — HTML5 線上多人爬樓梯遊戲</h1>
 
-      <hr>
+    <p><strong>產品名稱</strong>：Ladder Room Online<br>
+    <strong>版本</strong>：v2.2（對應產品 MVP v1）<br>
+    <strong>產品類型</strong>：多人線上房間制抽獎／派對互動遊戲<br>
+    <strong>核心玩法參考</strong>：LINE 爬樓梯遊戲</p>
 
-      <h2>2. 產品背景</h2>
-      <h3>2.1 現有問題</h3>
-      <p>LINE 爬樓梯遊戲是常見的抽獎互動形式，但原生版本存在以下限制：</p>
-      <table>
-        <thead><tr><th>問題</th><th>說明</th></tr></thead>
-        <tbody>
-          <tr><td>人數限制</td><td>超過一定人數後只顯示結果，不顯示完整走線過程</td></tr>
-          <tr><td>視覺不完整</td><td>人數多時畫面顯示不完整</td></tr>
-          <tr><td>規則僵化</td><td>難以自訂房間機制與獎項規則</td></tr>
-          <tr><td>無法獨立部署</td><td>不適合作為獨立品牌活動頁或大型線上互動玩法</td></tr>
-        </tbody>
-      </table>
-      <h3>2.2 為何現在做</h3>
-      <p>線上活動、尾牙、直播互動需求日增，需要一個可獨立部署、支援異地多人的解決方案。</p>
+    <h2>1. 產品概述</h2>
+    <p>Ladder Room Online 是一款基於 LINE 爬樓梯玩法的 <strong>HTML5 線上多人互動遊戲</strong>。玩家可從不同地點使用瀏覽器進入同一個 Room，等待主持人開始。主持人設定中獎名額後，系統隨機生成樓梯，所有玩家沿各自起點向下走，最終對應到底部的中獎或未中獎結果。</p>
+    <p><strong>一句話定義</strong>：一款以 LINE 爬樓梯規則為基礎，支援異地玩家加入同一 Room，由主持人控制開局與揭曉的 HTML5 線上多人抽獎遊戲。</p>
 
-      <hr>
+    <h2>2. 產品背景</h2>
 
-      <h2>3. 產品目標</h2>
-      <h3>3.1 核心目標</h3>
-      <p>建立一個支援多人異地加入的爬樓梯遊戲系統，具備：</p>
-      <ul>
-        <li>玩家可透過 Room Code / 連結加入房間</li>
-        <li>主持人可建立房間並控制開局</li>
-        <li>主持人可設定中獎名額</li>
-        <li>開始後產生唯一且固定的樓梯地圖</li>
-        <li>所有玩家共享同一組樓梯結構與結果邏輯</li>
-        <li>每位玩家可看到自己的走線與最終結果</li>
-        <li>主持人可查看完整得獎名單</li>
-      </ul>
-      <h3>3.2 體驗目標</h3>
-      <ul>
-        <li>玩法直觀，接近 LINE 爬樓梯熟悉體驗</li>
-        <li>正常活動規模支援 30 人，系統設計上限 50 人</li>
-        <li>適合直播、尾牙、線上社群活動、會議抽獎</li>
-        <li>房間操作簡單，玩家加入門檻低</li>
-      </ul>
-      <h3>3.3 成功指標</h3>
-      <table>
-        <thead><tr><th>指標</th><th>目標</th><th>量測方式</th></tr></thead>
-        <tbody>
-          <tr><td>建立房間成功率</td><td>&gt; 99.5%</td><td>Server 端請求成功率</td></tr>
-          <tr><td>玩家加入成功率</td><td>&gt; 99%</td><td>玩家加入請求成功率</td></tr>
-          <tr><td>同房間設計上限人數</td><td>50 人</td><td>壓力測試（50 並發連線）</td></tr>
-          <tr><td>開局後結果一致性</td><td>100%（所有端一致）</td><td>多客戶端結果比對</td></tr>
-          <tr><td>揭曉動畫流暢度</td><td>桌機 ≥ 30fps；手機 ≥ 24fps</td><td>Chrome DevTools FPS 量測</td></tr>
-          <tr><td>房間同步延遲</td><td>體感 &lt; 2 秒</td><td>訊息從寫入到所有端接收的時間差</td></tr>
-        </tbody>
-      </table>
+    <h3>2.1 現有問題</h3>
+    <p>LINE 爬樓梯遊戲是常見的抽獎互動形式，但原生版本存在以下限制：</p>
+    <table>
+      <thead><tr><th>問題</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td>人數限制</td><td>超過一定人數後只顯示結果，不顯示完整走線過程</td></tr>
+        <tr><td>視覺不完整</td><td>人數多時畫面顯示不完整</td></tr>
+        <tr><td>規則僵化</td><td>難以自訂房間機制與獎項規則</td></tr>
+        <tr><td>無法獨立部署</td><td>不適合作為獨立品牌活動頁或大型線上互動玩法</td></tr>
+      </tbody>
+    </table>
 
-      <hr>
+    <h3>2.2 為何現在做</h3>
+    <p>線上活動、尾牙、直播互動需求日增，需要一個可獨立部署、支援異地多人的解決方案。</p>
 
-      <h2>4. 產品定位</h2>
-      <p><strong>定位</strong>：線上房間制互動抽獎遊戲，屬於「活動遊戲工具」而非競技遊戲。</p>
-      <p><strong>定位關鍵字</strong>：Party Game、Lottery Game、Event Interaction Tool、Room-based Mini Game</p>
+    <h2>3. 產品目標</h2>
 
-      <hr>
+    <h3>3.1 核心目標</h3>
+    <p>建立一個支援多人異地加入的爬樓梯遊戲系統，具備：</p>
+    <ul>
+      <li>玩家可透過 Room Code / 連結加入房間</li>
+      <li>主持人可建立房間並控制開局</li>
+      <li>主持人可設定中獎名額</li>
+      <li>開始後產生唯一且固定的樓梯地圖</li>
+      <li>所有玩家共享同一組樓梯結構與結果邏輯</li>
+      <li>每位玩家可看到自己的走線與最終結果</li>
+      <li>主持人可查看完整得獎名單</li>
+    </ul>
 
-      <h2>5. 角色定義</h2>
-      <h3>5.1 主持人（Host）</h3>
-      <p><strong>情境</strong>：需要在活動中主持一場公平的多人抽獎</p>
-      <p><strong>權限</strong>：建立房間、設定中獎名額、開始遊戲、控制揭曉節奏、查看最終結果</p>
-      <p><strong>核心需求</strong>：快速建立活動（1 分鐘內可開局）、即時看到誰已加入、保證結果公平、適合投影或直播展示</p>
-      <h3>5.2 玩家（Player）</h3>
-      <p><strong>情境</strong>：收到邀請連結，透過瀏覽器加入活動</p>
-      <p><strong>權限</strong>：輸入名稱加入房間、等待遊戲開始、觀看公開揭曉、查看自己的最終結果</p>
-      <p><strong>核心需求</strong>：加入簡單（10 秒內可完成）、不需安裝 App、手機或電腦均可參與、能感受到抽獎過程的期待感</p>
+    <h3>3.2 體驗目標</h3>
+    <ul>
+      <li>玩法直觀，接近 LINE 爬樓梯熟悉體驗</li>
+      <li>正常活動規模支援 30 人，系統設計上限 50 人</li>
+      <li>適合直播、尾牙、線上社群活動、會議抽獎</li>
+      <li>房間操作簡單，玩家加入門檻低</li>
+    </ul>
 
-      <hr>
+    <h3>3.3 成功指標</h3>
+    <table>
+      <thead><tr><th>指標</th><th>目標</th><th>量測方式</th></tr></thead>
+      <tbody>
+        <tr><td>建立房間成功率</td><td>&gt; 99.5%</td><td>Server 端請求成功率（排除基礎設施故障期間）</td></tr>
+        <tr><td>玩家加入成功率</td><td>&gt; 99%</td><td>玩家加入請求成功率</td></tr>
+        <tr><td>同房間設計上限人數</td><td>50 人</td><td>壓力測試（50 並發連線）</td></tr>
+        <tr><td>開局後結果一致性</td><td>100%（所有端一致）</td><td>多客戶端結果比對</td></tr>
+        <tr><td>揭曉動畫流暢度</td><td>桌機 ≥ 30fps；手機 ≥ 24fps</td><td>Chrome DevTools FPS 量測</td></tr>
+        <tr><td>房間同步延遲</td><td>體感 &lt; 2 秒</td><td>訊息從寫入到所有端接收的時間差</td></tr>
+      </tbody>
+    </table>
 
-      <h2>6. 核心玩法規則</h2>
-      <h3>6.1 基礎規則</h3>
-      <p>延續 LINE 爬樓梯遊戲邏輯：</p>
-      <ol>
-        <li>每位玩家對應一條起始垂直線（startColumn，由左至右從 0 編號）</li>
-        <li>樓梯中間隨機產生橫槓，橫槓只連接相鄰欄位</li>
-        <li>玩家路徑從上往下逐 row 走</li>
-        <li>遇橫槓即移動到左右相鄰線（橫槓為雙向）</li>
-        <li>最終落到下方某個結果槽位</li>
-        <li>結果槽位代表中獎 / 未中獎</li>
-      </ol>
-      <h3>6.2 開局規則</h3>
-      <ol>
-        <li>Host 建立 Room（Host 本人自動加入 players 陣列）</li>
-        <li>其他玩家陸續加入（加上 Host 共至少 2 人才可開局）</li>
-        <li>Host 設定中獎名額（W，規則：1 ≤ W ≤ N-1）</li>
-        <li>Host 確認人數後按下「開始遊戲」</li>
-        <li>Server 端重新驗證 N ≥ 2 且 1 ≤ W ≤ N-1</li>
-        <li>驗證通過後系統凍結玩家名單並廣播至所有端</li>
-        <li>Host 點擊「揭示結果」→ 生成樓梯結構</li>
-        <li>進入揭曉流程</li>
-      </ol>
-      <h3>6.3 中獎規則</h3>
-      <ul>
-        <li>若玩家數為 N，中獎名額為 W（合法範圍：1 ≤ W ≤ N-1）</li>
-        <li>W &lt; N 時必有未中獎者；W = N 時不合法</li>
-        <li>底部共有 N 個結果位置，其中 W 個標記為「中獎」</li>
-      </ul>
+    <h2>4. 產品定位</h2>
+    <p><strong>定位</strong>：線上房間制互動抽獎遊戲，屬於「活動遊戲工具」而非競技遊戲。</p>
+    <p><strong>定位關鍵字</strong>：Party Game、Lottery Game、Event Interaction Tool、Room-based Mini Game</p>
 
-      <hr>
+    <h2>5. 角色定義</h2>
 
-      <h2>7. 功能需求</h2>
-      <h3>7.1 房間系統</h3>
-      <h4>建立房間</h4>
-      <ul>
-        <li>Host 填寫暱稱（必填，1~20 個 Unicode 碼位）後建立房間</li>
-        <li>系統產生唯一 Room ID、Room Code（6 碼）、Join URL</li>
-        <li>Room Code 字元集：大寫英文字母（A-Z 排除 O、I）＋數字（2-9），共 32 個字元</li>
-        <li>Room Code 碰撞時系統自動重試，最多重試 10 次</li>
-      </ul>
-      <h4>加入房間</h4>
-      <ul>
-        <li>玩家可透過輸入 Room Code 或點擊邀請連結加入</li>
-        <li>同一局玩家名單中暱稱不可重複（區分大小寫）</li>
-        <li>被踢除的玩家可清除 localStorage 並使用新暱稱重新加入</li>
-      </ul>
-      <h4>房間狀態</h4>
-      <table>
-        <thead><tr><th>狀態</th><th>說明</th><th>允許加入新玩家</th></tr></thead>
-        <tbody>
-          <tr><td><code>waiting</code></td><td>等待玩家加入，Host 可編輯設定</td><td>是</td></tr>
-          <tr><td><code>running</code></td><td>遊戲進行中（樓梯已生成）</td><td>否</td></tr>
-          <tr><td><code>revealing</code></td><td>揭曉進行中</td><td>否</td></tr>
-          <tr><td><code>finished</code></td><td>本局結束</td><td>否</td></tr>
-        </tbody>
-      </table>
+    <h3>5.1 主持人（Host）</h3>
+    <p><strong>情境</strong>：需要在活動中主持一場公平的多人抽獎</p>
+    <p><strong>權限</strong>：建立房間、設定中獎名額、開始遊戲、控制揭曉節奏（手動 / 自動 / 一鍵全揭）、查看最終結果與得獎名單</p>
+    <p><strong>核心需求</strong>：快速建立活動（1 分鐘內可開局）、即時看到誰已加入、保證結果公平、適合投影或直播展示</p>
 
-      <hr>
+    <h3>5.2 玩家（Player）</h3>
+    <p><strong>情境</strong>：收到邀請連結，透過瀏覽器加入活動</p>
+    <p><strong>權限</strong>：輸入名稱加入房間、等待遊戲開始、觀看公開揭曉、查看自己的最終結果</p>
+    <p><strong>核心需求</strong>：加入簡單（10 秒內可完成）、不需安裝 App、手機或電腦均可參與、能感受到抽獎過程的期待感</p>
 
-      <h2>8. 非功能需求（NFR）</h2>
-      <table>
-        <thead><tr><th>類別</th><th>需求</th><th>量測方式</th></tr></thead>
-        <tbody>
-          <tr><td>效能</td><td>支援 50 名玩家同時連線，延遲 &lt; 2 秒</td><td>壓力測試</td></tr>
-          <tr><td>安全性</td><td>JWT HS256 驗證，防止 Host 操作被偽造</td><td>安全審查</td></tr>
-          <tr><td>可靠性</td><td>Redis 原子操作防止競態條件</td><td>並發測試</td></tr>
-          <tr><td>可測試性</td><td>梯子生成算法在前後端共用，可獨立驗證</td><td>單元測試</td></tr>
-          <tr><td>部署</td><td>Docker + Kubernetes，支援 HPA 自動擴展</td><td>k8s 配置驗證</td></tr>
-        </tbody>
-      </table>
+    <h2>6. 核心玩法規則</h2>
 
-      <hr>
+    <h3>6.1 基礎規則</h3>
+    <p>延續 LINE 爬樓梯遊戲邏輯：</p>
+    <ol>
+      <li>每位玩家對應一條起始垂直線（startColumn，由左至右從 0 編號）</li>
+      <li>樓梯中間隨機產生橫槓，橫槓只連接相鄰欄位</li>
+      <li>玩家路徑從上往下逐 row 走</li>
+      <li>遇橫槓即移動到左右相鄰線（橫槓為雙向，來自任一端均移動至對面欄）</li>
+      <li>最終落到下方某個結果槽位</li>
+      <li>結果槽位代表中獎 / 未中獎</li>
+    </ol>
 
-      <h2>9. PRNG 算法</h2>
-      <p>使用 <strong>Mulberry32 + djb2 hash</strong> 確保每局結果在所有客戶端 100% 一致：</p>
-      <ul>
-        <li><code>seedSource</code>：UUID v4 hex 字串，以 djb2 hash 轉 uint32</li>
-        <li><code>mulberry32</code>：以 seed 為狀態的確定性 PRNG</li>
-        <li><code>fisherYatesShuffle</code>：以 PRNG 打亂結果槽位</li>
-        <li>前後端共用同一份算法（<code>packages/shared</code>），確保可審計性</li>
-      </ul>
-    </main>
-  </div>
+    <h3>6.2 開局規則</h3>
+    <ol>
+      <li>Host 建立 Room（Host 本人自動加入 players 陣列，也是抽獎玩家之一）</li>
+      <li>其他玩家陸續加入（加上 Host 共至少 2 人才可開局）</li>
+      <li>Host 設定中獎名額（W，規則：1 ≤ W ≤ N-1，N 為當前 players 陣列長度）</li>
+      <li>Host 確認人數後按下「開始遊戲」</li>
+      <li>Server 端重新驗證 N ≥ 2 且 1 ≤ W ≤ N-1（防止開始瞬間有人離開造成 W 越界）</li>
+      <li>驗證通過後系統凍結玩家名單及 winnerCount，廣播至所有端</li>
+      <li>Host 點擊「揭示結果」→ Server 原子操作生成 seed、ladderMap、resultSlots</li>
+      <li>進入揭曉流程</li>
+    </ol>
 
-  <script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({ startOnLoad: true, theme: 'default', flowchart: { curve: 'basis' }, er: { layoutDirection: 'TD' } });
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
-  <script src="assets/app.js"></script>
+    <h3>6.3 中獎規則</h3>
+    <ul>
+      <li>若玩家數為 N，中獎名額為 W（合法範圍：1 ≤ W ≤ N-1）</li>
+      <li>W &lt; N 時必有未中獎者；W = N 時不合法（全員中獎等同無抽獎意義）</li>
+      <li>底部共有 N 個結果位置，其中 W 個位置標記為「中獎」，其餘標記為「未中獎」</li>
+      <li>每位玩家沿同一份樓梯行走後，依最終落點判定是否中獎</li>
+    </ul>
+
+    <h2>7. 功能需求</h2>
+
+    <h3>7.1 房間系統</h3>
+    <h4>建立房間</h4>
+    <ul>
+      <li>Host 填寫暱稱（必填，1~20 個 Unicode 碼位）後建立房間</li>
+      <li>系統產生唯一 Room ID、Room Code（6 碼）、Join URL</li>
+      <li>Room Code 字元集：大寫英文字母（A-Z 排除 O、I）＋數字（2-9），共 32 個字元</li>
+      <li>Room Code 碰撞時系統自動重試，最多 10 次</li>
+    </ul>
+
+    <h4>加入房間</h4>
+    <ul>
+      <li>玩家可透過 Room Code 或邀請連結加入</li>
+      <li>加入後需填寫暱稱（必填）</li>
+      <li>同一局玩家暱稱不可重複（含離線玩家）</li>
+    </ul>
+
+    <h4>房間狀態</h4>
+    <table>
+      <thead><tr><th>狀態</th><th>說明</th><th>允許加入新玩家</th></tr></thead>
+      <tbody>
+        <tr><td><code>waiting</code></td><td>等待玩家加入，Host 可編輯設定</td><td>是</td></tr>
+        <tr><td><code>running</code></td><td>遊戲進行中（樓梯已生成）</td><td>否</td></tr>
+        <tr><td><code>revealing</code></td><td>揭曉進行中</td><td>否</td></tr>
+        <tr><td><code>finished</code></td><td>本局結束</td><td>否</td></tr>
+      </tbody>
+    </table>
+
+    <h4>房間狀態轉換</h4>
+    <table>
+      <thead><tr><th>從</th><th>到</th><th>觸發條件</th></tr></thead>
+      <tbody>
+        <tr><td><code>waiting</code></td><td><code>running</code></td><td>Host 點擊「開始遊戲」，Server 驗證通過後廣播 ROOM_STATE</td></tr>
+        <tr><td><code>running</code></td><td><code>revealing</code></td><td>Server 完成 ladderMap、resultSlots 原子寫入後廣播 ROOM_STATE_FULL</td></tr>
+        <tr><td><code>running</code></td><td><code>waiting</code></td><td>原子寫入異常或 10 秒逾時，回退並廣播 ROOM_STATE（含 reason）</td></tr>
+        <tr><td><code>revealing</code></td><td><code>finished</code></td><td>revealIndex 達到 N，DB 原子寫入 status=finished，廣播 ROOM_STATE</td></tr>
+        <tr><td><code>finished</code></td><td><code>waiting</code></td><td>Host 點擊「再玩一局」，pruning isOnline=false 玩家後廣播 ROOM_STATE</td></tr>
+      </tbody>
+    </table>
+
+    <h3>7.2 玩家管理</h3>
+    <ul>
+      <li>玩家首次加入時，Server 生成 UUID 作為 playerId 並回傳，客戶端存入 localStorage</li>
+      <li>重連時客戶端帶上 playerId 完成身分驗證</li>
+      <li>同一 playerId 同時連線時，舊 session 收到 SESSION_REPLACED 後斷線</li>
+      <li>被踢除的玩家收到 PLAYER_KICKED 事件，3 秒後導回首頁</li>
+      <li>踢除禁令以一局為單位；Host 點擊「再玩一局」後禁令解除</li>
+    </ul>
+
+    <h3>7.3 遊戲流程</h3>
+    <ul>
+      <li>Host 點擊「開始遊戲」→ Server 驗證 → 廣播 ROOM_STATE（running）</li>
+      <li>Server 原子操作生成 seed + ladderMap + resultSlots → 廣播 ROOM_STATE_FULL（revealing）</li>
+      <li>Host 手動點擊「下一位」或切換自動揭曉模式</li>
+      <li>Server 廣播 REVEAL_INDEX（含 path、result）逐一揭曉</li>
+      <li>所有路徑揭曉後，Host 點擊「結束本局」→ 廣播 ROOM_STATE（finished，含 seed）</li>
+    </ul>
+
+    <h3>7.4 揭曉控制</h3>
+    <ul>
+      <li><strong>手動模式</strong>：Host 每次點擊「下一位」觸發 REVEAL_NEXT</li>
+      <li><strong>自動模式</strong>：Host 設定間隔秒數（1-30s），Server 定時廣播 REVEAL_INDEX</li>
+      <li><strong>一鍵全揭</strong>：Host 點擊「全部揭曉」→ Server 廣播 REVEAL_ALL（含所有剩餘路徑）</li>
+      <li>手動 ↔ 自動可隨時切換（揭曉過程中）</li>
+    </ul>
+
+    <h3>7.5 PRNG 與公平性</h3>
+    <ul>
+      <li>Mulberry32 PRNG，seed = djb2(seedSource) &gt;&gt;&gt; 0</li>
+      <li>seedSource 為 UUID v4，在 running→revealing 原子操作時生成</li>
+      <li>seed 在 finished 狀態才公開（可供玩家驗證結果）</li>
+      <li>前後端共用相同 PRNG 程式碼（packages/shared），保證可重現性</li>
+    </ul>
+
+    <h2>8. 斷線與重連</h2>
+    <table>
+      <thead><tr><th>情境</th><th>行為</th></tr></thead>
+      <tbody>
+        <tr><td>玩家斷線</td><td>isOnline → false，廣播 ROOM_STATE；不影響已固定的 startColumn / result</td></tr>
+        <tr><td>玩家重連（帶 playerId）</td><td>isOnline → true，unicast ROOM_STATE_FULL（完整遊戲狀態快照）</td></tr>
+        <tr><td>Host 斷線 &lt; 60s</td><td>房間保持，60s 後自動移交給下一位在線玩家</td></tr>
+        <tr><td>所有玩家斷線 5 min</td><td>房間 TTL 觸發，Redis key 過期，房間消失</td></tr>
+        <tr><td>localStorage 遺失（ghost player）</td><td>舊 slot 保留在 players 陣列（isOnline=false）；新訪問視同新玩家</td></tr>
+      </tbody>
+    </table>
+
+    <h2>9. 資料保留策略</h2>
+    <table>
+      <thead><tr><th>房間狀態</th><th>TTL</th></tr></thead>
+      <tbody>
+        <tr><td>waiting / running</td><td>4 小時（無活動後自動過期）</td></tr>
+        <tr><td>finished</td><td>1 小時（揭示後延長，供玩家截圖存證）</td></tr>
+        <tr><td>所有玩家斷線</td><td>5 分鐘後強制清除</td></tr>
+      </tbody>
+    </table>
+
+    <h2>10. 非功能需求</h2>
+    <table>
+      <thead><tr><th>類型</th><th>需求</th></tr></thead>
+      <tbody>
+        <tr><td>效能</td><td>50 並發 WS 連線，訊息延遲 &lt; 2s（一般 WiFi）</td></tr>
+        <tr><td>可用性</td><td>建立 / 加入房間成功率 &gt; 99.5% / 99%</td></tr>
+        <tr><td>安全性</td><td>JWT HS256 認證主持人操作；seed 在 finished 前不對外公開</td></tr>
+        <tr><td>相容性</td><td>Chrome / Firefox / Safari（近 2 年版本）；手機 320px 最小寬度</td></tr>
+        <tr><td>Bundle size</td><td>前端 JS &lt; 150KB gzip</td></tr>
+      </tbody>
+    </table>
+
+    <h2>11. 防作弊機制</h2>
+    <ul>
+      <li>seed 在 running→revealing 原子寫入時生成，存於 Redis，不提前洩漏</li>
+      <li>running / revealing / finished 狀態下拒絕 winnerCount 更新請求</li>
+      <li>Server 端重新驗證所有前端傳入的參數（playerId、房間狀態、權限）</li>
+      <li>WS maxPayload = 65536 bytes 防止大型訊息攻擊</li>
+      <li>Rate limiting：POST /rooms 10 req/min/IP、POST players 20 req/min/IP</li>
+    </ul>
+
+    <h2>12. Post-MVP 規劃</h2>
+    <ul>
+      <li>自訂獎項名稱（非僅 win/lose）</li>
+      <li>觀眾模式（無 playerId 唯讀觀看）</li>
+      <li>多房間儀表板</li>
+      <li>WebSocket perMessageDeflate 壓縮（解決 REVEAL_ALL 64KB 限制）</li>
+      <li>主持人移交功能（HOST_TRANSFERRED 事件）</li>
+      <li>多 Pod 水平擴展（Redis Pub/Sub 跨 Pod 廣播已設計，Post-MVP 啟用）</li>
+    </ul>
+  </main>
+</div>
+
+<script src="assets/app.js"></script>
 </body>
 </html>

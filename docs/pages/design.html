@@ -3,184 +3,171 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Design 設計規格 — Ladder Room Online</title>
+  <title>UI Design — Ladder Room Online 文件</title>
   <link rel="stylesheet" href="assets/style.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
 </head>
 <body>
-  <header class="top-nav">
-    <a href="index.html" class="nav-brand">🪜 Ladder Room</a>
-    <div class="nav-controls">
-      <div class="search-wrap">
-        <input class="search-input" type="search" placeholder="搜尋文件...">
-        <div class="search-results"></div>
-      </div>
+<nav class="top-nav">
+  <a class="nav-brand" href="index.html">Ladder Room Online</a>
+  <div class="nav-controls">
+    <div class="search-wrap">
+      <input class="search-input" type="search" placeholder="搜尋文件…" aria-label="搜尋">
+      <div class="search-results" role="listbox"></div>
     </div>
-  </header>
-
-  <div class="doc-page-banner">
-    <p class="banner-breadcrumb"><a href="index.html">Ladder Room</a> › Design 設計規格</p>
-    <h1 class="banner-title">Design 設計規格</h1>
-    <p class="banner-desc">UI 設計系統、Canvas 規格、互動流程</p>
+    <a class="nav-gh-link" href="https://github.com/tobala/climb_stairs" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
   </div>
+</nav>
 
-  <div class="page-wrapper">
-    <aside class="sidebar">
-      <div class="sidebar__section">
-        <div class="sidebar__label">文件</div>
-        <a class="sidebar__link" href="index.html">🏠 首頁</a>
-        <a class="sidebar__link" href="pdd.html">📋 PDD</a>
-        <a class="sidebar__link" href="prd.html">📝 PRD</a>
-        <a class="sidebar__link" href="edd.html">🏗️ EDD</a>
-        <a class="sidebar__link" href="arch.html">🧩 ARCH</a>
-        <a class="sidebar__link" href="api.html">🔌 API</a>
-        <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
-        <a class="sidebar__link" href="design.html">🎨 Design</a>
-        <a class="sidebar__link" href="bdd.html">🧪 BDD</a>
-      </div>
-    </aside>
-    <main class="doc-content">
-      <h1>DESIGN — Ladder Room Online Client UI Spec</h1>
-      <p><strong>Version</strong>: v1.1 &nbsp; <strong>Date</strong>: 2026-04-19 &nbsp; <strong>Based on</strong>: PRD v1.3 · ARCH v1.2 · EDD v1.3 · API v1.1</p>
-      <p><strong>Tech</strong>: Vanilla TypeScript + Vite · HTML5 Canvas · No UI framework</p>
+<div class="doc-page-banner">
+  <div class="banner-breadcrumb"><a href="index.html">首頁</a> › UI Design</div>
+  <h1 class="banner-title">UI Design — 前端設計規格</h1>
+  <p class="banner-desc">設計方向、CSS Token、頁面清單、Canvas 規格、響應式設計</p>
+</div>
 
-      <hr>
+<div class="page-wrapper">
+  <nav class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">文件</div>
+      <a class="sidebar__link" href="index.html">🏠 首頁</a>
+      <a class="sidebar__link" href="pdd.html">📋 PDD 產品需求</a>
+      <a class="sidebar__link" href="prd.html">📝 PRD 功能規格</a>
+      <a class="sidebar__link" href="edd.html">⚙️ EDD 工程設計</a>
+      <a class="sidebar__link" href="arch.html">🏗️ ARCH 架構</a>
+      <a class="sidebar__link" href="api.html">🔌 API 參考</a>
+      <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
+      <a class="sidebar__link active" href="design.html">🎨 UI Design</a>
+      <a class="sidebar__link" href="bdd.html">✅ BDD 測試</a>
+    </div>
+  </nav>
 
-      <h2>1. 設計方向</h2>
+  <main class="doc-content">
+    <h1>UI Design — 前端設計規格</h1>
 
-      <h3>視覺風格</h3>
-      <p><strong>輕量遊戲感 × 現代簡約</strong>：以明亮、歡樂的色調配合清晰的幾何感，讓玩家在手機上一眼看懂當前狀態。避免模板化的深色儀表板風格，選擇接近日系抽獎小遊戲的輕快感——乾淨的白底/淺底、強調色做點睛、動態揭曉是核心視覺高潮。</p>
+    <h2>1. 設計方向</h2>
+    <p><strong>風格</strong>：深色活動遊戲（Dark Party Game UI）。以深色背景搭配鮮豔的強調色，製造出如同夜間活動或直播的氛圍感。整體保持簡潔清晰，確保在投影機或螢幕分享下依然易讀。</p>
 
-      <h3>設計原則</h3>
-      <ol>
-        <li><strong>Mobile-first</strong>：320px 最小寬度，垂直滾動，單欄佈局優先</li>
-        <li><strong>狀態即畫面</strong>：每個房間狀態（waiting / running / revealing / finished）對應獨一無二的 UI 組合，玩家不會迷路</li>
-        <li><strong>Canvas 為主角</strong>：揭曉動畫佔主要可視區域，控制元素靠邊退讓</li>
-        <li><strong>清晰的角色區分</strong>：主持人看到控制面板，玩家只看觀眾介面；不同角色的 UI 層次清晰</li>
-      </ol>
+    <h3>核心設計原則</h3>
+    <ul>
+      <li><strong>清晰易讀</strong>：大型字體、高對比度，適合投影或直播展示</li>
+      <li><strong>即時反饋</strong>：所有 WebSocket 事件觸發即時 UI 更新，無需刷新頁面</li>
+      <li><strong>期待感</strong>：揭曉動畫製造緊張感，保留抽獎的儀式性</li>
+      <li><strong>零安裝</strong>：純瀏覽器，玩家 10 秒內可完成加入</li>
+    </ul>
 
-      <hr>
+    <h2>2. CSS Design Token</h2>
+    <pre><code>:root {
+  /* ── 色彩系統 ── */
+  --color-bg:           #0f172a;   /* 深藍黑背景 */
+  --color-surface:      #1e293b;   /* 卡片/面板 */
+  --color-surface-2:    #334155;   /* 次級面板 */
+  --color-border:       #475569;   /* 邊框 */
+  --color-accent:       #38bdf8;   /* 主強調色（Sky Blue） */
+  --color-accent-hover: #0ea5e9;
+  --color-success:      #4ade80;   /* 中獎色（Green） */
+  --color-danger:       #f87171;   /* 未中獎色（Red） */
+  --color-gold:         #fbbf24;   /* 我的路徑（Gold） */
+  --color-text:         #f1f5f9;   /* 主要文字 */
+  --color-text-muted:   #94a3b8;   /* 次要文字 */
+  --color-path-hidden:  #334155;   /* 未揭曉路徑（灰色虛線） */
 
-      <h2>2. 設計 Token（CSS Custom Properties）</h2>
-      <pre><code class="language-css">:root {
-  /* Palette */
-  --color-bg:           oklch(98% 0 0);        /* 接近白色背景 */
-  --color-surface:      oklch(100% 0 0);        /* 卡片白 */
-  --color-border:       oklch(88% 0 0);         /* 淡灰邊框 */
-  --color-text:         oklch(18% 0 0);         /* 主文字深色 */
-  --color-text-sub:     oklch(52% 0 0);         /* 次要文字灰 */
+  /* ── 玩家調色盤（colorIndex 0-49，循環） ── */
+  --player-color-0:  #60a5fa;   /* Blue */
+  --player-color-1:  #34d399;   /* Emerald */
+  --player-color-2:  #f472b6;   /* Pink */
+  --player-color-3:  #a78bfa;   /* Violet */
+  --player-color-4:  #fb923c;   /* Orange */
+  /* … 共 50 色，循環使用 */
 
-  --color-accent:       oklch(62% 0.22 250);    /* 主強調藍紫 */
-  --color-accent-light: oklch(94% 0.06 250);    /* 強調淡背景 */
-  --color-success:      oklch(60% 0.18 150);    /* 中獎綠 */
-  --color-success-light:oklch(94% 0.05 150);
-  --color-danger:       oklch(58% 0.20 25);     /* 警告紅 */
-  --color-host-badge:   oklch(70% 0.22 40);     /* 主持人徽章橘 */
+  /* ── 字體 ── */
+  --font-sans:   "Inter", system-ui, sans-serif;
+  --font-mono:   "JetBrains Mono", "Fira Code", monospace;
+  --font-display: "Inter", system-ui, sans-serif;   /* 大標題使用 */
 
-  /* Ladder player path colours (最多 50 人，循環) */
-  --color-path-self:    oklch(62% 0.22 250);    /* 自己的路徑：強調藍紫 */
-  --color-path-winner:  oklch(60% 0.18 150);    /* 已揭曉中獎：綠 */
-  --color-path-loser:   oklch(58% 0.20 25);     /* 已揭曉未中獎：紅 */
-  --color-path-hidden:  oklch(82% 0 0);         /* 未揭曉：淺灰虛線 */
+  /* ── 字級 ── */
+  --text-xs:   0.75rem;    /* 12px */
+  --text-sm:   0.875rem;   /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-lg:   1.125rem;   /* 18px */
+  --text-xl:   1.25rem;    /* 20px */
+  --text-2xl:  1.5rem;     /* 24px */
+  --text-3xl:  1.875rem;   /* 30px */
+  --text-4xl:  2.25rem;    /* 36px */
 
-  /* Typography */
-  --font-base: 'Noto Sans TC', system-ui, sans-serif;
-  --text-xs:   clamp(0.75rem, 0.7rem + 0.2vw, 0.875rem);
-  --text-sm:   clamp(0.875rem, 0.82rem + 0.25vw, 1rem);
-  --text-base: clamp(1rem, 0.92rem + 0.4vw, 1.125rem);
-  --text-lg:   clamp(1.125rem, 1rem + 0.6vw, 1.375rem);
-  --text-xl:   clamp(1.375rem, 1.2rem + 0.9vw, 1.75rem);
-  --text-2xl:  clamp(1.75rem, 1.4rem + 1.5vw, 2.5rem);
+  /* ── 間距 ── */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
 
-  /* Spacing */
-  --space-1: 0.25rem;  --space-2: 0.5rem;  --space-3: 0.75rem;
-  --space-4: 1rem;     --space-6: 1.5rem;  --space-8: 2rem;
-  --space-section: clamp(2rem, 1.5rem + 2.5vw, 4rem);
-
-  /* Motion */
+  /* ── 動畫 ── */
   --duration-fast:   150ms;
   --duration-normal: 300ms;
-  --duration-slow:   600ms;
-  --ease-out-expo:   cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-slow:   500ms;
+  --ease-out:        cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:     cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Radius */
-  --radius-sm: 6px;   --radius-md: 12px;
-  --radius-lg: 20px;  --radius-pill: 9999px;
+  /* ── 圓角 ── */
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+  --radius-full: 9999px;
 
-  /* Shadow */
-  --shadow-card:   0 1px 3px oklch(0% 0 0 / 0.08), 0 4px 12px oklch(0% 0 0 / 0.06);
-  --shadow-raised: 0 4px 16px oklch(0% 0 0 / 0.12);
+  /* ── 陰影 ── */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.4);
+  --shadow-accent: 0 0 20px rgba(56,189,248,0.3);
 }</code></pre>
 
-      <hr>
+    <h2>3. 頁面清單</h2>
+    <table>
+      <thead><tr><th>頁面</th><th>路由</th><th>對應狀態</th><th>關鍵元件</th></tr></thead>
+      <tbody>
+        <tr><td>Lobby（首頁）</td><td><code>/</code></td><td>—</td><td>CreateRoomForm、JoinRoomForm</td></tr>
+        <tr><td>等待大廳</td><td><code>/room/:code</code></td><td>waiting</td><td>PlayerList、WinnerCountInput、StartGameButton、RoomCodeDisplay</td></tr>
+        <tr><td>遊戲主畫面</td><td><code>/room/:code</code></td><td>running / revealing</td><td>LadderCanvas、HostControlPanel、StatusBar、RevealProgress</td></tr>
+        <tr><td>結果頁面</td><td><code>/room/:code</code></td><td>finished</td><td>ResultList、WinnerHighlight、SeedDisplay、PlayAgainButton</td></tr>
+      </tbody>
+    </table>
+    <p>所有頁面為 SPA 單頁，依 WebSocket <code>ROOM_STATE</code> / <code>ROOM_STATE_FULL</code> 廣播自動切換視圖。</p>
 
-      <h2>3. 頁面清單</h2>
-      <table>
-        <thead><tr><th>頁面</th><th>URL Pattern</th><th>適用角色</th><th>房間狀態</th></tr></thead>
-        <tbody>
-          <tr><td>首頁 / 入口</td><td><code>/</code></td><td>所有人</td><td>—</td></tr>
-          <tr><td>建立房間</td><td><code>/</code> → Modal / 子流程</td><td>主持人</td><td>—</td></tr>
-          <tr><td>加入房間</td><td><code>/?room=XXXXXX</code></td><td>玩家</td><td>—</td></tr>
-          <tr><td>等待大廳</td><td><code>/room/:code</code></td><td>主持人 + 玩家</td><td><code>waiting</code></td></tr>
-          <tr><td>遊戲主畫面（梯子）</td><td><code>/room/:code</code></td><td>主持人 + 玩家</td><td><code>running</code> / <code>revealing</code></td></tr>
-          <tr><td>結果頁面</td><td><code>/room/:code</code></td><td>主持人 + 玩家</td><td><code>finished</code></td></tr>
-          <tr><td>被踢出</td><td><code>/kicked</code></td><td>被踢玩家</td><td>—</td></tr>
-        </tbody>
-      </table>
-      <p>頁面路由為 SPA，所有狀態切換在 <code>/room/:code</code> 內部依 WebSocket 事件動態渲染，不換 URL。</p>
+    <h2>4. 首頁（Lobby）</h2>
 
-      <hr>
+    <h3>版面</h3>
+    <pre><code>┌────────────────────────────────────────┐
+│           Ladder Room Online           │
+│         爬樓梯多人抽獎遊戲              │
+│                                        │
+│  ┌──────────────────────────────────┐  │
+│  │ 你的暱稱：[ __________________ ] │  │
+│  │                                  │  │
+│  │   [建立房間]    [加入房間]        │  │
+│  │                                  │  │
+│  │ 加入：房間碼 [ __________ ]       │  │
+│  └──────────────────────────────────┘  │
+└────────────────────────────────────────┘</code></pre>
 
-      <h2>4. 首頁 / 入口</h2>
+    <h3>核心 UI 元件</h3>
+    <ul>
+      <li><strong>NicknameInput</strong>：maxLength=20，即時字元計數，禁止換行/控制字元</li>
+      <li><strong>RoomCodeInput</strong>：自動大寫轉換，maxLength=6，即時格式驗證</li>
+      <li><strong>CreateRoomButton</strong>：disabled 直到暱稱有效</li>
+      <li><strong>JoinRoomButton</strong>：disabled 直到暱稱和房間碼均有效</li>
+      <li><strong>ToastNotification</strong>：error / success，3.5s 自動消失，同時只顯示 1 條</li>
+    </ul>
 
-      <h3>4.1 版面</h3>
-      <pre><code class="language-bash">┌──────────────────────────────┐
-│  [Logo + 標題]               │
-│  爬樓梯抽獎                   │
-│                              │
-│  ┌─────────────────────────┐ │
-│  │  房間碼  [______]        │ │
-│  │  暱稱    [______]        │ │
-│  │  [加入房間]              │ │
-│  └─────────────────────────┘ │
-│                              │
-│  ─────  或  ─────            │
-│  [建立新房間]                 │
-└──────────────────────────────┘</code></pre>
+    <h2>5. 等待大廳（waiting 狀態）</h2>
 
-      <h3>4.2 核心 UI 元件</h3>
-
-      <p><strong>RoomCodeInput</strong></p>
-      <ul>
-        <li>6 格獨立字元輸入（每格一個 <code>&lt;input maxlength="1"&gt;</code>）或單一輸入框自動分割</li>
-        <li>自動轉大寫（<code>text-transform: uppercase</code>）</li>
-        <li>排除 O / I / 0 / 1 的軟性提示</li>
-        <li>透過 URL param <code>?room=XXXXXX</code> 自動預填</li>
-        <li>錯誤狀態：紅框 + 下方錯誤文字（ROOM_NOT_FOUND / ROOM_FULL 等）</li>
-      </ul>
-
-      <p><strong>NicknameInput</strong></p>
-      <ul>
-        <li>單行 <code>&lt;input&gt;</code>，1–20 字 Unicode 限制</li>
-        <li>即時 character count 提示（<code>x / 20</code>）</li>
-        <li>前端驗證失敗：inline 錯誤（不 submit）</li>
-      </ul>
-
-      <p><strong>ActionButton（主要）</strong></p>
-      <ul>
-        <li>高度 48px（觸控最小目標）</li>
-        <li>全寬於 mobile</li>
-        <li>Loading spinner 狀態</li>
-        <li>Disabled 狀態（表單未填完）</li>
-      </ul>
-
-      <hr>
-
-      <h2>5. 等待大廳（<code>waiting</code> 狀態）</h2>
-
-      <h3>5.1 版面（主持人視角）</h3>
-      <pre><code class="language-bash">┌──────────────────────────────┐
+    <h3>版面（主持人視角）</h3>
+    <pre><code>┌──────────────────────────────┐
 │  [房間名稱或預設文字]          │
 │  房間碼：  AB3K7X  [複製]     │
 │                              │
@@ -198,8 +185,8 @@
 │  [開始遊戲]                   │
 └──────────────────────────────┘</code></pre>
 
-      <h3>5.2 版面（玩家視角）</h3>
-      <pre><code class="language-bash">┌──────────────────────────────┐
+    <h3>版面（玩家視角）</h3>
+    <pre><code>┌──────────────────────────────┐
 │  [房間名稱]                   │
 │  房間碼：  AB3K7X             │
 │                              │
@@ -214,20 +201,18 @@
 │  [loading spinner]           │
 └──────────────────────────────┘</code></pre>
 
-      <h3>5.3 核心 UI 元件</h3>
+    <h3>核心 UI 元件規格</h3>
+    <ul>
+      <li><strong>RoomCodeDisplay</strong>：大字（<code>--text-2xl</code>，等寬字體），[複製] 按鈕點擊後 1.5s 顯示「已複製 ✓」</li>
+      <li><strong>PlayerList</strong>：PlayerItem = 頭像占位符（首字母圓形）+ 暱稱 + 狀態 badge；Host 顯示 👑 badge；離線玩家：暱稱灰色 + <code>◌ 離線</code> chip；ROOM_STATE 事件觸發即時更新</li>
+      <li><strong>WinnerCountInput</strong>：Stepper（[−] 數字輸入 [+]）；1 ≤ W ≤ N-1 即時驗證；設定後送出 <code>UPDATE_WINNER_COUNT</code></li>
+      <li><strong>StartGameButton</strong>：Disabled 條件：W 未設定 OR N &lt; 2；顯示原因 tooltip</li>
+    </ul>
 
-      <p><strong>PlayerList</strong> — 每個 PlayerItem：頭像占位符（首字母圓形背景）+ 暱稱 + 狀態 badge。主持人顯示 👑 badge，自己顯示「（你）」標示，離線玩家暱稱灰色。<code>waiting</code> 狀態主持人可踢除玩家。</p>
+    <h2>6. 遊戲主畫面（running / revealing 狀態）</h2>
 
-      <p><strong>WinnerCountInput</strong> — Stepper（[−] 數字輸入 [+]），範圍限制：1 ≤ W ≤ N-1，設定後即時送出 <code>UPDATE_WINNER_COUNT</code>。</p>
-
-      <p><strong>StartGameButton</strong> — Disabled 條件：W 未設定 OR N &lt; 2，Disabled 時顯示 tooltip（「需至少 2 位玩家」或「請設定中獎名額」）。</p>
-
-      <hr>
-
-      <h2>6. 遊戲主畫面（<code>running</code> / <code>revealing</code> 狀態）</h2>
-
-      <h3>6.1 版面</h3>
-      <pre><code class="language-bash">┌──────────────────────────────┐
+    <h3>版面</h3>
+    <pre><code>┌──────────────────────────────┐
 │  頂部 StatusBar               │
 │  [房間碼]  [揭曉進度 x/N]     │
 ├──────────────────────────────┤
@@ -242,283 +227,142 @@
 │  [底部結果槽 - 終點標籤]      │
 ├──────────────────────────────┤
 │  [主持人控制面板]             │
-│  （玩家不顯示此區）           │
 └──────────────────────────────┘</code></pre>
 
-      <h3>6.2 Canvas 規格（LadderCanvas）</h3>
-      <table>
-        <thead><tr><th>屬性</th><th>規格</th></tr></thead>
-        <tbody>
-          <tr><td>最小寬度</td><td>320px（配合 NFR-08）</td></tr>
-          <tr><td>高度</td><td><code>min(80dvh, 600px)</code>，響應式</td></tr>
-          <tr><td>縱欄數</td><td>= N（玩家人數，2–50）</td></tr>
-          <tr><td>橫列數</td><td><code>rowCount = clamp(N×3, 20, 60)</code></td></tr>
-          <tr><td>縱線（柱）</td><td>等寬分佈，最小欄寬 = 14px；N &gt; 22 時採橫向捲動</td></tr>
-          <tr><td>橫槓</td><td><code>max(1, round(N/4))</code> 條 / 列，粗 2px</td></tr>
-          <tr><td>路徑動畫</td><td><code>requestAnimationFrame</code> 驅動，目標 24fps（手機）/ 30fps（桌機）</td></tr>
-          <tr><td>座標系</td><td>原點左上角；欄 i 中心 x = <code>colWidth * i + colWidth / 2</code>；列 j 的 y = <code>rowHeight * j</code></td></tr>
-          <tr><td>running 狀態（梯子尚未下發）</td><td>繪製 N 條等寬灰色虛線佔位；無橫槓；等待 BEGIN_REVEAL 後以 ladderMap 重繪</td></tr>
-        </tbody>
-      </table>
+    <h3>Canvas 規格（LadderCanvas）</h3>
+    <table>
+      <thead><tr><th>屬性</th><th>規格</th></tr></thead>
+      <tbody>
+        <tr><td>最小寬度</td><td>320px</td></tr>
+        <tr><td>高度</td><td><code>min(80dvh, 600px)</code>，響應式</td></tr>
+        <tr><td>縱欄數</td><td>= N（玩家人數，2–50）</td></tr>
+        <tr><td>橫列數</td><td><code>rowCount = clamp(N×3, 20, 60)</code></td></tr>
+        <tr><td>欄寬</td><td>等寬分佈；最小欄寬 = 14px；N &gt; 22 時 Canvas 橫向捲動</td></tr>
+        <tr><td>橫槓數</td><td><code>max(1, round(N/4))</code> 條 / 列，粗 2px</td></tr>
+        <tr><td>路徑動畫</td><td>requestAnimationFrame 驅動，目標 24fps（手機）/ 30fps（桌機）</td></tr>
+        <tr><td>座標系</td><td>原點左上角；欄 i 中心 x = <code>colWidth * i + colWidth / 2</code>；列 j 的 y = <code>rowHeight * j</code></td></tr>
+        <tr><td>running 狀態</td><td>N 條灰色虛線（<code>--color-path-hidden</code>）佔位；無橫槓；等待 BEGIN_REVEAL 後重繪</td></tr>
+      </tbody>
+    </table>
 
-      <h3>路徑顏色語意</h3>
-      <table>
-        <thead><tr><th>狀態</th><th>顏色 Token</th><th>線條樣式</th></tr></thead>
-        <tbody>
-          <tr><td>未揭曉</td><td><code>--color-path-hidden</code></td><td>灰色虛線（dashed）</td></tr>
-          <tr><td>揭曉動畫中（當前玩家）</td><td><code>--color-path-self</code> 或 accent</td><td>實線，寬度 3px，帶光暈</td></tr>
-          <tr><td>揭曉完成，自己，中獎</td><td><code>--color-success</code></td><td>實線寬 3px</td></tr>
-          <tr><td>揭曉完成，自己，未中獎</td><td><code>--color-danger</code></td><td>實線寬 2px</td></tr>
-          <tr><td>揭曉完成，他人</td><td>調色盤循環色（淡化 alpha 0.5）</td><td>實線寬 1.5px</td></tr>
-          <tr><td>自己（未輪到）</td><td><code>--color-accent</code></td><td>虛線 dashed，寬 2px</td></tr>
-        </tbody>
-      </table>
+    <h3>路徑顏色語意</h3>
+    <table>
+      <thead><tr><th>狀態</th><th>顏色 Token</th><th>線條樣式</th></tr></thead>
+      <tbody>
+        <tr><td>未揭曉</td><td><code>--color-path-hidden</code></td><td>灰色虛線（dashed）</td></tr>
+        <tr><td>揭曉動畫中（當前玩家）</td><td>accent 或 gold（自己）</td><td>實線，寬 3px，帶光暈</td></tr>
+        <tr><td>揭曉完成，自己，中獎</td><td><code>--color-success</code></td><td>實線寬 3px</td></tr>
+        <tr><td>揭曉完成，自己，未中獎</td><td><code>--color-danger</code></td><td>實線寬 2px</td></tr>
+        <tr><td>揭曉完成，他人</td><td>調色盤循環色（alpha 0.5）</td><td>實線寬 1.5px</td></tr>
+        <tr><td>自己（未輪到）</td><td><code>--color-accent</code></td><td>虛線 dashed，寬 2px</td></tr>
+      </tbody>
+    </table>
 
-      <h3>6.3 揭曉動畫流程（AnimationController）</h3>
-      <pre><code class="language-bash">REVEAL_INDEX 事件到達
+    <h3>揭曉動畫流程</h3>
+    <pre><code>REVEAL_INDEX 事件到達
   ↓
 取得目標玩家 index 的 startColumn / path segments
   ↓
 requestAnimationFrame loop 開始
   ↓
-沿 segments 逐格前進（每格 duration = rowCount 決定速度）
+沿 segments 逐格前進（每格 duration 由 rowCount 決定）
   ↓
 抵達底部 endColumn
   ↓
-在底部結果槽顯示 result（winner / loser）
+底部結果槽顯示 result（winner / loser）
   ↓
-自己中獎：觸發 WinnerOverlay 動畫
+自己中獎 → 觸發 WinnerOverlay 動畫
   ↓
 動畫結束 → 等待下一個 REVEAL_INDEX</code></pre>
 
-      <p><strong>REVEAL_ALL 處理</strong>：收到 <code>REVEAL_ALL</code> 後，同時播放所有未揭曉路徑（壓縮動畫時長）。若 2 秒內未完成，直接跳至終止幀（final frame），所有路徑顯示靜態完成態。房間仍維持 <code>revealing</code>，等待主持人點擊「結束本局」才轉 <code>finished</code>。</p>
+    <h3>主持人控制面板（HostControlPanel）</h3>
+    <p>僅 <code>role === "host"</code> 時顯示，固定於畫面底部。</p>
 
-      <h3>6.4 主持人控制面板（HostControlPanel）</h3>
-      <p>僅 <code>role === "host"</code> 時顯示，固定於畫面底部或側邊欄。</p>
-      <pre><code class="language-bash">running 狀態：
-  [開始揭曉]
+    <p><strong>running 狀態</strong></p>
+    <pre><code>[開始揭曉]</code></pre>
 
-revealing 狀態（手動模式）：
-  進度：x / N
-  [下一位]    [全部揭曉]
-  [切換自動模式]
+    <p><strong>revealing 狀態（手動模式）</strong></p>
+    <pre><code>進度：x / N
+[下一位]    [全部揭曉]
+[切換自動模式]</code></pre>
 
-revealing 狀態（自動模式）：
-  進度：x / N
-  每隔 [___] 秒自動揭曉
-  [暫停/切換手動]
+    <p><strong>revealing 狀態（自動模式）</strong></p>
+    <pre><code>進度：x / N
+每隔 [___] 秒自動揭曉
+[暫停/切換手動]</code></pre>
 
-所有路徑揭曉完畢後：
-  [結束本局]</code></pre>
+    <p><strong>所有路徑揭曉完畢後</strong></p>
+    <pre><code>[結束本局]</code></pre>
 
-      <hr>
+    <h2>7. 結果頁面（finished 狀態）</h2>
 
-      <h2>7. 結果頁面（<code>finished</code> 狀態）</h2>
-
-      <h3>7.1 版面</h3>
-      <pre><code class="language-bash">┌──────────────────────────────┐
-│  🎉 抽獎結果                  │
-│  [房間名稱]                   │
+    <h3>版面</h3>
+    <pre><code>┌──────────────────────────────┐
+│  遊戲結束！                   │
+│  種子（seed）：3141592653     │
 │                              │
-│  得獎名單                     │
+│  🎉 得獎名單                  │
 │  ┌───────────────────────┐   │
-│  │ 🏆 Alice        中獎   │   │
-│  │ 🏆 Bob          中獎   │   │
+│  │  🥇 Bob   （中獎）    │   │
 │  └───────────────────────┘   │
 │                              │
-│  未中獎                       │
-│  ┌───────────────────────┐   │
-│  │    Carol       謝謝參與│   │
-│  │    Dave        謝謝參與│   │
-│  └───────────────────────┘   │
+│  其他玩家（未中獎）            │
+│  Alice / Carol               │
 │                              │
-│  Seed：xxxxxxxx（可驗證）     │
-│                              │
-│  [回首頁]                     │
-│  [再玩一局]  （主持人專屬）    │
+│  [再玩一局]                   │
 └──────────────────────────────┘</code></pre>
 
-      <h3>7.2 核心 UI 元件</h3>
-      <ul>
-        <li><strong>ResultList</strong>：分區「得獎 🏆」+ 「未中獎」，每行含暱稱 + 結果 badge（中獎綠 / 未中獎灰），依 startColumn 順序排列</li>
-        <li><strong>SeedDisplay</strong>：小字顯示 seed 值，提示「以下 seed 可用於獨立驗證本局結果」</li>
-        <li><strong>PlayAgainButton</strong>（僅主持人）：送出 <code>PLAY_AGAIN</code>；若在線玩家 &lt; 2，顯示錯誤 toast</li>
-      </ul>
+    <h3>核心元件</h3>
+    <ul>
+      <li><strong>WinnerList</strong>：顯示所有 isWinner=true 的玩家，金色高亮，頒獎儀式動畫</li>
+      <li><strong>SeedDisplay</strong>：顯示 seed 數值，方便玩家驗證公平性；附說明 tooltip</li>
+      <li><strong>PlayAgainButton</strong>（僅 Host 可見）：送出 <code>PLAY_AGAIN</code> 訊息</li>
+      <li><strong>自己中獎 Overlay</strong>：全螢幕金色 confetti 動畫，3 秒後自動消失</li>
+    </ul>
 
-      <hr>
+    <h2>8. 斷線 / 重連 UI</h2>
+    <table>
+      <thead><tr><th>情境</th><th>UI 行為</th></tr></thead>
+      <tbody>
+        <tr><td>WS 斷線偵測</td><td>顯示黃色 Toast「連線中斷，嘗試重新連線…」＋ spinner</td></tr>
+        <tr><td>重連成功（帶 playerId）</td><td>Toast 消失；依 ROOM_STATE_FULL 恢復對應畫面</td></tr>
+        <tr><td>重連失敗 3 次後</td><td>顯示「無法連線，請重新整理頁面」靜態提示</td></tr>
+        <tr><td>SESSION_REPLACED</td><td>Toast「你的帳號已在其他頁面登入，此分頁已離線」；頁面凍結</td></tr>
+        <tr><td>running 狀態 15s 超時</td><td>Toast「連線逾時，請重新整理頁面」（客戶端安全網）</td></tr>
+      </tbody>
+    </table>
 
-      <h2>8. Overlay 與通知元件</h2>
+    <h2>9. 響應式設計</h2>
+    <table>
+      <thead><tr><th>斷點</th><th>行為</th></tr></thead>
+      <tbody>
+        <tr><td>320px（最小）</td><td>單欄版面；N ≤ 22 時 Canvas 適配容器；N &gt; 22 時 Canvas 橫向捲動</td></tr>
+        <tr><td>768px</td><td>等待大廳：玩家列表與設定區並排</td></tr>
+        <tr><td>1024px +</td><td>遊戲主畫面：Canvas 左側，主持人控制面板右側固定欄</td></tr>
+      </tbody>
+    </table>
 
-      <h3>8.1 WinnerOverlay（自己中獎）</h3>
-      <p>觸發條件：自己的路徑動畫抵達中獎結果槽。動畫：從畫面中央 scale-in + opacity 0→1，彩帶粒子效果（純 CSS 或 Canvas 輕量實作），3 秒後自動淡出或點擊關閉。</p>
+    <h2>10. 無障礙（a11y）</h2>
+    <ul>
+      <li>所有按鈕有 <code>aria-label</code>；disabled 狀態有 <code>aria-disabled</code> + tooltip</li>
+      <li>Canvas 附帶 <code>aria-label</code> 描述當前遊戲狀態（如「揭曉中，已完成 3/5」）</li>
+      <li>Toast 使用 <code>role="alert" aria-live="assertive"</code></li>
+      <li>PlayerList 使用語意化 <code>&lt;ul&gt; / &lt;li&gt;</code></li>
+      <li>顏色對比度：主文字 / 背景 ≥ 4.5:1（WCAG AA）</li>
+      <li><code>prefers-reduced-motion</code>：揭曉動畫退化為 0 動畫（即時顯示最終幀）</li>
+    </ul>
 
-      <h3>8.2 LoserNotice（自己未中獎）</h3>
-      <p>底部 toast 形式，文字「很遺憾，謝謝參與」，2 秒自動消失。</p>
+    <h2>11. 動畫設計原則</h2>
+    <ul>
+      <li>僅動畫 compositor-friendly 屬性：<code>transform</code>、<code>opacity</code>、<code>clip-path</code></li>
+      <li>避免動畫 layout 屬性：<code>width</code>、<code>height</code>、<code>top</code>、<code>left</code></li>
+      <li>Canvas 路徑動畫：<code>requestAnimationFrame</code>，不用 CSS transition</li>
+      <li>REVEAL_ALL 模式：收到後 2 秒內若未完成，直接跳至最終靜態幀</li>
+      <li>中獎 confetti：CSS keyframe + Canvas 粒子，使用 <code>will-change: transform</code>（動畫結束後移除）</li>
+    </ul>
+  </main>
+</div>
 
-      <h3>8.3 Toast 通知系統（ToastStack）</h3>
-      <p>固定在畫面右上角（mobile: 全寬底部），堆疊最多 3 條，新的從底部入場，每條顯示 3 秒後自動消失，動畫採 <code>translateY</code> + <code>opacity</code>（compositor-only）。</p>
-      <table>
-        <thead><tr><th>Type</th><th>觸發事件 / 錯誤碼</th><th>範例文字</th></tr></thead>
-        <tbody>
-          <tr><td>info</td><td>玩家加入</td><td>「Bob 加入了房間」</td></tr>
-          <tr><td>info</td><td><code>PLAYER_KICKED</code>（他人被踢）</td><td>「Carol 已被主持人移出」</td></tr>
-          <tr><td>warning</td><td>玩家離線</td><td>「Carol 離線中」</td></tr>
-          <tr><td>warning</td><td><code>INVALID_STATE</code></td><td>「操作與目前房間狀態不符，請重試」</td></tr>
-          <tr><td>warning</td><td><code>INSUFFICIENT_ONLINE_PLAYERS</code></td><td>「在線玩家不足 2 人，請等候玩家上線後重試」</td></tr>
-          <tr><td>warning</td><td>Room TTL 即將到期</td><td>「房間將在 5 分鐘內關閉」</td></tr>
-          <tr><td>error</td><td><code>SYS_REDIS_ERROR</code></td><td>「伺服器暫時不可用，請稍後再試」</td></tr>
-          <tr><td>error</td><td><code>ROOM_FULL</code></td><td>「此房間已滿 50 人，無法加入」</td></tr>
-          <tr><td>error</td><td><code>AUTH_TOKEN_EXPIRED</code></td><td>「連線憑證已過期，請重新整理後加入」</td></tr>
-          <tr><td>success</td><td>中獎名額更新</td><td>「中獎名額已更新」</td></tr>
-          <tr><td>success</td><td>房間碼複製</td><td>「房間碼已複製至剪貼簿」</td></tr>
-        </tbody>
-      </table>
-
-      <h3>8.4 KickedScreen（被踢出）</h3>
-      <p>觸發條件：收到 <code>PLAYER_KICKED</code> 且 <code>playerId</code> 符合自己。WebSocket 連線立即關閉，不提供重新加入同一局的入口。</p>
-
-      <h3>8.5 ErrorBoundary</h3>
-      <p>全域 WebSocket 錯誤顯示（阻塞型）：</p>
-      <ul>
-        <li><code>ROOM_NOT_FOUND</code>：「找不到此房間，請確認房間碼」→ [回首頁]</li>
-        <li><code>AUTH_TOKEN_EXPIRED</code>（主持人）：「主持人身份已過期，請重新整理頁面」→ [重新整理]</li>
-        <li><code>SESSION_REPLACED</code>：「你的連線已在另一裝置開啟，請重新整理」→ [重新整理]</li>
-        <li><code>SYS_REDIS_ERROR</code>：「伺服器暫時不可用，請稍後再試」→ [重試]</li>
-        <li>Room TTL 自然過期：「此房間已結束或過期」→ [回首頁]</li>
-      </ul>
-
-      <hr>
-
-      <h2>9. 互動流程</h2>
-
-      <h3>9.1 玩家加入流程</h3>
-      <pre><code class="language-bash">首頁
-  ↓ 填入房間碼 + 暱稱
-  ↓ [加入房間] → POST /api/rooms/:code/players
-  ↓ 取得 token + playerId → 存入 localStorage
-  ↓ 建立 WebSocket 連線（帶 token 作 query param）
-  ↓ 收到 ROOM_STATE（status=waiting）
-  → 等待大廳（玩家視角）</code></pre>
-
-      <h3>9.2 主持人控制流程</h3>
-      <pre><code class="language-bash">建立房間 → POST /api/rooms
-  ↓ 取得 token + roomCode → 存入 localStorage
-  ↓ 建立 WebSocket 連線
-  ↓ 收到 ROOM_STATE（status=waiting）
-  → 等待大廳（主持人視角）
-       ↓ 設定中獎名額 → WS UPDATE_WINNER_COUNT
-       ↓ 等待玩家加入
-       ↓ [開始遊戲] → POST /api/rooms/:code/game/start
-       ↓ 收到 ROOM_STATE（status=running）
-  → 遊戲主畫面
-       ↓ [開始揭曉] → WS BEGIN_REVEAL
-       ↓ 收到 ROOM_STATE（status=revealing）
-       ↓ [下一位] → WS REVEAL_NEXT  ×N 次
-           └─ 或 [全部揭曉] → WS REVEAL_ALL
-       ↓ 所有路徑揭曉完畢
-       ↓ [結束本局] → POST /api/rooms/:code/game/end
-       ↓ 收到 ROOM_STATE（status=finished，含 seed）
-  → 結果頁面
-       ↓ [再玩一局] → POST /api/rooms/:code/game/play-again
-       ↓ 收到 ROOM_STATE（status=waiting，在線玩家重置）
-  → 等待大廳（循環）</code></pre>
-
-      <h3>9.3 斷線重連流程</h3>
-      <pre><code class="language-bash">WebSocket 連線中斷
-  ↓
-指數退避重連（100ms → 200ms → 400ms → ...，最長 30s）
-  ↓
-重連時帶 localStorage 的 playerId
-  ↓
-伺服器驗證後回傳 ROOM_STATE_FULL
-  ↓
-依當前 status 恢復 UI（revealing 狀態不重播已完成動畫，直接顯示靜態結果）</code></pre>
-
-      <hr>
-
-      <h2>10. WebSocket 狀態 → UI 狀態對應表</h2>
-      <table>
-        <thead><tr><th>WS 事件</th><th>payload 關鍵欄位</th><th>UI 變化</th></tr></thead>
-        <tbody>
-          <tr><td><code>ROOM_STATE</code> status=<code>waiting</code></td><td>players[], winnerCount</td><td>顯示等待大廳；更新玩家列表</td></tr>
-          <tr><td><code>ROOM_STATE</code> status=<code>running</code></td><td>rowCount</td><td>顯示梯子佔位（全灰虛線 N 欄）；主持人出現「開始揭曉」；ladderMap 為 null</td></tr>
-          <tr><td><code>ROOM_STATE</code> status=<code>revealing</code></td><td>ladderMap, resultSlots, revealedCount</td><td>梯子以 ladderMap 渲染；主持人出現揭曉控制面板</td></tr>
-          <tr><td><code>ROOM_STATE</code> status=<code>finished</code></td><td>results, seed</td><td>切換至結果頁面；顯示得獎名單 + seed</td></tr>
-          <tr><td><code>ROOM_STATE_FULL</code></td><td>完整 Room snapshot</td><td>重連恢復；依 status 渲染對應頁面（revealing 直接跳 final frame）</td></tr>
-          <tr><td><code>REVEAL_INDEX</code></td><td>index, result</td><td>播放對應玩家路徑動畫；更新揭曉進度計數</td></tr>
-          <tr><td><code>REVEAL_ALL</code></td><td>revealData[]</td><td>同時播放所有剩餘路徑；2s 超時跳 final frame</td></tr>
-          <tr><td><code>PLAYER_KICKED</code></td><td>playerId</td><td>若是自己：顯示 KickedScreen；否則 Toast info + 列表更新</td></tr>
-          <tr><td><code>SESSION_REPLACED</code></td><td>—</td><td>顯示「連線已被取代」提示，關閉舊連線</td></tr>
-          <tr><td><code>ERROR</code></td><td>code, message</td><td>Toast 顯示 message；依 code 決定是否阻塞操作</td></tr>
-        </tbody>
-      </table>
-
-      <hr>
-
-      <h2>11. 響應式設計（Mobile-first）</h2>
-
-      <h3>斷點</h3>
-      <table>
-        <thead><tr><th>Breakpoint</th><th>寬度</th><th>主要調整</th></tr></thead>
-        <tbody>
-          <tr><td>xs（預設）</td><td>320px+</td><td>單欄，Canvas 全寬，控制面板底部固定</td></tr>
-          <tr><td>sm</td><td>480px+</td><td>微調 padding，玩家列表可容納更多行</td></tr>
-          <tr><td>md</td><td>768px+</td><td>Canvas + 控制面板可並排（Canvas 左，面板右）</td></tr>
-          <tr><td>lg</td><td>1024px+</td><td>最大寬度容器，居中佈局</td></tr>
-        </tbody>
-      </table>
-
-      <h3>Mobile 特殊考量</h3>
-      <ul>
-        <li><strong>Canvas 高度</strong>：<code>min(80dvh, 600px)</code> 以避免溢出視窗</li>
-        <li><strong>觸控目標</strong>：所有互動元素高度 ≥ 48px</li>
-        <li><strong>Canvas 大玩家數橫向捲動</strong>：N &gt; 22 時，Canvas 實際寬度 = <code>N × 14px</code>；外層 wrapper 設定 <code>overflow-x: auto; -webkit-overflow-scrolling: touch</code></li>
-        <li><strong>觸控手勢</strong>：僅支援橫向滑動捲動大玩家數梯子（<code>touch-action: pan-x</code>）；不支援 pinch-zoom</li>
-        <li><strong>主持人控制面板</strong>：mobile 固定在畫面底部（<code>position: sticky; bottom: 0</code>），高度固定 80px，Canvas 區域底部留 80px padding</li>
-        <li><strong>房間碼輸入</strong>：<code>inputmode="text"</code>，<code>autocapitalize="characters"</code>，軟鍵盤彈出時 Canvas 區域以 <code>dvh</code> 自動縮短</li>
-      </ul>
-
-      <hr>
-
-      <h2>12. 效能預算</h2>
-      <table>
-        <thead><tr><th>資源</th><th>預算（gzip）</th></tr></thead>
-        <tbody>
-          <tr><td>首頁 JS bundle</td><td>&lt; 80KB</td></tr>
-          <tr><td>遊戲頁 JS bundle</td><td>&lt; 150KB</td></tr>
-          <tr><td>CSS</td><td>&lt; 30KB</td></tr>
-        </tbody>
-      </table>
-      <ul>
-        <li>Canvas 動畫：compositor-only（transform / opacity），不使用 layout-bound 屬性</li>
-        <li><code>requestAnimationFrame</code> 驅動路徑動畫，不使用 <code>setInterval</code></li>
-        <li>50 人滿員時 Canvas 重繪：僅 dirty-rect 更新（非全畫布 clearRect）</li>
-        <li>玩家頭像占位符：首字母 + HSL 色環自動配色（無外部圖片請求）</li>
-        <li>字體：Noto Sans TC Subset（僅中英數字部分，<code>font-display: swap</code>）</li>
-      </ul>
-
-      <hr>
-
-      <h2>13. 無障礙設計（Accessibility）</h2>
-      <ul>
-        <li>所有互動元素有可見的 focus ring（<code>outline: 2px solid var(--color-accent)</code>）</li>
-        <li>色彩對比度：文字與背景 ≥ 4.5:1（WCAG AA）</li>
-        <li>Canvas 揭曉結果同步更新 <code>aria-live="polite"</code> 文字區，供螢幕閱讀器播報</li>
-        <li>按鈕 disabled 狀態以 <code>aria-disabled="true"</code> 標記</li>
-        <li>縮減動態（<code>prefers-reduced-motion</code>）：Canvas 動畫跳過逐格播放，直接顯示結果</li>
-      </ul>
-    </main>
-  </div>
-
-  <script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({ startOnLoad: true, theme: 'default', flowchart: { curve: 'basis' }, er: { layoutDirection: 'TD' } });
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
-  <script src="assets/app.js"></script>
+<script src="assets/app.js"></script>
 </body>
 </html>

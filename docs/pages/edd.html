@@ -3,102 +3,165 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>工程設計文件 (EDD) — Ladder Room Online</title>
+  <title>EDD — Ladder Room Online 文件</title>
   <link rel="stylesheet" href="assets/style.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'default' });
+  </script>
 </head>
 <body>
-  <header class="top-nav">
-    <a href="index.html" class="nav-brand">🪜 Ladder Room</a>
-    <div class="nav-controls">
-      <div class="search-wrap">
-        <input class="search-input" type="search" placeholder="搜尋文件...">
-        <div class="search-results"></div>
-      </div>
+<nav class="top-nav">
+  <a class="nav-brand" href="index.html">Ladder Room Online</a>
+  <div class="nav-controls">
+    <div class="search-wrap">
+      <input class="search-input" type="search" placeholder="搜尋文件…" aria-label="搜尋">
+      <div class="search-results" role="listbox"></div>
     </div>
-  </header>
-
-  <div class="doc-page-banner">
-    <p class="banner-breadcrumb"><a href="index.html">Ladder Room</a> › 工程設計文件 (EDD)</p>
-    <h1 class="banner-title">工程設計文件 (EDD)</h1>
-    <p class="banner-desc">系統架構、技術選型、API 設計、測試策略</p>
+    <a class="nav-gh-link" href="https://github.com/tobala/climb_stairs" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
   </div>
+</nav>
 
-  <div class="page-wrapper">
-    <aside class="sidebar">
-      <div class="sidebar__section">
-        <div class="sidebar__label">文件</div>
-        <a class="sidebar__link" href="index.html">🏠 首頁</a>
-        <a class="sidebar__link" href="pdd.html">📋 PDD</a>
-        <a class="sidebar__link" href="prd.html">📝 PRD</a>
-        <a class="sidebar__link" href="edd.html">🏗️ EDD</a>
-        <a class="sidebar__link" href="arch.html">🧩 ARCH</a>
-        <a class="sidebar__link" href="api.html">🔌 API</a>
-        <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
-        <a class="sidebar__link" href="design.html">🎨 Design</a>
-        <a class="sidebar__link" href="bdd.html">🧪 BDD</a>
-      </div>
-    </aside>
-    <main class="doc-content">
-      <h1>EDD — Ladder Room Online</h1>
+<div class="doc-page-banner">
+  <div class="banner-breadcrumb"><a href="index.html">首頁</a> › EDD</div>
+  <h1 class="banner-title">EDD — 工程設計文件</h1>
+  <p class="banner-desc">技術棧、Clean Architecture、資料模型、API 設計、WebSocket 事件</p>
+</div>
 
-      <h2>0. 技術棧（Tech Stack）</h2>
-      <table>
-        <thead><tr><th>層級</th><th>技術</th><th>版本 / 備註</th></tr></thead>
-        <tbody>
-          <tr><td>Runtime</td><td>Node.js</td><td>20 LTS</td></tr>
-          <tr><td>語言</td><td>TypeScript</td><td>strict mode，前後端共用</td></tr>
-          <tr><td>HTTP Server</td><td>Fastify</td><td>REST API (<code>/api/*</code>)</td></tr>
-          <tr><td>WebSocket</td><td>ws（原生）</td><td><code>ws</code> npm package，<code>maxPayload: 65536</code></td></tr>
-          <tr><td>快取 / 狀態</td><td>Redis</td><td>原子操作、Pub/Sub、房間持久化</td></tr>
-          <tr><td>前端框架</td><td>無（Vanilla TypeScript + Vite）</td><td>無 UI 框架，零依賴，HTML5 Canvas 渲染</td></tr>
-          <tr><td>Monorepo 結構</td><td>npm workspaces</td><td><code>packages/shared</code>、<code>packages/server</code>、<code>packages/client</code></td></tr>
-          <tr><td>測試</td><td>Vitest</td><td>Unit（70%）＋Integration（20%，testcontainers）＋E2E（10%，Playwright）</td></tr>
-          <tr><td>CI/CD</td><td>GitHub Actions</td><td>lint → audit → test → build → e2e → deploy</td></tr>
-          <tr><td>容器</td><td>Docker（Distroless Node.js 20）</td><td>多階段建構</td></tr>
-          <tr><td>編排</td><td>Kubernetes（HPA）+ Nginx Ingress</td><td>sticky session，Post-MVP 多 Pod</td></tr>
-          <tr><td>靜態部署</td><td>GitHub Pages</td><td>Vite 建構產物，bundle &lt; 150KB gzip</td></tr>
-        </tbody>
-      </table>
+<div class="page-wrapper">
+  <nav class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__label">文件</div>
+      <a class="sidebar__link" href="index.html">🏠 首頁</a>
+      <a class="sidebar__link" href="pdd.html">📋 PDD 產品需求</a>
+      <a class="sidebar__link" href="prd.html">📝 PRD 功能規格</a>
+      <a class="sidebar__link active" href="edd.html">⚙️ EDD 工程設計</a>
+      <a class="sidebar__link" href="arch.html">🏗️ ARCH 架構</a>
+      <a class="sidebar__link" href="api.html">🔌 API 參考</a>
+      <a class="sidebar__link" href="schema.html">🗄️ Schema</a>
+      <a class="sidebar__link" href="design.html">🎨 UI Design</a>
+      <a class="sidebar__link" href="bdd.html">✅ BDD 測試</a>
+    </div>
+  </nav>
 
-      <hr>
+  <main class="doc-content">
+    <h1>EDD — 工程設計文件</h1>
 
-      <h2>1. 系統概覽</h2>
-      <p>Ladder Room Online 是一款基於 HTML5 Canvas 的多人線上爬樓梯抽獎系統，採用 WebSocket 長連接驅動即時遊戲狀態同步，支援最多 50 名玩家共享同一房間。後端以 Fastify 處理 HTTP REST 操作，ws 原生 WebSocket 處理即時通訊，Redis 同時承擔分散式狀態鎖（原子操作）、房間資料持久化與跨 Pod Pub/Sub 廣播的角色；前端以 Vanilla TypeScript + Vite 建構，透過 HTML5 Canvas 逐段繪製梯子揭示動畫，全程無任何 UI 框架依賴。</p>
+    <h2>0. 技術棧（Tech Stack）</h2>
+    <table>
+      <thead><tr><th>層級</th><th>技術</th><th>版本 / 備註</th></tr></thead>
+      <tbody>
+        <tr><td>Runtime</td><td>Node.js</td><td>20 LTS</td></tr>
+        <tr><td>語言</td><td>TypeScript</td><td>strict mode，前後端共用</td></tr>
+        <tr><td>HTTP Server</td><td>Fastify</td><td>REST API (<code>/api/*</code>)</td></tr>
+        <tr><td>WebSocket</td><td>ws（原生）</td><td><code>ws</code> npm package，<code>maxPayload: 65536</code></td></tr>
+        <tr><td>快取 / 狀態</td><td>Redis</td><td>原子操作、Pub/Sub、房間持久化</td></tr>
+        <tr><td>前端框架</td><td>無（Vanilla TypeScript + Vite）</td><td>無 UI 框架，零依賴，HTML5 Canvas 渲染</td></tr>
+        <tr><td>Monorepo 結構</td><td>npm workspaces</td><td><code>packages/shared</code>、<code>packages/server</code>、<code>packages/client</code></td></tr>
+        <tr><td>測試</td><td>Vitest</td><td>Unit（70%）＋Integration（20%，testcontainers）＋E2E（10%，Playwright）</td></tr>
+        <tr><td>CI/CD</td><td>GitHub Actions</td><td>lint → audit → test → build → e2e → deploy</td></tr>
+        <tr><td>容器</td><td>Docker（Distroless Node.js 20）</td><td>多階段建構</td></tr>
+        <tr><td>編排</td><td>Kubernetes（HPA）+ Nginx Ingress</td><td>sticky session，Post-MVP 多 Pod</td></tr>
+        <tr><td>靜態部署</td><td>GitHub Pages</td><td>Vite 建構產物，bundle &lt; 150KB gzip</td></tr>
+      </tbody>
+    </table>
 
-      <hr>
+    <h2>1. 系統概覽</h2>
+    <p>Ladder Room Online 是一款基於 HTML5 Canvas 的多人線上爬樓梯抽獎系統，採用 WebSocket 長連接驅動即時遊戲狀態同步，支援最多 50 名玩家共享同一房間。後端以 Fastify 處理 HTTP REST 操作，ws 原生 WebSocket 處理即時通訊，Redis 同時承擔分散式狀態鎖（原子操作）、房間資料持久化與跨 Pod Pub/Sub 廣播的角色；前端以 Vanilla TypeScript + Vite 建構，透過 HTML5 Canvas 逐段繪製梯子揭示動畫，全程無任何 UI 框架依賴，確保最小 JS bundle。</p>
 
-      <h2>2. 架構設計</h2>
-      <h3>2.1 Clean Architecture（SOLID + 分層 + DI）</h3>
-      <pre><code class="language-bash">ladder-room-online/
+    <h2>2. 架構設計</h2>
+
+    <h3>2.1 Clean Architecture（SOLID + 分層 + DI）</h3>
+    <pre><code>ladder-room-online/                       # monorepo root
 ├── packages/
-│   ├── shared/                     # 前後端共用純邏輯（零 I/O）
-│   │   └── src/
-│   │       ├── domain/entities/    # Room, Player, Ladder
-│   │       ├── domain/value-objects/ # RoomCode, RoomStatus
-│   │       ├── domain/errors/      # DomainError
-│   │       ├── use-cases/          # GenerateLadder, ValidateGameStart, ComputeResults
-│   │       ├── prng/               # mulberry32, djb2, fisherYates
-│   │       └── types/              # 共用 TypeScript interface
-│   ├── server/                     # Fastify 後端
-│   │   └── src/
-│   │       ├── infrastructure/redis/   # RedisClient, RoomRepository, PubSubBroker
-│   │       ├── infrastructure/websocket/ # WsServer, WsSession
-│   │       ├── application/services/   # RoomService, GameService
-│   │       ├── application/handlers/   # WsMessageHandler, PubSubHandler
-│   │       ├── presentation/routes/    # rooms.ts, players.ts
-│   │       ├── container.ts            # DI 容器（工廠函式）
-│   │       └── main.ts
-│   └── client/                     # Vanilla TS + Vite
-│       └── src/
-│           ├── canvas/             # LadderRenderer, AnimationController
-│           ├── ws/                 # WsClient, EventBus
-│           ├── state/              # RoomStore
-│           └── ui/components/</code></pre>
+│   ├── shared/                           # 前後端共用純邏輯（零 I/O）
+│   │   ├── src/
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   ├── Room.ts           # Room aggregate root
+│   │   │   │   │   ├── Player.ts         # Player value object
+│   │   │   │   │   └── Ladder.ts         # Ladder + Segment entities
+│   │   │   │   ├── value-objects/
+│   │   │   │   │   ├── RoomCode.ts       # 6-char code validation
+│   │   │   │   │   └── RoomStatus.ts     # enum: waiting/running/revealing/finished
+│   │   │   │   └── errors/
+│   │   │   │       └── DomainError.ts    # base typed error
+│   │   │   ├── use-cases/
+│   │   │   │   ├── GenerateLadder.ts     # 梯子生成 use case（pure）
+│   │   │   │   ├── ValidateGameStart.ts  # N&gt;=2, 1&lt;=W&lt;=N-1 驗證
+│   │   │   │   └── ComputeResults.ts     # 路徑追蹤 -&gt; ResultSlot[]
+│   │   │   ├── prng/
+│   │   │   │   ├── mulberry32.ts         # PRNG 實作
+│   │   │   │   ├── djb2.ts               # seed hash
+│   │   │   │   └── fisherYates.ts        # 洗牌
+│   │   │   └── types/
+│   │   │       └── index.ts              # 共用 TypeScript interface
+│   │   └── package.json
+│   │
+│   ├── server/                           # Fastify 後端
+│   │   ├── src/
+│   │   │   ├── infrastructure/
+│   │   │   │   ├── redis/
+│   │   │   │   │   ├── RedisClient.ts    # ioredis singleton
+│   │   │   │   │   ├── RoomRepository.ts # Redis CRUD
+│   │   │   │   │   └── PubSubBroker.ts   # Redis Pub/Sub
+│   │   │   │   └── websocket/
+│   │   │   │       ├── WsServer.ts       # ws Server 封裝
+│   │   │   │       └── WsSession.ts      # 單一連線 session 管理
+│   │   │   ├── application/
+│   │   │   │   ├── services/
+│   │   │   │   │   ├── RoomService.ts    # 業務邏輯協調
+│   │   │   │   │   └── GameService.ts    # 開局/揭示/結束流程
+│   │   │   │   └── handlers/
+│   │   │   │       ├── WsMessageHandler.ts
+│   │   │   │       └── PubSubHandler.ts
+│   │   │   ├── presentation/
+│   │   │   │   ├── routes/
+│   │   │   │   │   ├── rooms.ts
+│   │   │   │   │   └── players.ts
+│   │   │   │   ├── schemas/
+│   │   │   │   └── plugins/
+│   │   │   │       ├── auth.ts
+│   │   │   │       └── cors.ts
+│   │   │   ├── container.ts              # DI 容器
+│   │   │   └── main.ts
+│   │   └── package.json
+│   │
+│   └── client/                           # Vanilla TS + Vite
+│       ├── src/
+│       │   ├── canvas/
+│       │   │   ├── LadderRenderer.ts
+│       │   │   └── AnimationController.ts
+│       │   ├── ws/
+│       │   │   ├── WsClient.ts
+│       │   │   └── EventBus.ts
+│       │   ├── state/
+│       │   │   └── RoomStore.ts
+│       │   ├── ui/
+│       │   │   └── components/
+│       │   └── main.ts
+│       └── package.json</code></pre>
 
-      <h3>2.2 系統架構圖</h3>
-      <div class="diagram-container">
-        <pre class="mermaid">graph TD
+    <h3>分層職責</h3>
+    <table>
+      <thead><tr><th>層級</th><th>職責</th><th>依賴方向</th></tr></thead>
+      <tbody>
+        <tr><td>Domain (shared)</td><td>Entity、Value Object、純業務規則、DomainError</td><td>無外部依賴</td></tr>
+        <tr><td>Use Cases (shared)</td><td>協調 Domain 物件完成業務流程，返回純資料結構</td><td>僅依賴 Domain</td></tr>
+        <tr><td>Application (server)</td><td>呼叫 Use Cases、協調 Repository、發布 WS 事件</td><td>依賴 Use Cases + Interfaces</td></tr>
+        <tr><td>Infrastructure (server)</td><td>Redis 實作、WebSocket 封裝、外部 SDK</td><td>實作 Application 定義的 Interface</td></tr>
+        <tr><td>Presentation (server)</td><td>HTTP Route、Schema 驗證、WS 訊息分派</td><td>依賴 Application Service</td></tr>
+      </tbody>
+    </table>
+    <p><strong>DI 策略：</strong> constructor injection，<code>container.ts</code> 以工廠函式組裝所有依賴。測試時直接傳入 mock 實作，不需要 DI 框架即可達成可測試性。</p>
+
+    <h3>2.2 系統架構圖</h3>
+    <div class="diagram-container">
+      <pre class="mermaid">
+graph TD
     subgraph Client["Client Browser"]
         TS["Vanilla TS + Vite"]
         Canvas["HTML5 Canvas"]
@@ -143,12 +206,14 @@
     WSClient --> |"WSS /ws"| NginxWS
     TS --> |"HTTPS /api"| NginxHTTP
     NginxHTTP --> |"sticky session"| SVC
-    NginxWS --> |"sticky session"| SVC</pre>
-      </div>
+    NginxWS --> |"sticky session"| SVC
+      </pre>
+    </div>
 
-      <h3>2.3 資料流圖（加入房間流程）</h3>
-      <div class="diagram-container">
-        <pre class="mermaid">sequenceDiagram
+    <h3>2.3 資料流圖（加入房間流程）</h3>
+    <div class="diagram-container">
+      <pre class="mermaid">
+sequenceDiagram
     participant C as Client Browser
     participant N as Nginx Ingress
     participant F as Fastify Pod
@@ -176,176 +241,207 @@
     F->>R: WATCH room:{code} MULTI SET status=running EXEC
     R-->>F: EXEC OK
     F->>R: PUBLISH room:{code}:events ROOM_STATE
-    F-->>C: Broadcast ROOM_STATE { status: running, rowCount }</pre>
-      </div>
+    F-->>C: Broadcast ROOM_STATE { status: running, rowCount }
 
-      <h3>2.4 部署架構圖</h3>
-      <div class="diagram-container">
-        <pre class="mermaid">graph TD
-    subgraph NS["Namespace: ladder-room"]
-        subgraph IngressLayer["Ingress Layer"]
-            ING["Ingress nginx\naffinity: cookie\nwebsocket-services: server-svc"]
-        end
+    Note over C,F: Host triggers BEGIN_REVEAL
 
-        subgraph AppLayer["Application Layer"]
-            DEP["Deployment: ladder-server\nreplicas: 2 min\nimage: distroless/nodejs20"]
-            POD1["Pod-1 server:latest port:3000"]
-            POD2["Pod-2 server:latest port:3000"]
-            DEP --> POD1
-            DEP --> POD2
-            HPA["HPA minReplicas:2 maxReplicas:10\nmetric: ws_connections target:200"]
-            HPA --> DEP
-        end
+    C->>F: WS MSG: BEGIN_REVEAL
+    F->>R: SET status=revealing + ladderMap + resultSlots atomic
+    R-->>F: OK
+    F->>R: PUBLISH room:{code}:events ROOM_STATE_FULL
+    F-->>C: Broadcast ROOM_STATE_FULL { status: revealing, ladder }
 
-        subgraph StatefulLayer["Redis"]
-            RSTS["StatefulSet: redis replicas:2"]
-            RPOD0["redis-0 master port:6379"]
-            RPOD1["redis-1 replica port:6379"]
-            RSTS --> RPOD0
-            RSTS --> RPOD1
-            RPOD0 --> |"replication"| RPOD1
-        end
+    Note over C,F: Host triggers REVEAL_NEXT
 
-        ING --> SVC["Service: server-svc"]
-        SVC --> POD1
-        SVC --> POD2
-        POD1 --> RSVC["Service: redis-svc"]
-        POD2 --> RSVC
-        RSVC --> RPOD0
-    end
+    C->>F: WS MSG: REVEAL_NEXT {}
+    F->>R: INCR room:{code}:revealedCount atomic
+    R-->>F: newCount
+    F->>R: PUBLISH room:{code}:events REVEAL_INDEX
+    F-->>C: Broadcast REVEAL_INDEX { playerIndex, path, result }
 
-    GHP["GitHub Pages Static Client"] --> ING</pre>
-      </div>
+    Note over C,F: Host triggers END_GAME
 
-      <h3>2.5 房間狀態機圖</h3>
-      <div class="diagram-container">
-        <pre class="mermaid">stateDiagram-v2
+    C->>F: WS MSG: END_GAME
+    F->>R: SET room:{code}:status finished
+    F->>R: PUBLISH room:{code}:events ROOM_STATE
+    F-->>C: Broadcast ROOM_STATE { status: finished, seed, results[] }
+      </pre>
+    </div>
+
+    <h3>2.4 房間狀態機</h3>
+    <div class="diagram-container">
+      <pre class="mermaid">
+stateDiagram-v2
     [*] --> waiting : POST /api/rooms 建立
 
-    waiting --> waiting : player_joined N<50 / player_left / host updates prizes
-    waiting --> running : host START_GAME\nN>=2 AND 1<=W<=N-1\nbcast rowCount
+    waiting --> waiting : player_joined N<50
+    waiting --> running : host START_GAME\nN>=2 AND 1<=W<=N-1\natomic: seed+ladderMap generated
 
-    running --> revealing : host BEGIN_REVEAL\nstate transition only\nbcast ROOM_STATE status:revealing
+    running --> revealing : host BEGIN_REVEAL\natomic: ladderMap+resultSlots written\nbcast ROOM_STATE_FULL status:revealing
 
-    revealing --> revealing : REVEAL_NEXT (manual)\nor auto-timer fires\nbcast REVEAL_INDEX
-    revealing --> revealing : SET_REVEAL_MODE mode manual/auto
+    revealing --> revealing : REVEAL_NEXT (manual)\nor auto-timer fires\nrevealedCount < N
 
-    revealing --> finished : host END_GAME\n所有路徑已揭曉後才允許\nbcast ROOM_STATE status:finished
+    revealing --> finished : host END_GAME\n(all paths revealed)\nbcast ROOM_STATE status:finished w/ seed\nTTL extend 1h
 
     finished --> waiting : host PLAY_AGAIN\nprune isOnline=false players\nbcast ROOM_STATE waiting
 
     waiting --> [*] : room TTL expired 4h
-    finished --> [*] : room TTL expired 1h</pre>
-      </div>
+    finished --> [*] : room TTL expired 1h
+      </pre>
+    </div>
 
-      <hr>
+    <h2>3. 資料模型</h2>
 
-      <h2>3. 資料模型設計</h2>
-      <pre><code class="language-typescript">// packages/shared/src/types/index.ts
-
-export type RoomStatus = "waiting" | "running" | "revealing" | "finished";
+    <h3>核心 TypeScript 型別</h3>
+    <pre><code>export type RoomStatus = "waiting" | "running" | "revealing" | "finished";
 
 export interface Player {
-  readonly id: string;          // UUID v4
-  readonly nickname: string;    // 1-20 Unicode chars
-  readonly colorIndex: number;  // 0-49 cycling
-  readonly isHost: boolean;
+  readonly id: string;           // UUID v4
+  readonly nickname: string;     // 1-20 chars, sanitized
+  readonly colorIndex: number;   // 0-49
+  readonly isHost: boolean;      // derived: id === room.hostId
   isOnline: boolean;
-  readonly joinedAt: number;    // Unix ms
-  startColumn?: number;         // assigned at BEGIN_REVEAL
-  endColumn?: number;           // computed at BEGIN_REVEAL
-  result?: "winner" | "loser";  // redundant cache
+  readonly joinedAt: number;     // Unix ms
+  result: 'win' | 'lose' | null; // null until revealed
 }
 
 export interface LadderSegment {
-  row: number;
-  col: number; // left column of horizontal rung (connects col to col+1)
+  readonly row: number;    // 0-indexed
+  readonly col: number;    // col &lt;-&gt; col+1 has a rung
 }
 
 export interface LadderData {
-  seed: number;           // uint32 from djb2(seedSource)
-  seedSource: string;     // UUID v4 hex
-  rowCount: number;       // clamp(N*3, 20, 60)
-  colCount: number;       // = N
-  segments: LadderSegment[];
+  readonly seed: number;          // Mulberry32 seed = djb2(seedSource) &gt;&gt;&gt; 0
+  readonly seedSource: string;    // UUID v4 hex
+  readonly rowCount: number;      // clamp(N*3, 20, 60)
+  readonly colCount: number;      // = N
+  readonly segments: readonly LadderSegment[];
 }
 
 export interface ResultSlot {
-  col: number;
-  isWinner: boolean;
-  playerId: string;
+  readonly playerIndex: number;
+  readonly playerId: string;
+  readonly startCol: number;
+  readonly endCol: number;
+  readonly isWinner: boolean;
+  readonly path: readonly PathStep[];
+}
+
+export interface Room {
+  readonly code: string;
+  title: string | null;
+  status: RoomStatus;
+  hostId: string;
+  players: readonly Player[];
+  winnerCount: number | null;
+  ladder: LadderData | null;
+  results: readonly ResultSlot[] | null;
+  revealedCount: number;
+  revealMode: "manual" | "auto";
+  autoRevealIntervalSec: number | null;
+  kickedPlayerIds: readonly string[];
+  readonly createdAt: number;
+  updatedAt: number;
 }</code></pre>
 
-      <hr>
+    <h2>4. API 設計（HTTP）</h2>
+    <p>所有端點掛載於 <code>/api/</code>，回應格式為直接 JSON 物件，無 success/data/error 包裝。JWT TTL：<strong>6 小時</strong>。</p>
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>描述</th><th>成功</th></tr></thead>
+      <tbody>
+        <tr><td><code>POST</code></td><td><code>/api/rooms</code></td><td>建立房間</td><td>201 CreateRoomResponse</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/rooms/:code</code></td><td>查詢房間公開摘要</td><td>200 RoomSummaryPayload</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/rooms/:code/players</code></td><td>加入房間</td><td>201 JoinRoomResponse</td></tr>
+        <tr><td><code>DELETE</code></td><td><code>/api/rooms/:code/players/:id</code></td><td>踢出玩家（需 token）</td><td>204</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/rooms/:code/game/start</code></td><td>開始遊戲（需 token）</td><td>200 Room</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/rooms/:code/game/end</code></td><td>結束本局（需 token）</td><td>200 Room</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/rooms/:code/game/play-again</code></td><td>再玩一局（需 token）</td><td>200 Room</td></tr>
+        <tr><td><code>GET</code></td><td><code>/health</code></td><td>健康檢查（liveness）</td><td>200</td></tr>
+        <tr><td><code>GET</code></td><td><code>/ready</code></td><td>就緒檢查（readiness）</td><td>200 / 503</td></tr>
+      </tbody>
+    </table>
 
-      <h2>4. 主要設計決策</h2>
-      <h3>4.1 選用原生 ws 而非 Socket.IO</h3>
-      <p>Socket.IO 的 polling fallback 在本專案中無需求（所有目標瀏覽器均支援原生 WebSocket）。<code>ws</code> 的 bundle size 遠小於 Socket.IO，降低 Node.js 冷啟動時間。跨語言客戶端直接使用標準 WS 協定無需額外 adapter。</p>
+    <h2>5. WebSocket 事件設計</h2>
+    <p><strong>連線端點：</strong> <code>WSS /ws?room={code}&amp;token={sessionToken}</code></p>
 
-      <h3>4.2 Monorepo 結構</h3>
-      <p><code>packages/shared</code> 在前後端共用梯子生成算法（PRNG + GenerateLadder + ComputeResults），確保兩端結果可獨立驗證。單一 CI pipeline 同時執行跨套件類型檢查，及早捕捉介面不相容問題。</p>
+    <h3>Server → Client 事件</h3>
+    <table>
+      <thead><tr><th>事件</th><th>類型</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td><code>ROOM_STATE</code></td><td>廣播</td><td>房間狀態摘要（玩家加入/離線/踢出/中獎名額變更）</td></tr>
+        <tr><td><code>ROOM_STATE_FULL</code></td><td>unicast</td><td>WS 連線後給連線玩家（含 ladder + results + selfPlayerId）</td></tr>
+        <tr><td><code>REVEAL_INDEX</code></td><td>廣播</td><td>單一玩家路徑揭示（含 path、result）</td></tr>
+        <tr><td><code>REVEAL_ALL</code></td><td>廣播</td><td>全部剩餘路徑揭示（path 省略，64KB 限制）</td></tr>
+        <tr><td><code>PLAYER_KICKED</code></td><td>unicast</td><td>推送給被踢玩家</td></tr>
+        <tr><td><code>SESSION_REPLACED</code></td><td>unicast</td><td>同一 playerId 從新裝置登入，推送給舊連線</td></tr>
+        <tr><td><code>HOST_TRANSFERRED</code></td><td>廣播</td><td>主持人 60s 斷線後自動移交（Post-MVP）</td></tr>
+        <tr><td><code>PONG</code></td><td>unicast</td><td>回應客戶端 PING，含 RTT 計算用 ts</td></tr>
+        <tr><td><code>ERROR</code></td><td>unicast</td><td>操作失敗，含 code + message</td></tr>
+      </tbody>
+    </table>
 
-      <h3>4.3 Redis Pub/Sub 用於跨 Pod 廣播</h3>
-      <p>每個 Pod SUBSCRIBE <code>room:*:events</code>，任一 Pod 觸發事件時 PUBLISH 至對應頻道，所有 Pod 的 PubSubHandler 負責轉發至本地 WsSession。Redis 是唯一共享狀態層，不需要引入第三方訊息佇列。</p>
+    <h3>Client → Server 訊息</h3>
+    <table>
+      <thead><tr><th>訊息</th><th>權限</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td><code>START_GAME</code></td><td>Host</td><td>開始遊戲（waiting 狀態）</td></tr>
+        <tr><td><code>BEGIN_REVEAL</code></td><td>Host</td><td>開始揭曉（running 狀態）</td></tr>
+        <tr><td><code>REVEAL_NEXT</code></td><td>Host</td><td>手動揭示下一位（revealing 狀態）</td></tr>
+        <tr><td><code>REVEAL_ALL_TRIGGER</code></td><td>Host</td><td>一鍵全揭（revealing 狀態）</td></tr>
+        <tr><td><code>END_GAME</code></td><td>Host</td><td>結束本局（revealing，所有路徑已揭曉）</td></tr>
+        <tr><td><code>PLAY_AGAIN</code></td><td>Host</td><td>再玩一局（finished 狀態）</td></tr>
+        <tr><td><code>SET_REVEAL_MODE</code></td><td>Host</td><td>切換手動/自動揭示模式（revealing 狀態）</td></tr>
+        <tr><td><code>KICK_PLAYER</code></td><td>Host</td><td>踢除指定玩家（waiting 狀態）</td></tr>
+        <tr><td><code>UPDATE_TITLE</code></td><td>Host</td><td>更新房間名稱（waiting 狀態，0-50 chars）</td></tr>
+        <tr><td><code>UPDATE_WINNER_COUNT</code></td><td>Host</td><td>更新中獎名額（waiting 狀態，1 ≤ W ≤ N-1）</td></tr>
+        <tr><td><code>PING</code></td><td>All</td><td>應用層心跳 / RTT 量測</td></tr>
+      </tbody>
+    </table>
 
-      <h3>4.4 不使用 ORM</h3>
-      <p>直接使用 ioredis 命令，Room 以 JSON 字串儲存於單一 Redis key。Room 是聚合根，以 JSON 整包讀取/寫入更符合 Redis 用途。原子操作需直接控制 Redis 命令；ORM 抽象層反而降低可控性。</p>
+    <h2>6. PRNG 設計</h2>
+    <ul>
+      <li><strong>Mulberry32</strong>：32-bit 高品質 PRNG，純函式，零外部依賴</li>
+      <li><strong>Seed 生成</strong>：<code>seed = djb2(seedSource) &gt;&gt;&gt; 0</code>，<code>seedSource</code> 為 UUID v4</li>
+      <li><strong>洗牌</strong>：Fisher-Yates shuffle，以 Mulberry32 作為亂數來源</li>
+      <li><strong>共用程式碼</strong>：<code>packages/shared/src/prng/</code>，前後端完全一致</li>
+      <li><strong>安全性</strong>：seedSource 與 seed 在 running 狀態存於 Redis，不對外公開；finished 後可選擇性揭露供驗證</li>
+    </ul>
 
-      <h3>4.5 JWT HS256 作為 Session Token</h3>
-      <p>Token payload：<code>{ playerId, roomCode, role: "host" | "player", exp }</code>。有效期：6 小時（21600 秒）。WS Upgrade 握手時驗證 JWT；一旦 WS 連線建立，後續訊息不重驗 exp（MVP 接受的安全取捨）。</p>
+    <h2>7. Redis 原子操作策略</h2>
+    <table>
+      <thead><tr><th>操作</th><th>機制</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td>建立房間</td><td>SETNX</td><td>防重複建立，碰撞時重試最多 10 次</td></tr>
+        <tr><td>waiting → running</td><td>WATCH / MULTI / EXEC</td><td>驗證 N、W 後設定 status=running</td></tr>
+        <tr><td>running → revealing</td><td>Lua Script</td><td>原子寫入 seed、ladderMap、resultSlots、status=revealing</td></tr>
+        <tr><td>REVEAL_NEXT</td><td>INCR</td><td>revealedCount 原子遞增，防重複計數</td></tr>
+        <tr><td>REVEAL_ALL</td><td>SET</td><td>revealedCount = totalCount，原子設定</td></tr>
+        <tr><td>revealing → finished</td><td>MULTI / EXEC</td><td>原子寫入 status=finished + extend TTL 1h</td></tr>
+      </tbody>
+    </table>
 
-      <hr>
+    <h2>8. 測試策略</h2>
+    <table>
+      <thead><tr><th>類型</th><th>工具</th><th>覆蓋率目標</th><th>重點</th></tr></thead>
+      <tbody>
+        <tr><td>Unit</td><td>Vitest</td><td>70%</td><td>PRNG、GenerateLadder、ComputeResults、DomainErrors</td></tr>
+        <tr><td>Integration</td><td>Vitest + testcontainers</td><td>20%</td><td>RoomRepository（真實 Redis）、RoomService、GameService</td></tr>
+        <tr><td>E2E</td><td>Playwright</td><td>10%</td><td>完整遊戲流程：建立→加入→開始→揭曉→結束</td></tr>
+      </tbody>
+    </table>
 
-      <h2>5. DI 設計</h2>
-      <pre><code class="language-typescript">// container.ts 工廠結構
-container.ts
-  ├── redisClient    = new RedisClient(config.REDIS_URL)
-  ├── roomRepo       = new RoomRepository(redisClient)
-  ├── pubSubBroker   = new PubSubBroker(redisClient)
-  ├── roomService    = new RoomService(roomRepo, pubSubBroker)
-  ├── gameService    = new GameService(roomRepo, pubSubBroker)
-  ├── wsMessageHandler = new WsMessageHandler(roomService, gameService)
-  ├── pubSubHandler  = new PubSubHandler(pubSubBroker, wsSessionMap)
-  └── wsServer       = new WsServer(config, wsMessageHandler, wsSessionMap)</code></pre>
+    <h2>9. 部署架構</h2>
+    <ul>
+      <li><strong>容器</strong>：Distroless Node.js 20，多階段建構，非 root 執行</li>
+      <li><strong>Kubernetes</strong>：Namespace <code>ladder-room</code>，Deployment minReplicas=2</li>
+      <li><strong>HPA</strong>：依 ws_connections metric 自動擴縮（2-10 Pod），target=200 連線/Pod</li>
+      <li><strong>Nginx Ingress</strong>：sticky session（cookie affinity），WebSocket upgrade 支援</li>
+      <li><strong>Redis</strong>：StatefulSet 2 副本（master + replica），Service ClusterIP</li>
+      <li><strong>Secrets</strong>：K8s Secret 存放 JWT_SECRET、REDIS_PASSWORD；ConfigMap 存放 PORT、LOG_LEVEL</li>
+    </ul>
+  </main>
+</div>
 
-      <hr>
-
-      <h2>6. 一致性保證</h2>
-      <table>
-        <thead><tr><th>操作</th><th>一致性機制</th></tr></thead>
-        <tbody>
-          <tr><td>START_GAME</td><td>WATCH + MULTI/EXEC；EXEC null → 重試最多 3 次</td></tr>
-          <tr><td>BEGIN_REVEAL</td><td>Lua Script 原子執行：GenerateLadder 計算 + ladder/results/status=revealing 寫入</td></tr>
-          <tr><td>END_GAME</td><td>WATCH + MULTI/EXEC：status → finished；廣播含 seed 的 ROOM_STATE</td></tr>
-          <tr><td>PLAY_AGAIN</td><td>WATCH + MULTI/EXEC 原子更新整包 Room JSON；清空 ladder/kickedPlayerIds</td></tr>
-          <tr><td>REVEAL_NEXT</td><td>先 INCR 取得 newCount，再 WATCH + MULTI/EXEC 寫入 Room JSON 並 PUBLISH</td></tr>
-          <tr><td>玩家加入/離線</td><td>Room JSON 整包 SET，配合 WATCH 防止 lost update</td></tr>
-        </tbody>
-      </table>
-
-      <hr>
-
-      <h2>7. 測試策略</h2>
-      <table>
-        <thead><tr><th>層次</th><th>比例</th><th>工具</th><th>重點</th></tr></thead>
-        <tbody>
-          <tr><td>Unit</td><td>70%</td><td>Vitest</td><td>PRNG 算法、狀態機、梯子生成、Service 邏輯（mock repo）</td></tr>
-          <tr><td>Integration</td><td>20%</td><td>Vitest + testcontainers</td><td>RoomRepository 對真實 Redis 的 CRUD、原子操作</td></tr>
-          <tr><td>E2E</td><td>10%</td><td>Playwright</td><td>完整房間生命週期、WebSocket 事件流、Canvas 動畫</td></tr>
-        </tbody>
-      </table>
-    </main>
-  </div>
-
-  <script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({ startOnLoad: true, theme: 'default', flowchart: { curve: 'basis' }, er: { layoutDirection: 'TD' } });
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
-  <script src="assets/app.js"></script>
+<script src="assets/app.js"></script>
 </body>
 </html>
