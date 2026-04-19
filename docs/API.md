@@ -122,7 +122,24 @@ interface CreateRoomResponse {
   "roomCode": "AB3K7X",
   "playerId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "room": { "code": "AB3K7X", "status": "waiting", "..." : "..." }
+  "room": {
+    "code": "AB3K7X",
+    "title": null,
+    "status": "waiting",
+    "hostId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "players": [
+      { "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479", "nickname": "Alice", "colorIndex": 0, "isHost": true, "isOnline": true, "joinedAt": 1745049600000, "result": null }
+    ],
+    "winnerCount": 3,
+    "ladder": null,
+    "results": null,
+    "revealedCount": 0,
+    "revealMode": "manual",
+    "autoRevealIntervalSec": null,
+    "kickedPlayerIds": [],
+    "createdAt": 1745049600000,
+    "updatedAt": 1745049600000
+  }
 }
 ```
 
@@ -130,6 +147,7 @@ interface CreateRoomResponse {
 
 | HTTP | 錯誤碼 | 說明 |
 |------|--------|------|
+| 400 | `INVALID_NICKNAME` | `hostNickname` 格式不合法（長度超限或含禁止字元） |
 | 400 | `INVALID_PRIZES_COUNT` | `winnerCount < 1` 或不為整數 |
 | 429 | `RATE_LIMIT` | 超過 10 req/min/IP |
 
@@ -165,6 +183,7 @@ interface CreateRoomResponse {
 ```json
 {
   "code": "AB3K7X",
+  "title": null,
   "status": "waiting",
   "hostId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "players": [],
