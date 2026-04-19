@@ -144,6 +144,10 @@
 <ul><li>6 格獨立字元輸入（每格一個 <code>&lt;input maxlength=&quot;1&quot;&gt;</code>）或單一輸入框自動分割</li><li>自動轉大寫（<code>text-transform: uppercase</code>）</li><li>排除 O / I / 0 / 1 的軟性提示</li><li>透過 URL param <code>?room=XXXXXX</code> 自動預填</li><li>錯誤狀態：紅框 + 下方錯誤文字（ROOM_NOT_FOUND / ROOM_FULL 等）</li></ul>
 <p><strong>NicknameInput</strong></p>
 <ul><li>單行 <code>&lt;input&gt;</code> ，1-20 字 Unicode 限制</li><li>即時 character count 提示（<code>x / 20</code>）</li><li>前端驗證失敗：inline 錯誤（不 submit）</li></ul>
+<h4>NicknameInput 自動預填行為</h4>
+<ul><li>頁面載入時：讀取 localStorage <code>ladder_last_nickname</code>，若有值則自動預填暱稱欄位</li><li>顯示提示文字（placeholder）：「輸入暱稱（上次：{savedNickname}）」或直接預填值</li><li>使用者可手動清除或修改預填值</li></ul>
+<h4>URL Param 預填行為（已存在，補充說明）</h4>
+<ul><li>URL <code>?room=XXXXXX</code> 參數自動預填 Room Code 欄位（既有功能）</li><li>當 Room Code 與暱稱均有值（URL param + localStorage）時，「加入」按鈕立即啟用（無需手動觸發驗證）</li><li>此組合創造「一鍵加入」體驗：收到邀請連結的回頭客，點連結即可直接按「加入」</li></ul>
 <p><strong>ActionButton（主要）</strong></p>
 <ul><li>高度 48px（觸控最小目標）</li><li>全寬於 mobile</li><li>Loading spinner 狀態</li><li>Disabled 狀態（表單未填完）</li></ul>
 <h3>4.3 建立房間流程</h3>
@@ -190,6 +194,8 @@
 <h3>5.3 核心 UI 元件</h3>
 <p><strong>RoomCodeDisplay</strong></p>
 <ul><li>大字顯示 6 碼（<code>var(--text-2xl)</code>，等寬字體或字母間距加大）</li><li>[複製] 按鈕：點擊後短暫改為「已複製 ✓」（1.5s 後復原）</li></ul>
+<h4>CopyInviteLink 元件</h4>
+<ul><li>位置：等待大廳，房間碼顯示行右側或下方</li><li>顯示：「複製邀請連結」按鈕（次要按鈕樣式）</li><li>邀請 URL 格式：<code>{origin}/?room={roomCode}</code>（顯示在按鈕旁，truncated 至 40 字元後加 ...）</li><li>點擊行為：</li><li>成功：按鈕文字 1.5 秒顯示「✓ 已複製！」後恢復</li><li>Clipboard API 不可用：顯示包含完整 URL 的 <code>&lt;input&gt;</code> 文字框（已 focus + select）</li><li>僅在 room status = <code>waiting</code> 時顯示</li></ul>
 <p><strong>PlayerList</strong></p>
 <ul><li>每個 PlayerItem：頭像占位符（首字母圓形背景）+ 暱稱 + 狀態 badge</li><li>主持人顯示 👑 badge</li><li>自己顯示「（你）」標示</li><li>離線玩家：暱稱灰色 + <code>◌ 離線</code> chip</li><li>主持人專屬：每個非主持人旁顯示 [踢] 按鈕（<code>waiting</code> 狀態才顯示）</li><li>玩家加入 / 離線：無刷新即時更新（ROOM_STATE 事件觸發）</li></ul>
 <p><strong>WinnerCountInput</strong></p>
@@ -459,7 +465,10 @@ requestAnimationFrame loop：
 <p><em>DESIGN 版本：v1.1</em></p>
 <p><em>生成時間：2026-04-19</em></p>
 <p><em>基於 PRD v1.3 · ARCH v1.2 · EDD v1.3 · API v1.1</em></p>
-<p><em>STEP-07c Round 1 Design Review：補全遺漏 WS 事件映射、Canvas 座標系與大人數橫捲規格、錯誤碼 Toast 映射、觸控手勢與 RoomTTL 失效流程</em></p></main>
+<p><em>STEP-07c Round 1 Design Review：補全遺漏 WS 事件映射、Canvas 座標系與大人數橫捲規格、錯誤碼 Toast 映射、觸控手勢與 RoomTTL 失效流程</em></p>
+<h2>變更追蹤</h2>
+<h3>ECR-20260420-001：HOST copy 邀請 link（含 6 碼房號）+ localStorage 暱稱記憶，一鍵加入</h3>
+<ul><li><strong>狀態</strong>：✅ DONE</li><li><strong>分類</strong>：ECR / 需求面</li><li><strong>日期</strong>：2026-04-20</li><li><strong>描述</strong>：HOST 開好房間後可 COPY 邀請 link（含 6 碼房號），受邀者點 link 自動帶入房號，名字欄位自動帶入上次輸入過的名字，一鍵加入。</li><li><strong>影響範圍</strong>：§localStorage 規格（新增 ladder_last_nickname key）、§Client 架構（新增 LocalStorageService）</li><li><strong>修正/實作內容</strong>：新增 CopyInviteLink 元件規格（HOST 等待大廳）；更新 NicknameInput 自動預填行為規格（localStorage + URL param 組合一鍵加入）</li><li><strong>commit</strong>：bcf969e</li></ul></main>
   </div>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';

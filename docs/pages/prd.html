@@ -41,7 +41,7 @@
     </aside>
     <div class="sidebar-resizer" id="sidebarResizer"></div>
     <main class="doc-content"><h1>PRD — Ladder Room Online</h1>
-<p><strong>版本</strong>：v1.3  <strong>日期</strong>：2026-04-19  <strong>基於 PDD</strong>：v2.2</p>
+<p><strong>版本</strong>：v1.4  <strong>日期</strong>：2026-04-20  <strong>基於 PDD</strong>：v2.2</p>
 <p><strong>作者</strong>：AI PM Agent  <strong>狀態</strong>：Draft</p>
 <p><strong>利害關係人</strong>：前端工程師、後端工程師、QA、設計師</p>
 <hr>
@@ -58,9 +58,10 @@
 <ul><li><strong>US-H06</strong>：作為主持人，我想要一鍵揭曉全部路徑，以便在時間緊迫時快速完成抽獎。</li><li>AC-H06-1：Given 狀態為 <code>revealing</code> 且尚有未揭曉路徑，When 主持人點擊「全部揭曉」，Then 伺服器廣播 <code>REVEAL_ALL</code>，所有客戶端同步播放剩餘所有路徑動畫（可壓縮時長），2 秒內完成渲染；若超過 2 秒仍未完成，動畫立即跳至終止幀（final frame），所有路徑直接顯示靜態完成狀態。</li><li>AC-H06-2：Given <code>REVEAL_ALL</code> 廣播後，When 伺服器完成全部揭曉，Then 伺服器自動將 <code>revealedCount</code> 設為 <code>totalCount</code>，並立即觸發 <code>finished</code> 狀態轉換，廣播 <code>GAME_ENDED</code>（即 <code>ROOM_STATE { status: finished, seed, results[] }</code>）；客戶端動畫在 2 秒內完成渲染（若超時則跳至終止幀）。<strong><code>REVEAL_ALL_TRIGGER</code> 自動完成揭曉並廣播 finished，無需主持人再次確認，以提升操作流暢度</strong>。</li><li>AC-H06-3：Given 狀態為 <code>revealing</code> 且所有路徑已揭曉，When 主持人點擊「全部揭曉」，Then 系統不回應（按鈕 disabled）。</li></ul>
 <ul><li><strong>US-H07</strong>：作為主持人，我想要踢除指定玩家，以便移除測試帳號或不當參與者。</li><li>AC-H07-1：Given 房間狀態為 <code>waiting</code>，When 主持人對某玩家點擊「踢除」，Then 伺服器廣播 <code>PLAYER_KICKED</code>（含 playerId），被踢玩家收到後跳轉至「你已被移出房間」頁面，玩家列表即時更新。</li><li>AC-H07-2：Given 玩家被踢後，When 該玩家嘗試以相同 playerId 重連，Then 伺服器拒絕並回傳 <code>PLAYER_KICKED</code> 錯誤，不允許重新加入同一局。</li><li>AC-H07-3：Given 房間狀態為 <code>running</code> 或之後，When 主持人嘗試踢除玩家，Then 系統拒絕並回傳 <code>INVALID_STATE</code> 錯誤（包含 <code>KICK_NOT_ALLOWED_IN_STATE</code> 說明）。</li><li>AC-H07-3b：Given 主持人嘗試踢除自己，When 系統驗證，Then 拒絕並回傳 <code>CANNOT_KICK_HOST</code> 錯誤。</li><li>AC-H07-4：Given 玩家被踢除，When 踢除操作完成，Then 被踢玩家的 playerId 必須存在於 <code>kickedPlayerIds</code> 清單（Redis 持久化），同局內任何帶該 playerId 的重連嘗試均被拒絕並回傳 <code>PLAYER_KICKED</code>。</li><li>AC-H07-5：Given 主持人點擊「再玩一局」，When 新局初始化完成，Then <code>kickedPlayerIds</code> 清空（重設為 <code>[]</code>），前一局被踢者<strong>可使用任意暱稱（含原暱稱或新暱稱）以無 playerId 方式（視為新玩家）加入新局</strong>；被踢者的舊 playerId 已失效，需以新連線取得新 playerId。</li></ul>
 <ul><li><strong>US-H08</strong>：作為主持人，我想要在一局結束後發起「再玩一局」，以便用同一房間繼續下一輪抽獎。</li><li>AC-H08-1：Given 狀態為 <code>finished</code>，When 主持人點擊「再玩一局」，Then 系統剔除 <code>isOnline=false</code> 的玩家後，以剩餘在線玩家重置房間狀態為 <code>waiting</code>，並廣播新的 <code>ROOM_STATE</code>。</li><li>AC-H08-2：Given 再玩一局後 W 越界，When 系統重置，Then W 被設為 null，主持人看到「請重新設定中獎名額」提示。</li><li>AC-H08-3：Given 再玩一局後剔除離線玩家，剩餘在線玩家數 &lt; 2（即在線玩家數為 0 或 1），When 主持人點擊「再玩一局」，Then 系統拒絕並回傳 <code>INSUFFICIENT_PLAYERS</code> 錯誤，前端提示「在線玩家不足（至少需要 2 位），無法開始新局」。</li><li>AC-H08-4：Given 主持人的 JWT token 在 <code>waiting</code>/<code>running</code>/<code>revealing</code> 狀態中過期，When 主持人嘗試執行任何 Host 操作，Then 伺服器回傳 HTTP 401（含錯誤 <code>TOKEN_EXPIRED</code>），前端顯示「您的主持人身份已過期，請重新整理頁面重新獲取主持權」；其他玩家連線不受影響。</li></ul>
+<ul><li><strong>US-H09</strong>：作為主持人，我想要在等待大廳複製邀請連結，以便讓參加者能快速加入房間。</li><li>AC-H09-1：Given 房間狀態為 <code>waiting</code>，When 主持人在等待大廳頁面，Then 頁面顯示「複製邀請連結」按鈕，按鈕旁顯示完整邀請 URL（格式：<code>{origin}/?room={roomCode}</code>）。</li><li>AC-H09-2：Given 主持人點擊「複製邀請連結」，When Clipboard API 執行成功，Then 按鈕短暫顯示「已複製！」（1.5 秒後恢復原文字），邀請 URL 複製至剪貼簿。</li><li>AC-H09-3：Given Clipboard API 不可用（HTTP 環境或瀏覽器拒絕權限），When 主持人點擊複製，Then 顯示包含邀請 URL 的 <code>&lt;input&gt;</code> 文字框（已全選），供主持人手動複製。</li></ul>
 <hr>
 <h3>玩家（Player）</h3>
-<ul><li><strong>US-P01</strong>：作為玩家，我想要輸入暱稱並透過 6 碼房間碼加入房間，以便參與抽獎活動。</li><li>AC-P01-1：Given 玩家輸入有效暱稱（1～20 個 Unicode 字元）及正確 Room Code，When 送出後 WebSocket 握手成功，Then 從送出按鈕點擊起計 1.5 秒內進入等待畫面，玩家列表顯示自己的暱稱（量測：Playwright <code>page.click()</code> 至 waiting 元素可見的時間差）。</li><li>AC-P01-2：Given 玩家輸入的暱稱與同房間已有玩家重複（<strong>暱稱比對區分大小寫，即 &quot;Alice&quot; 與 &quot;alice&quot; 視為不同暱稱</strong>），When 伺服器驗證，Then 回傳 <code>NICKNAME_TAKEN</code> 錯誤，提示「此暱稱已被使用，請換一個」。</li><li>AC-P01-3：Given 玩家輸入空白暱稱或超過 20 字元，When 前端驗證，Then 即時顯示欄位錯誤訊息，送出按鈕保持 disabled；若前端驗證被繞過（如直接 WebSocket 訊息），伺服器端亦拒絕並回傳 <code>INVALID_NICKNAME</code> 錯誤（對應 FR-02-2）。</li><li>AC-P01-4：Given 房間人數已達 50 人上限，When 玩家嘗試加入，Then 伺服器回傳 <code>ROOM_FULL</code> 錯誤，玩家看到「房間已滿，無法加入」提示。</li></ul>
+<ul><li><strong>US-P01</strong>：作為玩家，我想要輸入暱稱並透過 6 碼房間碼加入房間，以便參與抽獎活動。</li><li>AC-P01-1：Given 玩家輸入有效暱稱（1～20 個 Unicode 字元）及正確 Room Code，When 送出後 WebSocket 握手成功，Then 從送出按鈕點擊起計 1.5 秒內進入等待畫面，玩家列表顯示自己的暱稱（量測：Playwright <code>page.click()</code> 至 waiting 元素可見的時間差）。</li><li>AC-P01-2：Given 玩家輸入的暱稱與同房間已有玩家重複（<strong>暱稱比對區分大小寫，即 &quot;Alice&quot; 與 &quot;alice&quot; 視為不同暱稱</strong>），When 伺服器驗證，Then 回傳 <code>NICKNAME_TAKEN</code> 錯誤，提示「此暱稱已被使用，請換一個」。</li><li>AC-P01-3：Given 玩家輸入空白暱稱或超過 20 字元，When 前端驗證，Then 即時顯示欄位錯誤訊息，送出按鈕保持 disabled；若前端驗證被繞過（如直接 WebSocket 訊息），伺服器端亦拒絕並回傳 <code>INVALID_NICKNAME</code> 錯誤（對應 FR-02-2）。</li><li>AC-P01-4：Given 房間人數已達 50 人上限，When 玩家嘗試加入，Then 伺服器回傳 <code>ROOM_FULL</code> 錯誤，玩家看到「房間已滿，無法加入」提示。</li><li>AC-P01-5：Given 玩家透過邀請連結（含 <code>?room={roomCode}</code> URL 參數）進入頁面，When 頁面載入完成，Then Room Code 輸入框自動預填 URL 參數中的房間碼，玩家僅需輸入暱稱即可加入。</li><li>AC-P01-6：Given 玩家曾經成功加入過任何房間，When 玩家再次進入加入頁面，Then 暱稱輸入框自動預填 localStorage 中儲存的上次暱稱（key: <code>ladder_last_nickname</code>）；Room Code 與暱稱均已預填時，「加入」按鈕呈現啟用狀態，玩家一鍵即可加入。</li></ul>
 <ul><li><strong>US-P02</strong>：作為玩家，我想要在遊戲開始前看到即時更新的玩家列表，以便知道還有誰加入了房間。</li><li>AC-P02-1：Given 有新玩家加入房間，When 伺服器廣播 <code>ROOM_STATE</code>，Then 所有在線玩家的等待頁面在 2 秒內更新玩家列表（量測：從伺服器廣播 <code>ROOM_STATE</code> 時間戳起計，至其他客戶端玩家列表 DOM 更新完成）。</li><li>AC-P02-2：Given 有玩家離線，When 伺服器偵測 WebSocket 斷線（TCP close 或 ping timeout ≤ 30 秒），Then 伺服器標記該玩家 <code>isOnline=false</code> 並廣播 <code>ROOM_STATE</code>，其他玩家列表中該玩家在 2 秒內顯示「離線」標記，不立即移除。</li></ul>
 <ul><li><strong>US-P03</strong>：作為玩家，我想要觀看自己路徑的揭曉動畫，以便體驗抽獎的緊張感。</li><li>AC-P03-1：Given 輪到自己的路徑揭曉（<code>REVEAL_INDEX</code> 指向自己），When 動畫播放，Then Canvas 高亮自己的路徑，動畫 FPS 桌機（1080p Chrome 最新穩定版）≥ 30、手機（Chrome DevTools Moto G4 throttling profile，10 秒錄製平均值）≥ 24；量測方式與 AC-H03-3 一致。</li><li>AC-P03-2：Given 其他玩家的路徑揭曉，When 動畫播放，Then 自己的路徑以灰色或淡色呈現，已揭曉玩家的結果在動畫結束後持久顯示於底部結果槽。</li></ul>
 <ul><li><strong>US-P04</strong>：作為玩家，我想要在結果揭曉後立即知道自己是否中獎，以便確認抽獎結果。</li><li>AC-P04-1：Given 自己的路徑揭曉完畢，When 玩家路徑抵達底部結果槽，Then 畫面顯示「恭喜中獎！」或「未中獎」明確文字，且結果與伺服器端 <code>REVEAL_INDEX</code> payload 中 <code>result</code> 欄位一致（QA 驗證方式：截圖比對 UI 文字與 WebSocket 訊息 payload <code>result</code> 值）。</li><li>AC-P04-2：Given <code>REVEAL_ALL</code> 廣播後，When 所有動畫播放完畢，Then 每位玩家的螢幕均正確顯示自己的結果，無任何玩家的結果遺漏或錯誤。</li></ul>
@@ -89,7 +90,7 @@
 <h3>FR-10 Canvas 動畫渲染 [P1]</h3>
 <ul><li>FR-10-1：樓梯以 HTML5 Canvas 繪製，支援響應式尺寸（最小寬度 320px）。</li><li>FR-10-2：玩家路徑動畫以逐格方式播放，途經橫槓時路徑轉向。</li><li>FR-10-3：自己的路徑以高亮色顯示；其他玩家路徑以對應色顯示；未揭曉路徑以灰色虛線顯示。</li><li>FR-10-4：Canvas 渲染以 <code>requestAnimationFrame</code> 驅動，在目標裝置達到規定 FPS 下限。</li></ul>
 <h3>FR-11 房間碼輸入體驗 [P2]</h3>
-<ul><li>FR-11-1：房間碼輸入框須自動轉大寫，降低輸入錯誤率。</li><li>FR-11-2：玩家可透過 URL 參數（如 <code>?room=ABC123</code>）直接進入加入頁面並預填 Room Code。</li></ul>
+<ul><li>FR-11-1：房間碼輸入框須自動轉大寫，降低輸入錯誤率。</li><li>FR-11-2：玩家可透過 URL 參數（如 <code>?room=ABC123</code>）直接進入加入頁面並預填 Room Code。</li><li>FR-11-3：主持人等待大廳須顯示「複製邀請連結」按鈕，點擊後以 Clipboard API 將 <code>{origin}/?room={roomCode}</code> 寫入剪貼簿；Clipboard API 不可用時顯示可全選的 <code>&lt;input&gt;</code> 文字框作為 Fallback。</li><li>FR-11-4：玩家加入頁面須在頁面載入時讀取 <code>localStorage.getItem(&#x27;ladder_last_nickname&#x27;)</code>，若有值則自動預填暱稱欄位；玩家成功加入房間後（WebSocket 握手成功），系統須將暱稱寫入 <code>localStorage.setItem(&#x27;ladder_last_nickname&#x27;, nickname)</code>。</li></ul>
 <h3>FR-12 得獎名單展示 [P2]</h3>
 <ul><li>FR-12-1：狀態轉為 <code>finished</code> 後，所有客戶端顯示完整得獎名單，主持人額外看到「再玩一局」按鈕。</li><li>FR-12-2：得獎名單依 startColumn 排序，顯示每位玩家暱稱及中獎/未中獎結果。</li></ul>
 <hr>
@@ -122,6 +123,7 @@
 <tr><td>US-H06</td><td>主持人一鍵揭曉全部路徑</td><td>P0</td><td>待開發</td></tr>
 <tr><td>US-H07</td><td>主持人踢除玩家</td><td>P1</td><td>待開發</td></tr>
 <tr><td>US-H08</td><td>主持人發起再玩一局</td><td>P1</td><td>待開發</td></tr>
+<tr><td>US-H09</td><td>主持人複製邀請連結</td><td>P1</td><td>待開發</td></tr>
 <tr><td>US-P01</td><td>玩家輸入暱稱並加入房間</td><td>P0</td><td>待開發</td></tr>
 <tr><td>US-P02</td><td>玩家觀看即時玩家列表更新</td><td>P0</td><td>待開發</td></tr>
 <tr><td>US-P03</td><td>玩家觀看自己路徑的揭曉動畫</td><td>P0</td><td>待開發</td></tr>
@@ -133,9 +135,12 @@
 <h2>不在範圍（Out of Scope）</h2>
 <ol><li><strong>使用者帳號系統</strong>：MVP 不實作登入、註冊、歷史紀錄查詢；主持人身份以一次性 JWT token 管理。</li><li><strong>行動原生 App（iOS / Android）</strong>：MVP 僅支援行動瀏覽器（Mobile Web）。</li><li><strong>觀眾模式（Spectator）</strong>：MVP 不支援純觀看不參與的角色；所有連線者皆為 Host 或 Player。</li><li><strong>多房間管理後台</strong>：MVP 不提供管理員儀表板。</li><li><strong>自訂獎品名稱或分組抽獎</strong>：MVP 結果槽僅區分「中獎」與「未中獎」，不支援多獎項層級。</li><li><strong>動畫主題或皮膚自訂</strong>：MVP 使用單一視覺主題。</li><li><strong>抽獎結果匯出（PDF / CSV）</strong>：MVP 不提供結果下載功能。</li><li><strong>國際化（i18n）多語言支援</strong>：MVP 以繁體中文為唯一介面語言。</li><li><strong>伺服器端水平擴展（Multi-node clustering）</strong>：MVP 以單一 Node.js 實例部署。</li><li><strong>聲音效果與背景音樂</strong>：MVP 不包含音效；視覺動畫為唯一反饋形式。</li></ol>
 <hr>
-<p><em>PRD 版本：v1.3</em></p>
-<p><em>生成時間：2026-04-19</em></p>
-<p><em>基於 PDD v2.2（Ladder Room Online）</em></p></main>
+<p><em>PRD 版本：v1.4</em></p>
+<p><em>生成時間：2026-04-20</em></p>
+<p><em>基於 PDD v2.2（Ladder Room Online）</em></p>
+<h2>變更追蹤</h2>
+<h3>ECR-20260420-001：HOST copy 邀請 link（含 6 碼房號）+ localStorage 暱稱記憶，一鍵加入</h3>
+<ul><li><strong>狀態</strong>：✅ DONE</li><li><strong>分類</strong>：ECR / 需求面</li><li><strong>日期</strong>：2026-04-20</li><li><strong>描述</strong>：HOST 開好房間後可 COPY 邀請 link（含 6 碼房號），受邀者點 link 自動帶入房號，名字欄位自動帶入上次輸入過的名字，一鍵加入。</li><li><strong>影響範圍</strong>：§US-H（新增 US-H09 邀請 link）、§US-P01 AC（localStorage 暱稱預填）、§FR-11（補充 FR-11-3/FR-11-4）</li><li><strong>修正/實作內容</strong>：新增 US-H09（主持人複製邀請連結）、AC-P01-5/AC-P01-6（URL 預填房號 + localStorage 暱稱自動預填）、FR-11-3/FR-11-4</li><li><strong>commit</strong>：e0d2dda</li></ul></main>
   </div>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
