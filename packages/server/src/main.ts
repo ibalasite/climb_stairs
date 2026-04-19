@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT, jwtVerify, errors as joseErrors } from 'jose';
 import { WebSocketServer, WebSocket } from 'ws';
 import type { IncomingMessage } from 'node:http';
 import { DomainError } from './domain/errors/DomainError.js';
@@ -64,12 +64,15 @@ async function requireAuth(
   authHeader: string | undefined
 ): Promise<{ claims: JwtClaims; error: null } | { claims: null; error: string }> {
   const token = extractBearer(authHeader);
-  if (token === null) return { claims: null, error: 'Bearer token required' };
+  if (token === null) return { claims: null, error: 'AUTH_MISSING_TOKEN' };
   try {
     const claims = await verifyToken(token);
     return { claims, error: null };
-  } catch {
-    return { claims: null, error: 'Invalid or expired token' };
+  } catch (err) {
+    if (err instanceof joseErrors.JWTExpired) {
+      return { claims: null, error: 'AUTH_TOKEN_EXPIRED' };
+    }
+    return { claims: null, error: 'AUTH_INVALID_TOKEN' };
   }
 }
 
@@ -107,7 +110,15 @@ async function bootstrap(): Promise<void> {
   // ─── Health / Readiness ────────────────────────────────────────────────────
 
   app.get('/health', async (_req, reply) => {
-    return reply.status(200).send({ status: 'ok' });
+    let redisOk = false;
+    try { await redis.ping(); redisOk = true; } catch { /* ignore */ }
+    const wsCount = [...roomSessions.values()].reduce((sum, m) => sum + m.size, 0);
+    return reply.status(200).send({
+      status: 'ok',
+      redis: redisOk ? 'ok' : 'unavailable',
+      wsCount,
+      uptime: Math.floor(process.uptime()),
+    });
   });
 
   app.get('/ready', async (_req, reply) => {
@@ -147,7 +158,14 @@ async function bootstrap(): Promise<void> {
     if (room === null) {
       return reply.status(404).send({ error: 'ROOM_NOT_FOUND', message: `Room ${code} not found` });
     }
-    return reply.status(200).send(room);
+    const onlineCount = room.players.filter((p) => p.isOnline).length;
+    return reply.status(200).send({
+      code: room.code,
+      status: room.status,
+      playerCount: room.players.length,
+      onlineCount,
+      maxPlayers: 50,
+    });
   });
 
   // ─── POST /api/rooms/:code/players ────────────────────────────────────────
@@ -177,11 +195,11 @@ async function bootstrap(): Promise<void> {
 
     const auth = await requireAuth(req.headers['authorization']);
     if (auth.error !== null) {
-      return reply.status(401).send({ error: 'UNAUTHORIZED', message: auth.error });
+      return reply.status(401).send({ error: auth.error, message: auth.error === 'AUTH_TOKEN_EXPIRED' ? 'Token has expired' : 'Invalid or missing token' });
     }
 
-    const room = await gameService.kickPlayer(code, auth.claims.playerId, targetPlayerId);
-    return reply.status(200).send(room);
+    await gameService.kickPlayer(code, auth.claims.playerId, targetPlayerId);
+    return reply.status(204).send();
   });
 
   // ─── POST /api/rooms/:code/game/start ─────────────────────────────────────
@@ -191,7 +209,7 @@ async function bootstrap(): Promise<void> {
 
     const auth = await requireAuth(req.headers['authorization']);
     if (auth.error !== null) {
-      return reply.status(401).send({ error: 'UNAUTHORIZED', message: auth.error });
+      return reply.status(401).send({ error: auth.error, message: auth.error === 'AUTH_TOKEN_EXPIRED' ? 'Token has expired' : 'Invalid or missing token' });
     }
 
     const room = await gameService.startGame(code, auth.claims.playerId);
@@ -207,7 +225,7 @@ async function bootstrap(): Promise<void> {
 
     const auth = await requireAuth(req.headers['authorization']);
     if (auth.error !== null) {
-      return reply.status(401).send({ error: 'UNAUTHORIZED', message: auth.error });
+      return reply.status(401).send({ error: auth.error, message: auth.error === 'AUTH_TOKEN_EXPIRED' ? 'Token has expired' : 'Invalid or missing token' });
     }
 
     if (mode === 'all') {
@@ -231,7 +249,7 @@ async function bootstrap(): Promise<void> {
 
     const auth = await requireAuth(req.headers['authorization']);
     if (auth.error !== null) {
-      return reply.status(401).send({ error: 'UNAUTHORIZED', message: auth.error });
+      return reply.status(401).send({ error: auth.error, message: auth.error === 'AUTH_TOKEN_EXPIRED' ? 'Token has expired' : 'Invalid or missing token' });
     }
 
     const room = await gameService.resetRoom(code, auth.claims.playerId);
@@ -276,6 +294,13 @@ async function bootstrap(): Promise<void> {
 
     const { playerId, roomCode } = claims;
 
+    // Validate room query param matches JWT roomCode
+    const roomParam = url.searchParams.get('room');
+    if (roomParam && roomParam !== roomCode) {
+      ws.close(4001, 'Room mismatch');
+      return;
+    }
+
     // Reject kicked players
     try {
       const kicked = await repo.isKicked(roomCode, playerId);
@@ -289,7 +314,7 @@ async function bootstrap(): Promise<void> {
     // Kick previous session if same player reconnects
     const prev = roomMap.get(playerId);
     if (prev && prev.readyState === WebSocket.OPEN) {
-      prev.send(JSON.stringify({ type: 'SESSION_REPLACED', payload: {} }));
+      prev.send(JSON.stringify({ type: 'SESSION_REPLACED', payload: { message: 'Session replaced by new connection' } }));
       prev.close(4002, 'Session replaced');
     }
     roomMap.set(playerId, ws);
@@ -297,7 +322,10 @@ async function bootstrap(): Promise<void> {
     // Send current room state on connect
     try {
       const room = await repo.findByCode(roomCode);
-      if (room) ws.send(JSON.stringify({ type: 'ROOM_STATE', payload: room }));
+      if (room) ws.send(JSON.stringify({
+        type: 'ROOM_STATE_FULL',
+        payload: { ...room, selfPlayerId: playerId },
+      }));
     } catch { /* ignore */ }
 
     // Mark player online
@@ -330,7 +358,6 @@ async function bootstrap(): Promise<void> {
       try {
         switch (msg.type) {
           case 'PING':
-            send('PONG');
             break;
 
           case 'START_GAME': {
@@ -347,7 +374,15 @@ async function bootstrap(): Promise<void> {
 
           case 'REVEAL_NEXT': {
             const { result, room } = await gameService.revealNext(roomCode, playerId);
-            broadcastAll(roomCode, { type: 'REVEAL_INDEX', payload: { index: room.revealedCount - 1, result, room } });
+            broadcastAll(roomCode, {
+              type: 'REVEAL_INDEX',
+              payload: {
+                playerIndex: room.revealedCount - 1,
+                result,
+                revealedCount: room.revealedCount,
+                totalCount: room.players.length,
+              },
+            });
             break;
           }
 

@@ -35,7 +35,7 @@ export interface Player {
   colorIndex: number;
   isHost: boolean;
   isOnline: boolean;
-  joinedAt: string;
+  joinedAt: number;
   result?: string | null;
 }
 
@@ -81,8 +81,8 @@ export interface Room {
   revealMode: 'manual' | 'auto';
   autoRevealIntervalSec: number | null;
   readonly kickedPlayerIds: readonly string[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 // ─── WebSocket Envelopes ─────────────────────────────────────────────────────
@@ -105,7 +105,8 @@ export interface RoomSummaryPayload {
   code: string;
   status: RoomStatus;
   playerCount: number;
-  hostId: string;
+  onlineCount: number;
+  maxPlayers: number;
 }
 
 export interface RoomStatePayload {
@@ -122,16 +123,19 @@ export interface RoomStatePayload {
 export interface RoomStateFullPayload extends RoomStatePayload {
   ladder: LadderData | null;
   results: readonly ResultSlot[] | null;
-  kickedPlayerIds: readonly string[];
+  selfPlayerId: string;
 }
 
 export interface RevealIndexPayload {
-  index: number;
+  playerIndex: number;
   result: ResultSlot;
+  revealedCount: number;
+  totalCount: number;
 }
 
 export interface HostTransferredPayload {
   newHostId: string;
+  reason: string;
 }
 
 export interface ErrorPayload {
@@ -142,13 +146,15 @@ export interface ErrorPayload {
 // ─── HTTP DTOs ───────────────────────────────────────────────────────────────
 
 export interface CreateRoomRequest {
-  nickname: string;
+  hostNickname: string;
+  winnerCount?: number;
 }
 
 export interface CreateRoomResponse {
   roomCode: string;
   playerId: string;
   token: string;
+  room: Room;
 }
 
 export interface JoinRoomRequest {
@@ -157,7 +163,13 @@ export interface JoinRoomRequest {
 }
 
 export interface JoinRoomResponse {
-  roomCode: string;
   playerId: string;
   token: string;
+  room: Room;
+}
+
+// ─── Additional WebSocket Payload Types ──────────────────────────────────────
+
+export interface SessionReplacedPayload {
+  message: string;
 }

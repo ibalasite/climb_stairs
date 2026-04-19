@@ -52,7 +52,7 @@ export class RoomService {
       throw new DomainError('INVALID_WINNER_COUNT', 'Winner count must be at least 1', 422);
     }
 
-    const now = new Date().toISOString();
+    const now = Date.now();
     const hostId = randomUUID().replace(/-/g, '');
 
     const hostPlayer: Player = {
@@ -131,7 +131,7 @@ export class RoomService {
       }
     }
 
-    const now = new Date().toISOString();
+    const now = Date.now();
     const playerId = randomUUID().replace(/-/g, '');
 
     const newPlayer: Player = {
