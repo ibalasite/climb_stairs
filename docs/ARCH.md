@@ -1,7 +1,8 @@
 # ARCH — Ladder Room Online Architecture Design Document
 
-> Version: v1.0
+> Version: v1.1
 > Date: 2026-04-19
+> Revised: 2026-04-19 (Arch Review Round 1)
 > Based on: EDD v1.1, PRD v1.1, PDD v2.1
 
 ---
@@ -92,7 +93,7 @@ graph LR
 | `presentation/routes/players.ts` | 處理玩家 HTTP 路由（POST /rooms/:code/players、DELETE /rooms/:code/players/:id） |
 | `presentation/schemas/` | 定義 Fastify AJV JSON Schema，對所有 HTTP 請求/回應做格式驗證 |
 | `application/services/RoomService.ts` | 協調房間建立、加入、踢出等業務流程，呼叫 RoomRepository 並發布 ROOM_STATE 廣播 |
-| `application/services/GameService.ts` | 協調遊戲開局、揭示、結束、重置流程，呼叫 GenerateLadder/ComputeResults 並觸發廣播 |
+| `application/services/GameService.ts` | 協調遊戲開局（START_GAME）、開始揭示（BEGIN_REVEAL，`running → revealing`）、逐一揭示（REVEAL_NEXT）、全揭（REVEAL_ALL_TRIGGER）、結束、重置流程，呼叫 GenerateLadder/ComputeResults 並觸發廣播 |
 | `application/handlers/WsMessageHandler.ts` | 解析 ClientEnvelope，驗證 JWT role，分派至對應 Service 方法 |
 | `application/handlers/PubSubHandler.ts` | 訂閱 Redis `room:*:events` 頻道，將收到的 PubSubMessage 轉發至房間內所有本地 WsSession |
 | `infrastructure/redis/RedisClient.ts` | 建立並匯出 ioredis 單例（含連線重試設定） |
@@ -100,6 +101,17 @@ graph LR
 | `infrastructure/redis/PubSubBroker.ts` | 封裝 Redis PUBLISH 與 SUBSCRIBE，抽象跨 Pod 廣播細節 |
 | `infrastructure/websocket/WsServer.ts` | 封裝 `ws.Server`，處理 HTTP Upgrade、JWT 驗證、踢除攔截（close 4003），建立 WsSession |
 | `infrastructure/websocket/WsSession.ts` | 管理單一 WebSocket 連線的生命週期：心跳、訊息序列化/反序列化、速率限制（60 msg/min）、斷線計時 |
+
+### 3.1 本地計時器所有權（Auto-Reveal Timer & Host-Transfer Timer）
+
+Pod 本地記憶體中存在兩種 `setTimeout`/`setInterval` 計時器，其所有者與恢復策略如下：
+
+| 計時器 | 所有者模組 | 觸發條件 | Pod 重啟後恢復 |
+|--------|-----------|---------|--------------|
+| auto-reveal interval | `GameService`（靜態 Map `roomCode → NodeJS.Timeout`） | SET_REVEAL_MODE mode=auto；intervalSec 1-30s | 重連客戶端收到 ROOM_STATE_FULL（status=revealing）後，Host 須重新送 SET_REVEAL_MODE 恢復計時；服務端**不**自動恢復計時，以避免幽靈計時器 |
+| host-transfer grace（60s） | `WsSession`（`disconnect` event 觸發，Timer ID 存於 Session） | WS close event（host 斷線）；playerId === room.hostId | 重啟後 timer 消失；若 host 60s 內未重連，下一個連線至該房間的請求（心跳或新訊息）觸發 GameService 補跑 hostTransferIfNeeded() 邏輯（檢查 room.hostId.isOnline === false 且 updatedAt + 60s < now） |
+
+**設計決策：** 計時器不序列化至 Redis，以保持 Pod 無狀態。Pod 重啟後，auto-reveal 依賴 Host 主動恢復，host-transfer 依賴下一個到達事件補跑。此為 MVP 單 Pod 下可接受的 trade-off；Post-MVP 多 Pod 時，計時器只在擁有 Host Session 的 Pod 上存在，廣播仍透過 Pub/Sub 正確傳遞。
 
 ---
 
@@ -179,7 +191,9 @@ graph LR
 - `jose` 支援 Web Crypto API，瀏覽器端未來可直接驗證（可審計）。
 - HS256 在 shared secret 模型下實作簡單，適合 MVP 單服務架構。
 
-**取捨：** Token 一旦簽發無法提前撤銷（除非加黑名單）；host 轉移後舊 host token 在 exp 前仍有效，須以 `room.hostId` 做雙重驗證。
+**Token 有效期：** JWT `exp` 設為 **24 小時**，與 waiting 房間 TTL 對齊。玩家 token 在房間生命週期內有效；finished 房間 TTL 為 1h，token 在此仍有效但 Redis 中已無 Room 資料（`RoomRepository.findByCode` 回傳 null → 403）。
+
+**取捨：** Token 一旦簽發無法提前撤銷（除非加黑名單）；host 轉移後舊 host token 在 exp 前仍有效，須以 `room.hostId` 做雙重驗證。Token 24h exp 在極端情況（玩家隔天重連同一房間）仍可連入，但 Room TTL 屆滿後 Redis 無狀態可回傳，實際影響可忽略。
 
 ---
 
@@ -193,6 +207,14 @@ graph LR
 - 架構已預留多 Pod 設計（Pub/Sub、RoomRepository 無本地狀態）：Post-MVP 啟用 HPA 只需改 k8s manifest。
 
 **取捨：** 單實例無高可用；Pod 重啟期間所有 WS 連線中斷，客戶端依賴指數退避重連恢復。
+
+**Redis 失敗降級策略（MVP）：** Redis 單節點是 MVP SPOF。當 ioredis `error` 事件觸發（連線斷開）時：
+- `RoomRepository` 所有方法拋出 `SYS_REDIS_ERROR`，由 Application 層捕捉後對觸發方 WS Session 發送 `ERROR { code: "SYS_REDIS_ERROR" }` 並保持連線。
+- 新的 HTTP 加入請求（POST /rooms/:code/players）回傳 `503 Service Unavailable`。
+- `GET /api/v1/health` 回傳 `{ redis: "error" }` 讓 Kubernetes readinessProbe 立即將 Pod 移出 Service endpoints，避免繼續接收流量。
+- ioredis 內建指數退避重連（`retryStrategy`），Redis 重啟後自動恢復；WS 客戶端透過重連收到最新 ROOM_STATE_FULL。
+
+**Post-MVP Redis HA：** 升級路徑為 Redis Sentinel（單 master + replica 自動 failover）或 Redis Cluster（分片）；PubSubBroker 改用 ioredis Cluster/Sentinel 模式，業務邏輯無需修改。
 
 ---
 
@@ -257,8 +279,8 @@ const svc = new GameService(mockRepo, mockPubSub);
 
 ```
 Redis Keys:
-  room:{code}              → Room JSON（含 players、ladder、results、kickedPlayerIds）
-  room:{code}:revealedCount → Integer（INCR 原子遞增，避免 race condition）
+  room:{code}               → Room JSON（含 players、ladder、results、kickedPlayerIds、revealedCount）
+  room:{code}:revealedCount → Integer，INCR 原子遞增（唯一計數真相來源）
 
 Key TTL:
   waiting 房間   → 24h（EXPIRE，玩家活動時 EXPIRE 重置）
@@ -266,27 +288,42 @@ Key TTL:
   最後一人斷線   → 5 分鐘（close event 原子設定 EXPIRE 300）
 ```
 
+**`revealedCount` 雙欄位說明（一致性關鍵）：**
+
+`room:{code}:revealedCount` Redis key 是唯一計數真相來源，以 INCR 保證原子性。Room JSON 內的 `revealedCount` 欄位是快照值，**僅**在下列時機同步寫入：
+
+1. START_GAME MULTI/EXEC：在 Room JSON 內置 0，同時 DEL `room:{code}:revealedCount`（或 SET 0）。
+2. REVEAL_NEXT 流程（見第 7.1 節）：先 INCR 取得 `newCount`，再以 MULTI/EXEC 原子更新 Room JSON（`room.revealedCount = newCount`）與 PUBLISH，確保 JSON 與 INCR key 同步。
+3. ROOM_STATE_FULL（重連）：GameService 在組裝 payload 前，以 `GET room:{code}:revealedCount` 取最新值覆蓋 Room JSON 的 `revealedCount` 欄位後再回傳。
+
+如此可避免 INCR 成功但 JSON SET 失敗造成的 split-brain。
+
 ### 6.2 記憶體中保存的內容
 
 ```
 Pod 本地記憶體（重啟後消失）：
-  WsSessionMap: Map<sessionId, WsSession>
+  WsSessionMap（主索引）: Map<sessionId, WsSession>
     - 索引：sessionId（UUID，連線時生成）
     - 內容：ws.WebSocket 物件、playerId、roomCode、rate limit counter
     - 生命週期：與 WS 連線共存亡
 
+  PlayerSessionIndex（副索引）: Map<playerId, sessionId>
+    - 目的：O(1) 查詢同一 playerId 的現有 Session（SESSION_REPLACED、HOST_TRANSFERRED、KICK_PLAYER 廣播用）
+    - 維護：連線時 set，斷線時 delete；若同一 playerId 新連線建立，覆蓋舊值後關閉舊 Session（SESSION_REPLACED）
+
   PubSubBroker 的訂閱 socket（ioredis duplicate connection）
 ```
 
-**設計決策：** WsSessionMap 存記憶體而非 Redis，因 WebSocket socket 物件本身無法序列化；廣播時 PubSubHandler 依 roomCode 篩選本地 WsSession 集合即可。
+**設計決策：** WsSessionMap 存記憶體而非 Redis，因 WebSocket socket 物件本身無法序列化。使用雙索引（sessionId 主索引 + playerId 副索引）可避免 O(n) 線性掃描；廣播時 PubSubHandler 依 roomCode 篩選本地 WsSession 集合，SESSION_REPLACED / KICK_PLAYER 透過 PlayerSessionIndex 做 O(1) 定址。
 
 ### 6.3 一致性保證
 
 | 操作 | 一致性機制 |
 |------|-----------|
-| START_GAME | WATCH + MULTI/EXEC；EXEC null → 重試最多 3 次 |
+| START_GAME | WATCH + MULTI/EXEC；EXEC null → 重試最多 3 次；同時 DEL revealedCount key |
 | RESET_ROOM | WATCH + MULTI/EXEC 原子更新整包 Room JSON |
-| revealedCount 遞增 | INCR 原子操作（避免兩 Pod 同時揭示同一 index） |
+| REVEAL_NEXT（revealedCount 遞增） | 先 INCR 取得 newCount，再 WATCH + MULTI/EXEC 將 newCount 寫入 Room JSON 並 PUBLISH；三步操作確保 JSON 與 INCR key 同步（若 EXEC null 則重試，最多 3 次） |
+| ROOM_STATE_FULL（重連） | GameService 以 GET room:{code}:revealedCount 取最新值覆蓋 Room JSON 的快照後再組裝 payload |
 | 玩家加入/離線 | 以 Room JSON 整包 SET，配合 WATCH 防止 lost update |
 
 ---
@@ -306,8 +343,7 @@ graph TD
     PlayersPod2["Pod-2 上的玩家\nWsSession × K"]
 
     HostWS -->|"REVEAL_NEXT"| Pod1
-    Pod1 -->|"INCR revealedCount\nSET room JSON"| Redis
-    Pod1 -->|"PUBLISH room:ABC:events"| Redis
+    Pod1 -->|"1. INCR revealedCount\n2. WATCH+MULTI/EXEC:\n   SET room JSON (revealedCount=newCount)\n3. PUBLISH room:ABC:events"| Redis
     Redis -->|"message 事件"| Pod1Sub
     Redis -->|"message 事件"| Pod2Sub
     Pod1Sub -->|"篩選 roomCode=ABC\n廣播 REVEAL_INDEX"| PlayersPod1
@@ -342,7 +378,7 @@ graph TD
     Nginx --> WsUpgrade["WsServer.handleUpgrade()\n1. JWT 解析 & HS256 驗證\n2. kickedPlayerIds 攔截\n   → close 4003"]
     FastifyHTTP --> AuthPlugin["auth.ts plugin\nJWT 驗證\nrole 比對"]
     AuthPlugin --> RoomService["RoomService / GameService\nroom.hostId 雙重驗證"]
-    WsUpgrade --> WsSession["WsSession\n1. 速率限制 60 msg/min\n   超限 close 4003\n2. maxPayload 65536 bytes"]
+    WsUpgrade --> WsSession["WsSession\n1. 速率限制 60 msg/min\n   超限 close 4029\n2. maxPayload 65536 bytes"]
     WsSession --> WsMessageHandler["WsMessageHandler\n1. JWT role 驗證\n2. room.hostId 比對\n3. 狀態機驗證"]
 ```
 
@@ -365,6 +401,8 @@ graph TD
 - Nginx 內網（cluster-internal）到 Fastify 視為可信，TLS 由 Nginx 終止
 - Redis 視為可信內部服務（NetworkPolicy 隔離）
 - 所有來自 Client（HTTP body、WS payload）視為不可信，須完整驗證
+
+**WebSocket Origin 驗證：** `WsServer.handleUpgrade()` 在 JWT 驗證之前，需檢查 HTTP `Origin` 請求標頭是否符合環境變數 `CORS_ORIGIN`（白名單比對）。不符合時以 `403 Forbidden` 拒絕升級。瀏覽器 WS 升級不受 CORS policy 自動保護（無 preflight），Origin 比對是防止 CSRF-over-WebSocket 的必要伺服端措施。本地開發允許 `http://localhost:5173`；生產只允許 GitHub Pages 的 origin。
 
 ---
 
@@ -407,11 +445,13 @@ services:
 | TLS | Nginx Ingress cert-manager Let's Encrypt | 無 TLS |
 | Redis | StatefulSet 兩副本（master + replica）| 單節點 |
 | 水平擴展 | HPA（Post-MVP）；MVP 固定 replicas: 1 | 無 |
-| Sticky Session | Nginx `nginx.ingress.kubernetes.io/affinity: cookie` | 無需要 |
+| Sticky Session | Nginx `nginx.ingress.kubernetes.io/affinity: cookie`；**MVP 即部署此 annotation**（replicas:1 下為 no-op，但確保 HPA 啟用時無需改 manifest） | 無需要 |
 | Secrets | k8s Secret（JWT_SECRET、REDIS_PASSWORD）| `.env` 檔案 |
 | Log | pino JSON → fluent-bit DaemonSet → 集中 log 系統 | 終端機輸出 |
 | 監控 | Prometheus + `/metrics` port 8080 | 無 |
 | Image | Distroless Node.js 20（distroless/nodejs20-debian12） | Node.js 直接執行 |
+| Liveness Probe | `httpGet /api/v1/health` initialDelaySeconds:10 periodSeconds:10 | 無 |
+| Readiness Probe | `httpGet /api/v1/health` 須回傳 `{ redis: "ok" }`；失敗時 Pod 從 Service endpoints 移除，停止接收新流量 | 無 |
 
 **生產與本地的關鍵差異：**
 - 生產使用 `REDIS_PASSWORD`（ioredis auth 選項），本地預設無密碼
@@ -460,14 +500,24 @@ services:
 
 ### 10.5 啟用 HPA（Post-MVP）
 
-1. 在 `k8s/` manifest 將 `replicas: 1` 改為 `replicas: 2`，加入 HPA 資源定義
-2. 確認 `prom-client` 已暴露 `ws_active_connections` Gauge（main.ts 已預留）
-3. 確認 Nginx Ingress 已設定 `nginx.ingress.kubernetes.io/affinity: cookie`
-4. 啟用 Redis replica（StatefulSet replicas: 2 已預留於 k8s/redis.yaml）
-5. Pub/Sub 架構無需修改，多 Pod 廣播自動生效
+> **MVP vs Post-MVP 部署差異：**
+> - MVP：`replicas: 1`，HPA 資源不部署，Redis 單節點（`StatefulSet replicas: 1`）
+> - Post-MVP：`minReplicas: 2, maxReplicas: 10`（EDD 10.3），Redis StatefulSet replicas: 2（master + replica）
+>
+> MVP manifest 已包含 Nginx affinity annotation（no-op 於單 Pod），確保升級 Post-MVP 時不需修改 Ingress 設定。
+
+**有序升級步驟（避免生產中斷）：**
+
+1. **先升級 Redis**：將 Redis StatefulSet `replicas` 從 1 改為 2，等待 replica 同步完成再繼續。
+2. **驗證 Pub/Sub**：部署前確認 `prom-client` 已暴露 `ws_active_connections` Gauge（main.ts 已預留）。
+3. **Deployment 啟用多 Pod**：移除固定 `replicas: 1`，新增 HPA 資源（minReplicas: 2, maxReplicas: 10, metric: ws_active_connections 目標 200）。
+4. **確認 Ingress affinity**：`nginx.ingress.kubernetes.io/affinity: cookie`（MVP 已設定，此步驟確認即可）。
+5. **滾動更新觀察**：在 Pod 滾動過程中，在線 WS 連線會因 Pod 更換而中斷；客戶端指數退避重連後收到 ROOM_STATE_FULL 恢復狀態（Redis 狀態不受 Pod 重啟影響）。
+6. **Pub/Sub 驗證**：部署後確認跨 Pod 廣播正常（可用 k6 模擬兩 Pod 上各有玩家的房間執行 REVEAL_NEXT）。
 
 ---
 
-*ARCH 版本：v1.0*
+*ARCH 版本：v1.1*
 *生成時間：2026-04-19*
+*修訂時間：2026-04-19（Arch Review Round 1：P1 × 3 修正、P2 × 9 修正）*
 *基於 EDD v1.1 | PRD v1.1 | PDD v2.1*

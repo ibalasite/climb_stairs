@@ -439,7 +439,7 @@ interface ResetRoomResponse {
       isHost: boolean;
       isOnline: boolean;
       joinedAt: number;
-      result: null;
+      result: string | null;
     }>;
     winnerCount: number | null;
     revealedCount: 0;
@@ -1015,8 +1015,9 @@ type WsMsgType = "PING";
 | `PLAYER_NOT_FOUND` | 404 | — | 目標玩家不存在此房間 | 不重試 |
 | `PLAYER_NOT_HOST` | 403 | — | 操作需要房主權限 | 不重試，檢查身份 |
 | `AUTH_INVALID_TOKEN` | 401 | 4001 | JWT 無效（格式錯誤或簽名不符） | 重新加入房間取得新 token |
-| `AUTH_TOKEN_EXPIRED` | 401 | 4002 | JWT 已過期（TTL 6 小時） | 重新加入房間取得新 token |
+| `AUTH_TOKEN_EXPIRED` | 401 | — | JWT 已過期（TTL 6 小時） | 重新加入房間取得新 token |
 | `PLAYER_KICKED` | — | 4003 | 玩家已被踢出，WS Upgrade 階段拒絕 | 不重試（被踢出狀態持續至房間 reset） |
+| `SESSION_REPLACED` | — | 4002 | 同一 playerId 從新連線登入，舊連線被強制關閉 | 不重試，引導用戶重新加入 |
 | `INSUFFICIENT_PLAYERS` | 400 | — | 玩家數 N < 2，無法開始遊戲 | 等待更多玩家加入後重試 |
 | `INSUFFICIENT_ONLINE_PLAYERS` | 400 | — | 再玩一局時在線玩家 < 2 | 等待玩家上線後重試 |
 | `PRIZES_NOT_SET` | 400 | — | `winnerCount` 尚未設定 | 設定中獎名額後重試 |
