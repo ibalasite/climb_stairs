@@ -615,3 +615,14 @@ WebSocket 連線中斷
 *生成時間：2026-04-19*
 *基於 PRD v1.3 · ARCH v1.2 · EDD v1.3 · API v1.1*
 *STEP-07c Round 1 Design Review：補全遺漏 WS 事件映射、Canvas 座標系與大人數橫捲規格、錯誤碼 Toast 映射、觸控手勢與 RoomTTL 失效流程*
+
+## 變更追蹤
+
+### ECR-20260420-001：HOST copy 邀請 link（含 6 碼房號）+ localStorage 暱稱記憶，一鍵加入
+- **狀態**：⏳ PENDING
+- **分類**：ECR / 需求面
+- **日期**：2026-04-20
+- **描述**：HOST 開好房間後可 COPY 邀請 link（含 6 碼房號），受邀者點 link 自動帶入房號，名字欄位自動帶入上次輸入過的名字，一鍵加入。
+- **影響範圍**：§localStorage 規格（新增 ladder_last_nickname key）、§Client 架構（新增 LocalStorageService）
+- **修正/實作內容**：（待完成後填入）
+- **commit**：—
