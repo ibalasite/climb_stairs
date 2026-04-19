@@ -1,0 +1,20 @@
+{
+  "version": "2.0",
+  "project_dir": "/Users/tobala/projects/climb_stairs",
+  "pdd_path": "/Users/tobala/projects/climb_stairs/docs/PDD.md",
+  "current_step": "02",
+  "lang_stack": "ts-fastify-ws-redis-vanillajs-vite",
+  "client_type": "web",
+  "auto_mode": "full",
+  "review_mode": "MODE-C",
+  "execution_mode": "full-auto",
+  "review_strategy": "tiered",
+  "review_strategy_custom": "",
+  "log_file": "",
+  "github_repo": "",
+  "completed_steps": [
+    "01",
+    "02"
+  ],
+  "last_updated": "2026-04-19T14:30:00Z"
+}

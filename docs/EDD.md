@@ -1,5 +1,26 @@
 # EDD — Ladder Room Online
 
+## 0. 技術棧（Tech Stack）
+
+| 層級 | 技術 | 版本 / 備註 |
+|------|------|-------------|
+| Runtime | Node.js | 20 LTS |
+| 語言 | TypeScript | strict mode，前後端共用 |
+| HTTP Server | Fastify | REST API (`/api/*`) |
+| WebSocket | ws（原生） | `ws` npm package，`maxPayload: 65536` |
+| 快取 / 狀態 | Redis | 原子操作、Pub/Sub、房間持久化 |
+| 前端框架 | 無（Vanilla TypeScript + Vite） | 無 UI 框架，零依賴，HTML5 Canvas 渲染 |
+| Monorepo 結構 | npm workspaces | `packages/shared`、`packages/server`、`packages/client` |
+| 測試 | Vitest | Unit（70%）＋Integration（20%，testcontainers）＋E2E（10%，Playwright） |
+| CI/CD | GitHub Actions | lint → audit → test → build → e2e → deploy |
+| 容器 | Docker（Distroless Node.js 20） | 多階段建構 |
+| 編排 | Kubernetes（HPA）+ Nginx Ingress | sticky session，Post-MVP 多 Pod |
+| 靜態部署 | GitHub Pages | Vite 建構產物，bundle < 150KB gzip |
+
+**client_type**: `web`（瀏覽器端，HTML5 Canvas + Vanilla TypeScript）
+
+---
+
 ## 1. 系統概覽
 
 Ladder Room Online 是一款基於 HTML5 Canvas 的多人線上爬樓梯抽獎系統，採用 WebSocket 長連接驅動即時遊戲狀態同步，支援最多 50 名玩家共享同一房間。後端以 Fastify 處理 HTTP REST 操作，ws 原生 WebSocket 處理即時通訊，Redis 同時承擔分散式狀態鎖（原子操作）、房間資料持久化與跨 Pod Pub/Sub 廣播的角色；前端以 Vanilla TypeScript + Vite 建構，透過 HTML5 Canvas 逐段繪製梯子揭示動畫，全程無任何 UI 框架依賴，確保最小 JS bundle。
