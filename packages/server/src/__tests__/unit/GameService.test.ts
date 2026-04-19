@@ -277,6 +277,36 @@ describe('GameService', () => {
       const { room } = await svc.revealNext('ABCD12', 'player-1');
       expect(room.status).toBe('finished');
     });
+
+    it('returns the second result slot on the second call (sequential reveal)', async () => {
+      const results: ResultSlot[] = [
+        makeResultSlot({ playerIndex: 0, playerId: 'player-1' }),
+        makeResultSlot({ playerIndex: 1, playerId: 'player-2' }),
+      ];
+      const repo = makeMockRepo({ status: 'revealing', results, revealedCount: 0 });
+      const svc = new GameService(repo);
+
+      await svc.revealNext('ABCD12', 'player-1'); // first slot
+      const { result, room } = await svc.revealNext('ABCD12', 'player-1'); // second slot
+
+      expect(result.playerIndex).toBe(1);
+      expect(result.playerId).toBe('player-2');
+      expect(room.revealedCount).toBe(2);
+    });
+
+    it('does not transition to finished when only first of two results revealed', async () => {
+      const results: ResultSlot[] = [
+        makeResultSlot({ playerIndex: 0 }),
+        makeResultSlot({ playerIndex: 1, playerId: 'player-2' }),
+      ];
+      const repo = makeMockRepo({ status: 'revealing', results, revealedCount: 0 });
+      const svc = new GameService(repo);
+
+      const { room } = await svc.revealNext('ABCD12', 'player-1');
+
+      // Only 1 of 2 revealed — should still be revealing
+      expect(room.status).toBe('revealing');
+    });
   });
 
   // ── revealAll ──────────────────────────────────────────────────────────────
@@ -578,6 +608,15 @@ describe('GameService', () => {
       const svc = new GameService(repo);
 
       await expect(svc.endGame('ZZZZZZ', 'player-1')).rejects.toMatchObject({ code: 'ROOM_NOT_FOUND' });
+    });
+
+    it('throws INVALID_STATE when room is already finished (idempotency guard)', async () => {
+      const repo = makeMockRepo({ status: 'finished' });
+      const svc = new GameService(repo);
+
+      await expect(svc.endGame('ABCD12', 'player-1')).rejects.toSatisfy(
+        (e: unknown) => e instanceof DomainError && e.code === 'INVALID_STATE'
+      );
     });
   });
 

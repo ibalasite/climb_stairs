@@ -230,6 +230,26 @@ describe('RoomService', () => {
       const { room } = await svc.createRoom('Alice', 1);
       expect(room.players[0]?.isHost).toBe(true);
     });
+
+    it('initializes kickedPlayerIds as empty and revealedCount as 0', async () => {
+      const repo = makeMockRepo();
+      const svc = new RoomService(repo);
+
+      const { room } = await svc.createRoom('Alice', 1);
+
+      expect(room.kickedPlayerIds).toEqual([]);
+      expect(room.revealedCount).toBe(0);
+      expect(room.ladder).toBeNull();
+      expect(room.results).toBeNull();
+    });
+
+    it('trims leading/trailing whitespace from host nickname', async () => {
+      const repo = makeMockRepo();
+      const svc = new RoomService(repo);
+
+      const { room } = await svc.createRoom('  Alice  ', 1);
+      expect(room.players[0]?.nickname).toBe('Alice');
+    });
   });
 
   // ── joinRoom ───────────────────────────────────────────────────────────────
@@ -371,6 +391,28 @@ describe('RoomService', () => {
 
       const bob = updatedRoom.players.find((p) => p.id === playerId);
       expect(bob?.isHost).toBe(false);
+    });
+
+    it('new player has isOnline=true on join', async () => {
+      const room = makeRoom();
+      const repo = makeMockRepo(room);
+      const svc = new RoomService(repo);
+
+      const { room: updatedRoom, playerId } = await svc.joinRoom('ABCD12', 'Bob');
+
+      const bob = updatedRoom.players.find((p) => p.id === playerId);
+      expect(bob?.isOnline).toBe(true);
+    });
+
+    it('trims leading/trailing whitespace from nickname on join', async () => {
+      const room = makeRoom();
+      const repo = makeMockRepo(room);
+      const svc = new RoomService(repo);
+
+      const { room: updatedRoom, playerId } = await svc.joinRoom('ABCD12', '  Bob  ');
+
+      const bob = updatedRoom.players.find((p) => p.id === playerId);
+      expect(bob?.nickname).toBe('Bob');
     });
   });
 });
