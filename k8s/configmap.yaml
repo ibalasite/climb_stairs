@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ladder-server-config
+  namespace: ladder-room
+  labels:
+    app.kubernetes.io/name: ladder-server
+    app.kubernetes.io/component: config
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  METRICS_PORT: "8080"
+  # Redis (non-sensitive endpoint only — credentials come from Secret)
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  # Room settings
+  ROOM_TTL_SECONDS: "86400"
+  ROOM_IDLE_EXPIRE_SECONDS: "300"
+  MAX_PLAYERS_PER_ROOM: "50"
+  # WebSocket
+  WS_MAX_PAYLOAD_BYTES: "65536"
+  WS_RATE_LIMIT_PER_MIN: "60"
+  # JWT
+  JWT_ALGORITHM: "HS256"
+  JWT_TTL_SECONDS: "21600"
+  JWT_CLOCK_SKEW_SECONDS: "30"
+  # Logging
+  LOG_LEVEL: "info"
+  LOG_PRETTY: "false"

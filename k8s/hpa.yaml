@@ -1,0 +1,49 @@
+# HPA — Post-MVP only (MVP uses replicas: 1 per PRD Out-of-Scope #9)
+# Enable by setting deployment replicas to 2 and applying this manifest
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ladder-server-hpa
+  namespace: ladder-room
+  labels:
+    app.kubernetes.io/name: ladder-server
+    app.kubernetes.io/component: autoscaler
+  annotations:
+    # Remove this annotation when enabling HPA
+    ladder-room/mvp-disabled: "true — enable after Redis Pub/Sub multi-pod validation"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ladder-server
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    # Primary metric: active WebSocket connections per pod
+    - type: Pods
+      pods:
+        metric:
+          name: ws_active_connections
+        target:
+          type: AverageValue
+          averageValue: "200"
+    # Secondary metric: CPU utilization
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120

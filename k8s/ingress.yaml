@@ -1,0 +1,58 @@
+# Traefik Ingress (Rancher Desktop built-in)
+# WebSocket upgrade handled via Traefik's built-in WS support
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ladder-server-ingress
+  namespace: ladder-room
+  labels:
+    app.kubernetes.io/name: ladder-server
+    app.kubernetes.io/component: ingress
+  annotations:
+    # Traefik-specific
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    # WebSocket passthrough
+    traefik.ingress.kubernetes.io/service.sticky.cookie: "true"
+    traefik.ingress.kubernetes.io/service.sticky.cookie.name: "ladder_sticky"
+    # Timeouts for long-lived WS connections
+    traefik.ingress.kubernetes.io/router.middlewares: ladder-room-ws-timeout@kubernetescrd
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: ladder.local
+      http:
+        paths:
+          # WebSocket upgrade path
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: ladder-server-service
+                port:
+                  name: http
+          # REST API
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: ladder-server-service
+                port:
+                  name: http
+          # Health checks
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: ladder-server-service
+                port:
+                  name: http
+          - path: /ready
+            pathType: Exact
+            backend:
+              service:
+                name: ladder-server-service
+                port:
+                  name: http
