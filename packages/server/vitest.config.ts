@@ -1,6 +1,16 @@
 import { defineConfig } from 'vitest/config';
+import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      // Point @ladder-room/shared to source during tests (avoids needing a pre-build)
+      '@ladder-room/shared': resolve(__dirname, '../shared/src/index.ts'),
+    },
+  },
   test: {
     globals: false,
     environment: 'node',
