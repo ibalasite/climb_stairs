@@ -427,11 +427,23 @@ export interface RoomStatePayload {
   readonly onlineCount: number;
 }
 
+/**
+ * LadderDataPublic — sent to clients during "revealing" state (seed omitted for security).
+ * Full LadderData (with seed) is only sent when status === "finished" (PRD AC-H03-1, NFR-05).
+ */
+export interface LadderDataPublic {
+  readonly rowCount: number;
+  readonly colCount: number;
+  readonly segments: readonly LadderSegment[];
+  // seed and seedSource intentionally omitted — only sent at status=finished
+}
+
 export interface RoomStateFullPayload extends RoomStatePayload {
   // Unicast to newly connected client only
-  // ladder is null when status is waiting or running (seed not exposed until finished, PRD AC-H03-1, NFR-05)
-  // ladder (with seed) is included only when status is revealing or finished
-  readonly ladder: LadderData | null;
+  // When status is waiting/running: ladder = null
+  // When status is revealing: ladder = LadderDataPublic (no seed, PRD AC-H03-1, NFR-05)
+  // When status is finished: ladder = LadderData (seed + seedSource included for auditability)
+  readonly ladder: LadderDataPublic | LadderData | null;
   readonly results: readonly ResultSlot[] | null;
   readonly selfPlayerId: string;
 }
@@ -600,7 +612,7 @@ interface PubSubMessage {
 
 | OWASP | 威脅 | 對應措施 |
 |-------|------|---------|
-| A01 Broken Access Control | 非 host 操作 | JWT HS256 驗證（`jose` 庫），payload: `{ playerId, roomCode, role, exp }`；非 host 發送 host-only 操作 → ERROR AUTH_NOT_HOST |
+| A01 Broken Access Control | 非 host 操作 | JWT HS256 驗證（`jose` 庫），payload: `{ playerId, roomCode, role: "host" \| "player", exp }`；`role` 欄位區分 host 與 player（建立房間時 role="host"，加入房間時 role="player"）；非 host 發送 host-only 操作 → ERROR AUTH_NOT_HOST；雙重驗證：JWT role="host" AND Redis room.hostId === playerId（防止 JWT 偽造或 host 轉移後舊 token 濫用） |
 | A02 Cryptographic Failures | 弱加密 | JWT HS256（標準 RFC 7519）；Redis TLS；Nginx HTTPS + HSTS max-age=31536000 |
 | A03 Injection | 輸入注入 | Fastify JSON Schema AJV 驗證；nickname AJV `pattern: "^[^\x00-\x1F\x7F]{1,20}$"`（禁 null/控制字元，非 DOMPurify）；roomCode 正則 `[A-HJ-NP-Z2-9]{6}` |
 | A04 Insecure Design | WS 訊息洪泛 | `ws` Server `maxPayload: 65536`（64KB，PRD NFR-05）；per-connection rate limit 60 msg/min，超限 WS close code 4029；host-only 操作雙重驗證（JWT role + Redis room.hostId 比對） |
@@ -678,10 +690,11 @@ export function generateLadder(seedSource: string, N: number): LadderData {
     for (let b = 0; b < attempts; b++) {
       let col = Math.floor(rng() * (colCount - 1));
       let retry = 0;
-      while ((usedCols.has(col) || usedCols.has(col + 1)) && retry < colCount) {
+      while ((usedCols.has(col) || usedCols.has(col + 1)) && retry < colCount * 10) {
         col = (col + 1) % (colCount - 1);
         retry++;
       }
+      // retry limit = N×10 (PRD FR-03-2: 每條橫槓最多嘗試 N×10 次)
       if (!usedCols.has(col) && !usedCols.has(col + 1)) {
         usedCols.add(col);
         usedCols.add(col + 1);
@@ -693,7 +706,61 @@ export function generateLadder(seedSource: string, N: number): LadderData {
 }
 ```
 
-### 7.5 測試策略
+### 7.5 ComputeResults — 路徑追蹤與 Fisher-Yates 中獎指派
+
+```typescript
+// packages/shared/src/use-cases/ComputeResults.ts
+// PRD FR-03-3: bijection（N 起點對應 N 唯一終點）+ Fisher-Yates 指派 W 個中獎槽
+export function computeResults(ladder: LadderData, winnerCount: number, rng: () => number): ResultSlot[] {
+  const { rowCount, colCount, segments } = ladder;
+
+  // Step 1: 建立 segment lookup（row→cols 有橫槓）
+  const segmentSet = new Set(segments.map(s => `${s.row}:${s.col}`));
+
+  // Step 2: 追蹤每個起始欄的路徑（bijection 保證 endCol 唯一）
+  const paths: PathStep[][] = [];
+  const endCols: number[] = [];
+
+  for (let startCol = 0; startCol < colCount; startCol++) {
+    let col = startCol;
+    const path: PathStep[] = [];
+    for (let row = 0; row < rowCount; row++) {
+      // 判斷向左或向右移動（橫槓優先向右，被左側橫槓勾走向左）
+      if (segmentSet.has(`${row}:${col}`)) {
+        path.push({ row, col, direction: "right" });
+        col++;
+      } else if (col > 0 && segmentSet.has(`${row}:${col - 1}`)) {
+        path.push({ row, col, direction: "left" });
+        col--;
+      } else {
+        path.push({ row, col, direction: "down" });
+      }
+    }
+    paths.push(path);
+    endCols.push(col);
+  }
+
+  // Step 3: Fisher-Yates 洗牌決定哪些 endCol 為中獎（消耗 N 次 rng，PRD FR-03-3）
+  const indices = Array.from({ length: colCount }, (_, i) => i);
+  const shuffled = fisherYatesShuffle(indices, rng); // 消耗 colCount 次 rng
+  const winnerEndCols = new Set(shuffled.slice(0, winnerCount));
+
+  // Step 4: 組裝 ResultSlot[]
+  return paths.map((path, playerIndex) => ({
+    playerIndex,
+    playerId: "", // 由 Server 在 BEGIN_REVEAL 時填入對應玩家 playerId
+    startCol: playerIndex,
+    endCol: endCols[playerIndex],
+    isWinner: winnerEndCols.has(endCols[playerIndex]),
+    path,
+  }));
+}
+```
+
+> **注意**：`computeResults` 在 `packages/shared` 中為純函式（零 I/O），
+> Server 端 GameService 於 BEGIN_REVEAL 時呼叫，並填入 `playerId`（依 players 陣列順序）。
+
+### 7.6 測試策略
 
 | 類型 | 覆蓋 |
 |------|------|
@@ -869,7 +936,17 @@ System overhead: ~50 MB
 總計 < 100 MB（maxmemory: 512mb）
 ```
 
-### 10.5 Load Test 門檻（k6）
+### 10.5 分散式計時器與 Pod 崩潰恢復（Post-MVP 注意事項）
+
+**MVP（單 Pod）：** 自動揭示 timer 由 GameService 的 `setInterval` 管理，無需分散式鎖。
+
+**Post-MVP（多 Pod）：** 自動揭示 timer 須以 Redis SETNX 分散式鎖確保僅一個 Pod 持有計時器：
+- `SET room:{code}:auto_timer_lock {podId} EX {intervalSec+2} NX`
+- 持鎖 Pod 定期 EXTEND TTL；Pod 崩潰後 TTL 自然過期，其他 Pod 搶鎖接續
+- 10 秒 Rollback Timeout（§12.4）在多 Pod 環境中須以 Redis key `room:{code}:reveal_watchdog EX 10` 實作，
+  任一 Pod 於 SUBSCRIBE 中偵測 expired key 事件後執行 rollback
+
+### 10.6 Load Test 門檻（k6）
 
 | 情境 | 設定 | 通過門檻 |
 |------|------|---------|
@@ -879,7 +956,7 @@ System overhead: ~50 MB
 | 大房間廣播 | 1 房 50 人，50 次揭示 | 所有端 1000ms 內收到 REVEAL_ALL |
 | 記憶體洩漏 | 200 房，1h | 記憶體增長 < 50MB/h |
 
-### 10.6 可觀測性指標（Prometheus）
+### 10.7 可觀測性指標（Prometheus）
 
 ```typescript
 // main.ts — prom-client 初始化
@@ -986,8 +1063,9 @@ graph TD
 | `PRIZES_NOT_SET` | 400 | W 尚未設定（AC-H03-2，回傳訊息：「請先設定中獎名額」） |
 | `INVALID_PRIZES_COUNT` | 400 | W < 1 或 W >= N |
 | `INVALID_STATE` | 409 | 操作不符合當前狀態（統一用此碼，PRD FR-04-3/FR-09-3） |
-| `CANNOT_KICK_HOST` | 400 | 踢除操作目標為 Host 本身，不允許 |
-| `INVALID_NAME` | 400 | 暱稱或 title 格式不合法（長度超限、含禁止字元） |
+| `CANNOT_KICK_HOST` | 400 | 踢除操作目標為 Host 本身，不允許（PRD AC-H07-3b） |
+| `INVALID_NICKNAME` | 400 | 暱稱格式不合法（長度超限、含禁止字元）（PRD AC-P01-3） |
+| `INVALID_NAME` | 400 | title 格式不合法（長度超限、含禁止字元）；與 INVALID_NICKNAME 分開以區分語意 |
 | `ROOM_CODE_GENERATION_FAILED` | 500 | Room Code 碰撞重試超過 10 次，無法生成唯一碼 |
 | `TITLE_UPDATE_NOT_ALLOWED_IN_STATE` | 409 | 在非 waiting 狀態嘗試更新 title |
 | `UPDATE_WINNER_COUNT_NOT_ALLOWED_IN_STATE` | 409 | 在非 waiting 狀態嘗試更新 winnerCount |
@@ -999,22 +1077,26 @@ graph TD
 
 ```
 Client → Server 錯誤：
-  JSON parse 失敗     → ERROR { WS_INVALID_MSG }（保持連線）
-  未知 type          → ERROR { WS_UNKNOWN_TYPE }
-  權限不足           → ERROR { AUTH_NOT_HOST }
-  狀態不符           → ERROR { INVALID_STATE }
-  REVEAL_NEXT 超出   → ERROR { INVALID_STATE }（server-side: reject if revealedCount >= totalCount）
+  JSON parse 失敗          → ERROR { WS_INVALID_MSG }（保持連線）
+  未知 type               → ERROR { WS_UNKNOWN_TYPE }
+  權限不足（非 host）       → ERROR { AUTH_NOT_HOST }
+  踢除自己（host kick self）→ ERROR { CANNOT_KICK_HOST }（PRD AC-H07-3b）
+  狀態不符                → ERROR { INVALID_STATE }
+  REVEAL_NEXT 超出        → ERROR { INVALID_STATE }（server-side: reject if revealedCount >= totalCount）
+  KICK_PLAYER 在非 waiting → ERROR { INVALID_STATE, KICK_NOT_ALLOWED_IN_STATE }（PRD AC-H07-3）
 
 WS Upgrade 特殊拒絕：
   kickedPlayerIds 命中 → close code 4003，發送 PLAYER_KICKED frame 後斷線（讓前端區分一般 403）
 
 Server 內部錯誤：
-  Redis 失敗（中途）  → 廣播最後一致 ROOM_STATE 給房間所有連線，再發 ERROR { SYS_REDIS_ERROR } 給觸發方
-  Pub/Sub 失敗       → 3 次 retry（100ms/200ms/400ms），仍失敗 critical alert
+  Redis 讀取失敗（取狀態）  → ERROR { SYS_REDIS_ERROR } 給觸發方；無法廣播一致狀態時記錄 critical 告警
+  Redis 寫入失敗（中途）   → WATCH/MULTI/EXEC 失敗時重試最多 3 次；仍失敗則回退並發 ERROR { SYS_REDIS_ERROR } 給觸發方
+  Pub/Sub 失敗           → 3 次 retry（100ms/200ms/400ms），仍失敗 critical alert
 
 WS 斷線：
   close event        → player.isOnline = false，廣播 ROOM_STATE
   60s grace period   → 若未重連，HOST_TRANSFERRED 廣播（新 host = 下一個 isOnline=true 玩家）
+                       若無其他在線玩家（無法轉移），room 進入 「無 host 等待」狀態，等待 5 分鐘 TTL 清理
   最後一位斷線 5 分鐘 → EXPIRE room:{code} 300（在最後一個 close 事件觸發時執行原子設定）
 ```
 
