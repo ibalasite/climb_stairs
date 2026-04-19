@@ -427,6 +427,7 @@ graph TD
 | `PORT` | Fastify 監聽埠 | `3000` |
 | `JWT_SECRET` | HS256 簽章金鑰（≥ 32 bytes）| `dev-secret-do-not-use-in-prod` |
 | `REDIS_URL` | ioredis 連線字串 | `redis://localhost:6379` |
+| `REDIS_PASSWORD` | Redis 驗證密碼（**生產必填**，以 k8s Secret 注入；本地 Redis 通常無密碼） | —（本地不設定） |
 | `LOG_LEVEL` | pino log level | `debug` |
 | `CORS_ORIGIN` | 允許的 HTTP Origin | `http://localhost:5173` |
 
@@ -530,12 +531,22 @@ services:
 
 ---
 
-*ARCH 版本：v1.2*
+*ARCH 版本：v1.3*
 *生成時間：2026-04-19*
 *修訂時間：2026-04-19（Arch Review Round 1：P1 × 3 修正、P2 × 9 修正）*
 *修訂時間：2026-04-19（STEP-07：與 EDD v1.3 對齊）*
+*修訂時間：2026-04-19（STEP-08 Round 1：P1 × 1、P2 × 4、P3 × 2 修正）*
+*修訂時間：2026-04-19（STEP-08 Round 2：P3 × 1 修正—補充 REDIS_PASSWORD 環境變數說明）*
 *修訂重點（v1.2 vs v1.1）：*
 *1. GameService 職責描述更新：BEGIN_REVEAL 才原子生成 LadderData，END_GAME 新增，PLAY_AGAIN 取代 RESET_ROOM*
 *2. Redis Key Schema 補充 room:{code}:ladder 說明（BEGIN_REVEAL 時才創建）及 seed 公開時機安全邊界*
 *3. 一致性保證表新增 BEGIN_REVEAL（Lua Script）、END_GAME、PLAY_AGAIN；ROOM_STATE_FULL 說明 LadderDataPublic*
+*修訂重點（v1.3 vs v1.2）：*
+*4. Mermaid 依賴方向修正（PRES → APP，符合 Clean Architecture）*
+*5. WsMessageHandler 職責說明：明確標注「二次驗證」*
+*6. JWT exp 長連線安全取捨（Known Security Trade-off）文件化*
+*7. auto-reveal 重連觸發機制（autoRevealActive payload 欄位）補充*
+*8. critical alert 機制定義（pino.error + Prometheus counter + Alertmanager）*
+*9. RoomRepository 說明補充 Lua Script 用途*
+*10. §10.3 新增 PRNG 擴展注意事項；§9.1 新增 REDIS_PASSWORD 環境變數列*
 *基於 EDD v1.3 | PRD v1.3 | PDD v2.2*
