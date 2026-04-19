@@ -1,3 +1,5 @@
+# STEP-17 verified: Node 20, tsc --noEmit (via typecheck script), vitest run
+# (via coverage script per workspace), npm ci, docs.yml present.
 name: CI
 
 on:
