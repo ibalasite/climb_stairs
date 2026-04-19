@@ -594,9 +594,9 @@ waiting（等待揭曉）→ revealed（已揭曉）
 
 | 類型 | 需求 |
 |------|------|
-| 效能 | 設計上限 50 人同房；樓梯生成（從 Server 收到請求到 DB 原子寫入完成）< 1 秒（目標值）；超過 1 秒時客戶端繼續顯示「遊戲開始中，請稍候…」過渡畫面直到收到 `revealing` 廣播；超過 10 秒則 Server 回退至 `waiting`（客戶端 15 秒計時器為最終安全網，詳見 §8.3）；揭曉動畫 ≥ 30fps |
+| 效能 | 設計上限 50 人同房；樓梯生成（從 Server 收到請求到 DB 原子寫入完成）< 1 秒（目標值）；超過 1 秒時客戶端繼續顯示「遊戲開始中，請稍候…」過渡畫面直到收到 `revealing` 廣播；超過 10 秒則 Server 回退至 `waiting`（客戶端 15 秒計時器為最終安全網，詳見 §8.3）；揭曉動畫：桌機 ≥ 30fps（Chrome 最新版），手機 ≥ 24fps（近 4 年內 mid-range Android Snapdragon 720G 等級及 iPhone 11 以上），詳見 §3.3 成功指標 |
 | 同步延遲 | 房間狀態同步體感 < 2 秒 |
-| 相容性 | Chrome / Safari / Edge（現代版本）；手機 + 桌機均可使用 |
+| 相容性 | Chrome / Firefox / Safari / Edge（現代版本）；手機 + 桌機均可使用 |
 | 可用性 | 玩家 10 秒內可加入房間；Host 1 分鐘內可建立並開局 |
 | 重連 | 玩家重整後帶 playerId 重連，可回到對應房間狀態的正確畫面 |
 | 安全性 | playerId 由 Server 分配；Server 端驗證所有狀態轉換的合法性；所有傳輸均採用 HTTPS/WSS |
@@ -698,25 +698,27 @@ Server 回應錯誤碼（HTTP 或 WebSocket response）：
 
 ## 16. 開放問題
 
-- [ ] **同步方案**：Firebase Realtime Database vs Supabase Realtime，待技術評估決定（影響 Phase 2）
-- [ ] **樓梯渲染**：Canvas vs SVG，待 50 人壓力測試後決定（影響 Phase 3）
+- [x] **同步方案**：已決定 → 採用 **Redis（原子操作 + Pub/Sub）** 搭配 Node.js LTS（見 §17 技術選型）；不採用 Firebase Realtime Database 或 Supabase Realtime
+- [x] **樓梯渲染**：已決定 → 採用 **HTML5 Canvas**（見 §17 技術選型）；不採用 SVG
 - [ ] **Host 離線降級**：MVP 先凍結房間；移交 Host 邏輯及自動恢復機制列入 v2 規劃
 - [ ] **公開隨機種子**：結算頁是否顯示 seed 供玩家驗算，待 UX 評估決定
 - [ ] **房間存活時間**：finished 狀態的房間多久自動清除，待基礎設施成本評估決定
 - [ ] **自動輪播計時器持久性**：Server 重啟後 `revealing` 狀態中的自動輪播計時器是否需要恢復；若不恢復，Host 需手動繼續，應補充對應的 UI 提示設計
 - [x] **PRNG 演算法規格**：已決定 → 採用 **Mulberry32**（32-bit，純整數運算，跨語言移植性最佳）。seed 字串初始化：以 djb2 hash 將 Room seed 字串（UUID hex，去除連字號，共 32 字元）轉為 uint32 作為 Mulberry32 初始狀態（`state = djb2(seed_string) >>> 0`）。三步驟 PRNG 狀態傳遞：①②③ 共享同一 Mulberry32 實例，狀態連續傳遞不重置，確保整個生成流程使用同一序列。步驟 ① startColumn 指派：Fisher-Yates 洗牌 [0..N-1] 共消耗 N 次 PRNG（Knuth shuffle，i 從 N-1 到 1，每次取 `floor(mulberry32() * (i+1))`）。步驟 ② ladderMap 生成：每次嘗試放置消耗 1 次 PRNG（含失敗嘗試，見 §6.2 密度規則）。步驟 ③ resultSlots 中獎位置選取：Fisher-Yates 洗牌 [0..N-1] 取前 W 個位置作為中獎槽，共消耗 N 次 PRNG（與步驟 ① 相同洗牌演算法；取前 W 個元素作為中獎位置，其餘為未中獎）。事後驗算實作必須採用相同演算法、相同 PRNG 消耗順序，`Math.round` 語意使用 .5 進位（見 §6.2 橫槓密度）
-- [ ] **autoRevealInterval 越界處理**：若 Host 設定值超出 1~30 範圍，Server 拒絕並回傳錯誤，不更新 autoRevealInterval；客戶端輸入控制應限制合法範圍，具體錯誤碼待技術規格確認
+- [x] **autoRevealInterval 越界處理**：已決定 → Server 拒絕並回傳 `INVALID_AUTO_REVEAL_INTERVAL` 錯誤（見 §14 錯誤碼目錄），不更新 autoRevealInterval；客戶端輸入控制應限制合法範圍（1~30 秒），正常流程下不觸發此錯誤
 - [ ] **`finished` 狀態房間存活期間玩家體驗**：若 Host 從 `finished` 狀態關閉分頁未按「再玩一局」，玩家持續顯示「請等待主持人開啟下一局後再加入」直到房間 TTL 過期；TTL 設定見「房間存活時間」開放問題
 - [x] **手機端揭曉動畫 FPS 目標**：已決定 → ≥ 24fps（見 §3.3 成功指標更新）；參考裝置：近 4 年內 mid-range Android（Snapdragon 720G 等級）及 iPhone 11 以上
 - [x] **再玩一局後 winnerCount 越界**：已解決 → 見 §7.6「離線玩家移除（pruning）後 W 越界處理」規格
 
 ---
 
-*文件版本：v2.1（PDD rev 3，對應產品 MVP v1）*  
+*文件版本：v2.2（PDD rev 4，對應產品 MVP v1）*  
 *最後更新：2026-04-19*  
-*狀態：Draft — PRNG 演算法規格與手機端 FPS 目標已決定；同步方案 / 樓梯渲染選型待技術評估*
+*狀態：Draft — PRNG 演算法、手機端 FPS 目標、同步方案（Redis）、樓梯渲染（Canvas）、autoRevealInterval 越界錯誤碼均已決定（見 §16、§17）；Host 離線降級、公開隨機種子、房間存活時間、自動輪播計時器持久性待 v2 / PRD 確認*
 
 ## 17. 技術選型（STEP-02 決定）
+
+> 本節技術決定解決了 §16 中的兩個開放問題（「同步方案」→ Redis；「樓梯渲染」→ HTML5 Canvas），相關開放問題已於 §16 標記為 [x]。
 
 | 層 | 技術 |
 |----|------|
