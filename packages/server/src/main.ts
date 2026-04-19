@@ -39,9 +39,14 @@ function sanitizeRoomForClient<T extends { ladder?: unknown; status?: unknown }>
 
 // ─── JWT helpers ─────────────────────────────────────────────────────────────
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env['JWT_SECRET'] ?? 'dev-secret-change-in-prod'
-);
+const jwtSecretRaw = process.env['JWT_SECRET'];
+if (!jwtSecretRaw || jwtSecretRaw.trim() === '') {
+  throw new Error(
+    'JWT_SECRET environment variable is required. ' +
+    'Generate one with: openssl rand -hex 64'
+  );
+}
+const JWT_SECRET = new TextEncoder().encode(jwtSecretRaw);
 
 interface JwtClaims {
   playerId: string;
