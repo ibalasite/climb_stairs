@@ -384,12 +384,29 @@ interface RevealRequest {
 
 **Success Response — 200 OK**
 
-回傳更新後的房間物件（直接 JSON）。
+回傳更新後的房間物件（直接 JSON）：
+
+```json
+{
+  "code": "AB3K7X",
+  "status": "revealing",
+  "hostId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "players": [],
+  "winnerCount": 1,
+  "ladder": null,
+  "revealedCount": 1,
+  "revealMode": "manual",
+  "autoRevealIntervalSec": null,
+  "createdAt": 1745049600000,
+  "updatedAt": 1745050200000
+}
+```
 
 **Error Responses**
 
 | HTTP | 錯誤碼 | 說明 |
 |------|--------|------|
+| 400 | `INVALID_REVEAL_MODE` | `mode` 欄位不合法（非 `"next"` / `"all"`） |
 | 403 | `PLAYER_NOT_HOST` | 操作者不是房主 |
 | 409 | `INVALID_STATE` | 房間狀態非 `revealing` |
 
@@ -515,9 +532,9 @@ Content-Type: application/json
 
 ---
 
-### 9. GET /health 與 GET /ready — 健康 / 就緒檢查
+### 9. GET /health — 健康檢查（Liveness）
 
-回報後端服務、Redis 連線與 WebSocket 連線數狀態。供 Kubernetes liveness（`/health`）與 readiness（`/ready`）probe 使用。
+回報後端服務與 Redis 連線狀態。供 Kubernetes liveness probe 使用。
 
 **Request Headers:** 無
 
@@ -538,6 +555,41 @@ interface HealthResponse {
   "redis": "ok",
   "wsCount": 312,
   "uptime": 86423.7
+}
+```
+
+**Rate Limit:** 100 req/min/IP
+
+---
+
+### 10. GET /ready — 就緒檢查（Readiness）
+
+回報後端是否已準備好接收流量（Redis 連線正常且無正在進行的啟動作業）。供 Kubernetes readiness probe 使用。
+
+**Request Headers:** 無
+
+**Success Response — 200 OK**
+
+```typescript
+interface ReadyResponse {
+  status: "ok" | "not_ready";
+  redis: "ok" | "error";
+}
+```
+
+```json
+{
+  "status": "ok",
+  "redis": "ok"
+}
+```
+
+**Error Response — 503 Service Unavailable**（Redis 未就緒）
+
+```json
+{
+  "status": "not_ready",
+  "redis": "error"
 }
 ```
 
@@ -653,14 +705,30 @@ interface RoomStatePayload {
 type WsEventType = "ROOM_STATE_FULL";
 
 /**
+ * LadderSegment — 梯子橫向連線節點（表示某列某兩欄之間的橫槓）。
+ */
+interface LadderSegment {
+  row: number;    // 行索引（0-based）
+  col: number;    // 左側欄索引（0-based）；橫槓連接 col 與 col+1
+}
+
+/**
  * LadderDataPublic — 在 revealing 狀態發送給客戶端（省略 seed/seedSource）。
- * LadderData（含 seed）僅在 status=finished 時發送。
+ * 前端利用此資料自行計算路徑動畫（PRD NFR-05, MVP Option A）。
  */
 interface LadderDataPublic {
   rowCount: number;
   colCount: number;
   segments: readonly LadderSegment[];
   // seed 與 seedSource 刻意省略 — status=finished 前不對客戶端公開
+}
+
+/**
+ * LadderData — 完整梯子資料，在 status=finished 時發送（含 seed 與 seedSource 供可審計性）。
+ */
+interface LadderData extends LadderDataPublic {
+  seed: number;         // 32-bit 整數，由 seedSource UUID 衍生（Murmur3 hash）
+  seedSource: string;   // UUID v4，START_GAME 時生成，status=finished 前不對外公開
 }
 
 interface RoomStateFullPayload extends RoomStatePayload {
@@ -1145,7 +1213,7 @@ interface UpdateTitlePayload {
 | `PLAYER_NOT_FOUND` | 404 | — | 目標玩家不存在此房間 | 不重試 |
 | `PLAYER_NOT_HOST` | 403 | — | 操作需要房主權限 | 不重試，檢查身份 |
 | `AUTH_INVALID_TOKEN` | 401 | 4001 | JWT 無效（格式錯誤或簽名不符） | 重新加入房間取得新 token |
-| `AUTH_TOKEN_EXPIRED` | 401 | — | JWT 已過期（TTL 6 小時） | 重新加入房間取得新 token |
+| `AUTH_TOKEN_EXPIRED` | 401 | 4001 | JWT 已過期（TTL 6 小時）；WS Upgrade 階段以 4001 拒絕 | 重新加入房間取得新 token |
 | `PLAYER_KICKED` | — | 4003 | 玩家已被踢出，WS Upgrade 階段拒絕 | 不重試（被踢出狀態持續至房間 reset） |
 | `SESSION_REPLACED` | — | 4002 | 同一 playerId 從新連線登入，舊連線被強制關閉 | 不重試，引導用戶重新加入 |
 | `INSUFFICIENT_PLAYERS` | 400 | — | 玩家數 N < 2，無法開始遊戲 | 等待更多玩家加入後重試 |
@@ -1156,6 +1224,7 @@ interface UpdateTitlePayload {
 | `CANNOT_KICK_HOST` | 400 | — | 踢除操作目標為 Host 本身 | 不重試 |
 | `INVALID_NICKNAME` | 400 | — | 暱稱格式不合法（長度超限、含禁止字元） | 修正暱稱後重試 |
 | `INVALID_AUTO_REVEAL_INTERVAL` | 400 | — | SET_REVEAL_MODE intervalSec 不合法（非 1-30 整數） | 修正值後重試 |
+| `INVALID_REVEAL_MODE` | 400 | — | POST /game/reveal 的 `mode` 欄位不合法（非 `"next"` / `"all"`） | 修正值後重試 |
 | `SYS_INTERNAL_ERROR` | 500 | — | 非預期的伺服器內部錯誤 | 可帶 `requestId` 重試一次；持續失敗請聯繫支援 |
 | `RATE_LIMIT` | 429 | 4029 | 超過速率限制（WS: 60 msg/min/conn） | 等待 `Retry-After` 秒數後重試 |
 
@@ -1323,7 +1392,7 @@ wscat -c "wss://api.ladder-room.online/ws?room=AB3K7X&token=eyJhbGciOiJIUzI1NiIs
 
 ---
 
-*API.md 版本：v1.1*
+*API.md 版本：v1.2*
 *生成時間：2026-04-19*
 *修訂時間：2026-04-19（STEP-07 devsop-autodev 與 EDD v1.3 對齊）*
 *修訂重點（v1.1 vs v1.0）：*
@@ -1335,3 +1404,9 @@ wscat -c "wss://api.ladder-room.online/ws?room=AB3K7X&token=eyJhbGciOiJIUzI1NiIs
 *6. PING 說明修正：伺服器回應 PONG（RTT 量測）；新增 PONG 事件文件*
 *7. REVEAL_NEXT / REVEAL_ALL_TRIGGER 說明：不自動轉 finished，需另行 END_GAME*
 *基於 EDD v1.3 + PRD v1.3（Ladder Room Online）*
+*修訂重點（v1.2 — STEP-09 API Review Round 1）：*
+*1. POST /game/reveal 成功回應新增完整 JSON 範例，補充 400 INVALID_REVEAL_MODE 錯誤碼*
+*2. GET /ready 從 GET /health 合併區塊拆分，新增獨立 ReadyResponse schema 與 503 錯誤回應*
+*3. ROOM_STATE_FULL 新增 LadderSegment 介面定義，正式定義 LadderData（含 seed/seedSource）*
+*4. AUTH_TOKEN_EXPIRED 補充 WS close code 4001（WS Upgrade 階段過期 token 以 4001 拒絕）*
+*5. Section 4 錯誤碼表新增 INVALID_REVEAL_MODE 條目*
