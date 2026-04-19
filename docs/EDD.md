@@ -210,7 +210,7 @@ sequenceDiagram
     C->>F: WS MSG: START_GAME
     F->>R: WATCH room:{code} MULTI SET status=running seedSource=uuid EXEC
     R-->>F: EXEC OK
-    Note over F: seed generated (djb2 hash), stored in Redis<br/>ladderMap NOT yet generated (deferred to BEGIN_REVEAL)<br/>seed NOT sent to clients until status=finished
+    Note over F: seed generated (djb2 hash) + ladderMap + resultSlots computed atomically<br/>Full ladder stored in Redis at status=running<br/>seed and ladder data NOT sent to clients until status=finished
     F->>R: PUBLISH room:{code}:events ROOM_STATE
     R-->>F: Deliver to all Pod subscribers
     F-->>C: Broadcast ROOM_STATE { status: running, rowCount } (no ladder, no seed)
@@ -218,8 +218,7 @@ sequenceDiagram
     Note over C,F: Host triggers BEGIN_REVEAL
 
     C->>F: WS MSG: BEGIN_REVEAL
-    F->>F: GenerateLadder(seedSource, N) → ladderMap + resultSlots (atomic)
-    F->>R: Lua script: SET status=revealing, ladder, results atomically
+    F->>R: SET status=revealing (ladder already exists, no recomputation)
     R-->>F: OK
     F->>R: PUBLISH room:{code}:events ROOM_STATE
     F-->>C: Broadcast ROOM_STATE { status: revealing }
@@ -304,9 +303,9 @@ stateDiagram-v2
     [*] --> waiting : POST /api/rooms 建立
 
     waiting --> waiting : player_joined N<50\nplayer_left\nhost updates prizes
-    waiting --> running : host START_GAME\nN>=2 AND 1<=W<=N-1\ngenerate seedSource only\nbcast rowCount（no ladder）
+    waiting --> running : host START_GAME\nN>=2 AND 1<=W<=N-1\natomic: seed+ladderMap+resultSlots generated\nbcast rowCount（no ladder or seed sent to clients）
 
-    running --> revealing : host BEGIN_REVEAL\nbcast ROOM_STATE status:revealing
+    running --> revealing : host BEGIN_REVEAL\nstate transition only（ladder already exists）\nbcast ROOM_STATE status:revealing
 
     revealing --> revealing : REVEAL_NEXT（manual）\nor auto-timer fires（auto mode）\nrevealedCount < N\nbcast REVEAL_INDEX path result
     revealing --> revealing : SET_REVEAL_MODE\nmode manual↔auto\ntimer start/stop
@@ -786,7 +785,7 @@ export function computeResults(ladder: LadderData, winnerCount: number, rng: () 
 ```
 
 > **注意**：`computeResults` 在 `packages/shared` 中為純函式（零 I/O），
-> Server 端 GameService 於 BEGIN_REVEAL 時呼叫，並填入 `playerId`（依 players 陣列順序）。
+> Server 端 GameService 於 START_GAME 時呼叫（與 generateLadder 原子合一），並填入 `playerId`（依 players 陣列順序）；BEGIN_REVEAL 時不重新呼叫，ladder 及 results 已存於 Redis。
 
 ### 7.6 測試策略
 
@@ -1153,33 +1152,33 @@ WS 斷線：
 **START_GAME（`waiting → running`）：**
 
 ```
-// START_GAME 僅寫入 status="running" 及 seedSource；不生成 ladder，不廣播 seed
+// START_GAME 原子生成 seed + ladderMap + resultSlots，一次性寫入 Redis
+// seed 生成與樓梯計算合一，避免中間狀態（PRD AC-H03-1, FR-04-4）
 const seedSource = crypto.randomUUID();
-// seed = djb2(seedSource) >>> 0（計算後存入 Redis，但 rowCount 此時已可廣播）
-// ladder（ladderMap、resultSlots）延遲至 BEGIN_REVEAL 階段原子生成
+// seed = djb2(seedSource) >>> 0
+// ladder = generateLadder(seedSource, N) → ladderMap + resultSlots（含 playerId 綁定）
+// 完整樓梯資料存入 Redis，但不廣播給客戶端（seed 及 ladder 在 status=finished 前保密）
 
 WATCH room:{code}
 MULTI
-  SET room:{code} {...room, status: "running", seedSource, rowCount: clamp(N*3,20,60)}
+  SET room:{code} {...room, status: "running", seedSource, ladder, results, rowCount: clamp(N*3,20,60), revealedCount: 0}
 EXEC
 // EXEC null 代表被 WATCH 修改，需重試（最多 3 次）
 // 成功後廣播 ROOM_STATE（status: "running", rowCount）— 不含 seed、不含 ladder
-// PRD AC-H03-1：seed 在 status=finished 前禁止傳送給任何客戶端
+// PRD AC-H03-1：seed 及完整樓梯資料在 status=finished 前禁止傳送給任何客戶端
 ```
 
-**BEGIN_REVEAL（`running → revealing`）— Lua Script 保證原子性：**
+**BEGIN_REVEAL（`running → revealing`）：**
 
-```lua
--- eval lua_script 1 room:{code} {room_json}
--- 在單一 Lua 腳本中：生成完整 ResultSlots（純計算已在 Server 端完成）、
--- 更新 room.status = "revealing"、寫入 ladder/results/startColumn/endColumn/result
--- Lua 腳本在 Redis 中原子執行，無法被其他命令插入
-local room = cjson.decode(ARGV[1])
-room.status = "revealing"
--- room.ladder, room.results 已由 Server 計算填入 ARGV[1]
-redis.call('SET', KEYS[1], cjson.encode(room))
-redis.call('DEL', KEYS[1] .. ':revealedCount')  -- 重置揭示計數器
-return 1
+```
+// BEGIN_REVEAL 只做狀態轉換，ladder 及 results 已於 START_GAME 生成
+// 不重新計算 ladder，直接更新 status 並廣播揭曉開始（PRD AC-H04-1, FR-04-4）
+
+WATCH room:{code}
+MULTI
+  SET room:{code} {...room, status: "revealing"}
+EXEC
+// 成功後廣播 ROOM_STATE（status: "revealing"）
 ```
 
 **10 秒 Rollback Timeout（PDD §7.1）：**
