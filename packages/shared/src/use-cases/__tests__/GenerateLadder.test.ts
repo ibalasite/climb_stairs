@@ -103,17 +103,34 @@ describe('generateLadder', () => {
     });
   });
 
-  describe('dense column packing (triggers !found branch)', () => {
-    it('N=2 produces a valid ladder even when column space is fully saturated', () => {
-      // N=2 means only one possible bar position (col 0). After it is placed,
-      // the retry loop cannot find a free column and hits the !found break.
-      // This exercises GenerateLadder line 37.
+  describe('N=2 randomness (bar density)', () => {
+    it('N=2 bars are all at col 0 (only valid position)', () => {
       const ladder = generateLadder('dense-seed', 2);
       expect(ladder.colCount).toBe(2);
       expect(ladder.rowCount).toBe(20);
-      // Each row can have at most 1 bar (the only valid column is 0)
       for (const seg of ladder.segments) {
         expect(seg.col).toBe(0);
+      }
+    });
+
+    it('N=2 does not fill every row — at least 20% of rows are empty', () => {
+      // With ~50% bar density, in 20 rows we expect roughly 10 bars on average.
+      // Across multiple seeds, the total should stay well below rowCount.
+      const seeds = ['alpha', 'beta', 'gamma', 'delta', 'epsilon'];
+      for (const seed of seeds) {
+        const ladder = generateLadder(seed, 2);
+        const filledRows = new Set(ladder.segments.map(s => s.row)).size;
+        // Must have at least 20% empty rows (i.e., filled < 80% of rowCount)
+        expect(filledRows).toBeLessThan(ladder.rowCount * 0.8);
+      }
+    });
+
+    it('N=2 has some bars — at least 10% of rows are filled', () => {
+      const seeds = ['alpha', 'beta', 'gamma', 'delta', 'epsilon'];
+      for (const seed of seeds) {
+        const ladder = generateLadder(seed, 2);
+        const filledRows = new Set(ladder.segments.map(s => s.row)).size;
+        expect(filledRows).toBeGreaterThan(ladder.rowCount * 0.1);
       }
     });
   });
