@@ -102,12 +102,11 @@ export interface LadderData {
 }
 
 // 在 revealing 狀態傳給客戶端（省略 seed/seedSource）
-interface LadderDataPublic {
-  rowCount: number;
-  colCount: number;
-  segments: readonly LadderSegment[];
-  // seed 與 seedSource 刻意省略
-}
+// 注意：LadderDataPublic 為伺服器層概念型別，不從 packages/shared 匯出；
+// RoomStateFullPayload.ladder 實際型別為 LadderData | null，
+// 伺服器在廣播前自行移除 seed/seedSource 欄位。
+// LadderDataPublic 僅作為文件參考，不對應 shared 中任何匯出型別。
+type LadderDataPublic = Omit<LadderData, 'seed' | 'seedSource'>;
 ```
 
 ### §2.4 PathStep
@@ -136,6 +135,7 @@ export interface ResultSlot {
 
 // REVEAL_ALL payload 專用（省略 path，符合 64KB 限制）
 // N=50, rowCount=60 時完整 path 約 150KB，超過 WebSocket maxPayload
+// 注意：ResultSlotPublic 為伺服器層概念型別，不從 packages/shared 匯出。
 type ResultSlotPublic = Omit<ResultSlot, 'path'>;
 ```
 
@@ -236,9 +236,11 @@ export type WsMsgType =
 
 ### §3.3 完整 Server→Client Payload Union
 
+以下型別均從 `packages/shared/src/types/index.ts` 匯出（`export interface`），供前後端共用。
+
 ```typescript
-// ROOM_STATE
-interface RoomStatePayload {
+// ROOM_STATE（broadcast）
+export interface RoomStatePayload {
   code: string;
   status: RoomStatus;
   hostId: string;
@@ -250,47 +252,65 @@ interface RoomStatePayload {
 }
 
 // ROOM_STATE_FULL（unicast，含完整 ladder/results）
-interface RoomStateFullPayload extends RoomStatePayload {
-  ladder: LadderDataPublic | LadderData | null;
+// ladder 型別為 LadderData | null；伺服器在 revealing 狀態廣播前
+// 自行移除 seed/seedSource 欄位，但 TypeScript 型別保持完整 LadderData。
+export interface RoomStateFullPayload extends RoomStatePayload {
+  ladder: LadderData | null;
   results: readonly ResultSlot[] | null;
   selfPlayerId: string;
 }
 
-// REVEAL_INDEX
-interface RevealIndexPayload {
+// REVEAL_INDEX（broadcast）
+export interface RevealIndexPayload {
   playerIndex: number;
   result: ResultSlot;      // 含完整 path（單一玩家，安全在 64KB 內）
   revealedCount: number;
   totalCount: number;
 }
 
-// REVEAL_ALL
+// REVEAL_ALL（broadcast）
+// RevealAllPayload 為伺服器層型別，不從 packages/shared 匯出；
+// 伺服器實作時使用 Omit<ResultSlot, 'path'>[] 構造，省略 path 以符合 64KB 限制。
 interface RevealAllPayload {
-  results: readonly ResultSlotPublic[];   // 省略 path，符合 64KB 限制
+  results: readonly ResultSlotPublic[];   // ResultSlotPublic = Omit<ResultSlot, 'path'>
 }
 
-// PLAYER_KICKED
+// PLAYER_KICKED（unicast）
+// PlayerKickedPayload 為伺服器層型別，不從 packages/shared 匯出。
 interface PlayerKickedPayload {
   kickedPlayerId: string;
   reason: string;
 }
 
-// SESSION_REPLACED
-interface SessionReplacedPayload {
+// SESSION_REPLACED（unicast）
+export interface SessionReplacedPayload {
   message: string;
 }
 
-// HOST_TRANSFERRED
-interface HostTransferredPayload {
+// HOST_TRANSFERRED（broadcast）
+export interface HostTransferredPayload {
   newHostId: string;
-  reason: 'disconnect_timeout';
+  reason: string;  // 實作值為 'disconnect_timeout'，型別為寬鬆 string
 }
 
-// ERROR
-interface ErrorPayload {
+// ERROR（unicast）
+export interface ErrorPayload {
   code: string;
   message: string;
-  requestId?: string;
+  // requestId 不在 shared 型別中；如需追蹤請求，由伺服器層自行擴展
+}
+```
+
+#### 額外匯出型別（packages/shared 存在但 §3 未列出）
+
+```typescript
+// 房間摘要（用於大廳列表等場景）
+export interface RoomSummaryPayload {
+  code: string;
+  status: RoomStatus;
+  playerCount: number;
+  onlineCount: number;
+  maxPlayers: number;
 }
 ```
 
@@ -366,6 +386,7 @@ interface ErrorPayload {
 
 ---
 
-*SCHEMA 版本：v2.0*
+*SCHEMA 版本：v2.1*
 *生成時間：2026-04-21（devsop-autodev STEP-09）*
+*修訂時間：2026-04-21（devsop-autodev STEP-12 Schema Review Round 1）*
 *基於 EDD v2.0 + PRD v1.4 + legacy-SCHEMA v1.1 + packages/shared/src/types/index.ts*
