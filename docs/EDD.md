@@ -310,7 +310,7 @@ packages/server/src/
 | `RedisClient.ts` | 建立並匯出 ioredis 單例（含連線重試設定） |
 | `RoomRepository.ts` | 實作 IRoomRepository：對 Redis 進行 Room 的 CRUD、TTL 管理；WATCH/MULTI/EXEC 原子操作；BEGIN_REVEAL 使用 Lua Script |
 | `RoomService.ts` | 協調房間建立、加入、踢出等業務流程，呼叫 RoomRepository 並觸發廣播 |
-| `GameService.ts` | 協調遊戲開局（START_GAME）、開始揭曉（BEGIN_REVEAL）、逐一揭曉（REVEAL_NEXT）、全揭（REVEAL_ALL_TRIGGER）、結束（END_GAME）、再玩一局（PLAY_AGAIN）流程 |
+| `GameService.ts` | 協調遊戲開局（START_GAME）、開始揭曉（BEGIN_REVEAL）、逐一揭曉（REVEAL_NEXT）、全揭（REVEAL_ALL_TRIGGER）、結束（END_GAME）、再玩一局（PLAY_AGAIN）、重置房間（RESET_ROOM）流程 |
 | `container.ts` | 以工廠函式組裝所有依賴（DI 根），回傳完整注入樹，不含業務邏輯 |
 | `main.ts` | 啟動 Fastify（REST 路由 + AJV Schema + CORS + Rate Limit）、ws.Server（JWT 驗證、kickedPlayerIds 攔截 close 4003、Origin 驗證、心跳 ping/pong 30s、速率限制 60 msg/min），以及 Redis Pub/Sub 訂閱；含 graceful shutdown |
 
@@ -574,11 +574,11 @@ Server Upgrade 階段驗證 JWT token，失敗直接 403。
 | `ROOM_STATE` | 房間狀態變更 | 廣播至所有玩家（摘要，不含 ladder/results） |
 | `ROOM_STATE_FULL` | WS 連線成功後 unicast | 含 ladder + results + selfPlayerId；新連線與重連均觸發 |
 | `REVEAL_INDEX` | 手動/自動揭曉單一玩家 | `{ playerIndex, result（含 path）, revealedCount, totalCount }` |
-| `REVEAL_ALL` | 一鍵全揭 | `{ results: ResultSlotPublic[] }`（省略 path，符合 64KB 限制） |
+| `REVEAL_ALL` | 一鍵全揭 | `{ results: ResultSlotPublic[], room }`（省略 path，符合 64KB 限制） |
 | `PLAYER_KICKED` | 玩家被踢除 | unicast 給被踢玩家；WS close code 4003 |
 | `SESSION_REPLACED` | 同一 playerId 新連線登入 | 發給被替換的舊連線 |
-| `PONG` | 回應客戶端 PING | RTT 量測用途 |
-| `ERROR` | 操作失敗 | `{ code, message, requestId? }`；unicast 給觸發方 |
+| `HOST_TRANSFERRED` | 主持人轉移（Post-MVP） | 廣播新 hostId |
+| `ERROR` | 操作失敗 | `{ code, message }`；unicast 給觸發方 |
 
 **Client → Server 訊息（WsMsgType）：**
 
@@ -588,13 +588,12 @@ Server Upgrade 階段驗證 JWT token，失敗直接 403。
 | `BEGIN_REVEAL` | Host 開始揭曉（running→revealing） |
 | `REVEAL_NEXT` | Host 手動揭曉下一位 |
 | `REVEAL_ALL_TRIGGER` | Host 一鍵全揭 |
-| `SET_REVEAL_MODE` | 切換手動/自動模式；auto 時 intervalSec 必填（1-30 整數） |
+| `SET_REVEAL_MODE` | 切換手動/自動模式；auto 時 intervalSec 必填（1-300 整數） |
 | `END_GAME` | Host 結束本局（revealing→finished，需 revealedCount===totalCount） |
 | `PLAY_AGAIN` | Host 再玩一局（finished→waiting） |
-| `KICK_PLAYER` | Host 踢除玩家（waiting 狀態限定） |
-| `UPDATE_WINNER_COUNT` | Host 更新中獎名額 W（waiting 狀態限定，1≤W≤N-1） |
-| `UPDATE_TITLE` | Host 更新房間名稱（waiting 狀態限定，0-50 字元） |
-| `PING` | 應用層心跳，Server 回 PONG |
+| `RESET_ROOM` | Host 重置房間（任意狀態，清空結果回 waiting） |
+| `KICK_PLAYER` | Host 踢除玩家；payload: `{ targetPlayerId }` |
+| `PING` | 應用層心跳（Server 不回 PONG，僅維持連線） |
 
 **訊息格式：**
 
@@ -667,19 +666,18 @@ WS 重連策略（Client）
 
 ```typescript
 interface Room {
-  readonly code: string;           // 6-char room code
-  title: string | null;            // optional room name (0-50 chars)
-  status: RoomStatus;              // waiting/running/revealing/finished
-  hostId: string;                  // Host playerId
-  players: readonly Player[];      // max 50，含 isOnline=false 的斷線玩家
-  winnerCount: number | null;      // W（1 <= W <= N-1）；null 直到 Host 設定
-  ladder: LadderData | null;       // null 直到 BEGIN_REVEAL
+  code: string;                          // 6-char room code
+  status: RoomStatus;                    // waiting/running/revealing/finished
+  hostId: string;                        // Host playerId
+  readonly players: readonly Player[];   // max 50，含 isOnline=false 的斷線玩家
+  winnerCount: number | null;            // W（1 <= W <= N-1）；null 直到 Host 設定
+  ladder: LadderData | null;             // null 直到 BEGIN_REVEAL
   results: readonly ResultSlot[] | null;
-  revealedCount: number;           // 已揭曉數（快照；唯一計數來源為 :revealedCount key）
+  revealedCount: number;                 // 已揭曉數（快照；唯一計數來源為 :revealedCount key）
   revealMode: "manual" | "auto";
-  autoRevealIntervalSec: number | null;  // 1-30s；null 為手動模式
-  kickedPlayerIds: readonly string[];    // 本局被踢玩家 playerId，PLAY_AGAIN 後清空
-  readonly createdAt: number;
+  autoRevealIntervalSec: number | null;  // 1-300s；null 為手動模式
+  readonly kickedPlayerIds: readonly string[];  // 本局被踢玩家 playerId，RESET_ROOM/PLAY_AGAIN 後清空
+  createdAt: number;
   updatedAt: number;
 }
 ```
@@ -688,13 +686,13 @@ interface Room {
 
 ```typescript
 interface Player {
-  readonly id: string;           // UUID v4
-  readonly nickname: string;     // 1-20 chars
-  readonly colorIndex: number;   // 0-49
-  readonly isHost: boolean;      // 派生：id === room.hostId
+  id: string;              // UUID v4
+  nickname: string;        // 1-20 chars
+  colorIndex: number;      // 0-49
+  isHost: boolean;         // 派生：id === room.hostId
   isOnline: boolean;
-  readonly joinedAt: number;     // Unix ms
-  result: 'win' | 'lose' | null; // null 直到揭曉
+  joinedAt: number;        // Unix ms
+  result?: string | null;  // null 直到揭曉；winner/loser 字串由 GameService 寫入
 }
 ```
 
@@ -717,7 +715,12 @@ stateDiagram-v2
 
     finished --> waiting : host PLAY_AGAIN\n剔除 isOnline=false 玩家\n清空 kickedPlayerIds\nbcast ROOM_STATE waiting
 
-    waiting --> [*] : room TTL expired 4h（PRD FR-01-2）
+    waiting --> waiting : host RESET_ROOM（任意狀態可觸發）\n清空結果與 kickedPlayerIds\nbcast ROOM_STATE waiting
+    running --> waiting : host RESET_ROOM
+    revealing --> waiting : host RESET_ROOM
+    finished --> waiting : host RESET_ROOM
+
+    waiting --> [*] : room TTL expired
     running --> [*] : all disconnected 5 min
     finished --> [*] : room TTL expired 1h
 ```
@@ -873,7 +876,7 @@ Redis 操作：< 500 ops/s（Redis 可承受 100k+ ops/s）
 | `INVALID_NICKNAME` | 400 | 暱稱格式不合法 |
 | `ROOM_CODE_GENERATION_FAILED` | 500 | Room Code 碰撞重試超過 10 次 |
 | `TITLE_UPDATE_NOT_ALLOWED_IN_STATE` | 409 | 在非 waiting 狀態嘗試更新 title |
-| `INVALID_AUTO_REVEAL_INTERVAL` | 400 | intervalSec 不為整數或超出 1-30 範圍 |
+| `INVALID_INTERVAL` | 400 | intervalSec 不為有限數字或超出 1-300 範圍（WS ERROR，非 HTTP） |
 | `SYS_INTERNAL_ERROR` | 500 | 非預期錯誤 |
 | `RATE_LIMIT` | 429 | 超過速率限制 |
 
