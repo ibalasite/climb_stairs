@@ -284,66 +284,54 @@ graph TD
 ```
 packages/server/src/
 ├── infrastructure/
-│   ├── redis/
-│   │   ├── RedisClient.ts        # ioredis singleton
-│   │   ├── RoomRepository.ts     # Redis CRUD + TTL + 原子操作
-│   │   └── PubSubBroker.ts       # Redis Pub/Sub 封裝
-│   └── websocket/
-│       ├── WsServer.ts           # ws Server 封裝、JWT 驗證、kickedPlayerIds 攔截
-│       └── WsSession.ts          # 單一連線 session 管理、心跳、速率限制
+│   └── redis/
+│       ├── IRoomRepository.ts    # 倉儲介面（IRoomRepository）
+│       ├── RedisClient.ts        # ioredis singleton
+│       └── RoomRepository.ts    # Redis CRUD + TTL + 原子操作；IRoomRepository 實作
 ├── application/
 │   ├── services/
 │   │   ├── RoomService.ts        # 業務邏輯協調（建立/加入/踢除/再玩一局）
 │   │   └── GameService.ts        # 遊戲流程（START_GAME/BEGIN_REVEAL/REVEAL/END_GAME）
-│   └── handlers/
-│       ├── WsMessageHandler.ts   # 解析 ClientEnvelope，二次驗證，分派 Service
-│       └── PubSubHandler.ts      # 訂閱 Redis 頻道，轉發廣播至本地 WsSession
-├── presentation/
-│   ├── routes/
-│   │   ├── rooms.ts              # POST /rooms、GET /rooms/:code、game endpoints
-│   │   └── players.ts            # POST /rooms/:code/players、DELETE .../players/:id
-│   ├── schemas/                  # Fastify AJV JSON Schema
-│   └── plugins/
-│       ├── auth.ts               # JWT 驗證 Fastify plugin
-│       └── cors.ts               # CORS plugin
+│   └── handlers/                 # （預留目錄，WS 路由邏輯內嵌於 main.ts）
+├── domain/
+│   └── errors/
+│       └── DomainError.ts        # base typed error
 ├── container.ts                  # DI 工廠，組裝所有依賴
-└── main.ts                       # 啟動入口：Fastify + WsServer + PubSubBroker
+└── main.ts                       # 啟動入口：Fastify + ws.Server（含 JWT 驗證、速率限制、廣播邏輯）+ Pub/Sub 訂閱
 ```
+
+> **實作說明（MVP）：** WebSocket 升級/驗證、HTTP 路由、Pub/Sub 廣播等邏輯目前集中於 `main.ts`（< 800 行）；`container.ts` 組裝 DI；`RoomService`/`GameService` 封裝業務邏輯；Post-MVP 可按下列分拆方向重構：`WsServer.ts`（ws.Server 封裝）、`PubSubBroker.ts`（Pub/Sub）、presentation routes/schemas/plugins。
 
 **各模組單句職責：**
 
 | 模組 | 職責 |
 |------|------|
+| `IRoomRepository.ts` | 定義倉儲介面：Room CRUD 方法簽名，供 Service 層依賴注入 |
 | `RedisClient.ts` | 建立並匯出 ioredis 單例（含連線重試設定） |
 | `RoomRepository.ts` | 實作 IRoomRepository：對 Redis 進行 Room 的 CRUD、TTL 管理；WATCH/MULTI/EXEC 原子操作；BEGIN_REVEAL 使用 Lua Script |
-| `PubSubBroker.ts` | 封裝 Redis PUBLISH 與 PSUBSCRIBE，抽象跨 Pod 廣播細節 |
-| `WsServer.ts` | 封裝 ws.Server，處理 HTTP Upgrade、JWT 驗證、kickedPlayerIds 攔截（close 4003）、Origin 驗證 |
-| `WsSession.ts` | 管理單一 WebSocket 連線生命週期：心跳（ws 內建 ping/pong 30s）、序列化/反序列化、速率限制（60 msg/min）、斷線計時 |
-| `RoomService.ts` | 協調房間建立、加入、踢出等業務流程，呼叫 RoomRepository 並發布 ROOM_STATE 廣播 |
+| `RoomService.ts` | 協調房間建立、加入、踢出等業務流程，呼叫 RoomRepository 並觸發廣播 |
 | `GameService.ts` | 協調遊戲開局（START_GAME）、開始揭曉（BEGIN_REVEAL）、逐一揭曉（REVEAL_NEXT）、全揭（REVEAL_ALL_TRIGGER）、結束（END_GAME）、再玩一局（PLAY_AGAIN）流程 |
-| `WsMessageHandler.ts` | 解析 ClientEnvelope，執行二次 role + room.hostId 驗證，分派至對應 Service 方法 |
-| `PubSubHandler.ts` | 訂閱 Redis `room:*:events` 頻道，將收到的 PubSubMessage 轉發至房間內所有本地 WsSession |
 | `container.ts` | 以工廠函式組裝所有依賴（DI 根），回傳完整注入樹，不含業務邏輯 |
-| `main.ts` | 啟動 Fastify 伺服器、掛載 WsServer、初始化 PubSubBroker，設定 graceful shutdown |
+| `main.ts` | 啟動 Fastify（REST 路由 + AJV Schema + CORS + Rate Limit）、ws.Server（JWT 驗證、kickedPlayerIds 攔截 close 4003、Origin 驗證、心跳 ping/pong 30s、速率限制 60 msg/min），以及 Redis Pub/Sub 訂閱；含 graceful shutdown |
 
 ### §4.2 Client Modules
 
 ```
 packages/client/src/
 ├── ui/
-│   ├── lobby.ts              # 大廳頁面：建立/加入房間 UI 邏輯
+│   ├── lobby.ts              # 大廳頁面：建立/加入房間 UI 邏輯（含 localStorage 暱稱預填 + URL 房號解析）
 │   ├── waitingRoom.ts        # 等待大廳：玩家列表、複製邀請連結、主持人控制
-│   └── gameView.ts           # 遊戲視圖：Canvas 容器、揭曉控制按鈕、結果展示
+│   ├── game.ts               # 遊戲視圖：Canvas 容器、揭曉控制按鈕、結果展示
+│   └── toast.ts              # Toast 通知元件（短暫提示訊息）
 ├── canvas/
-│   ├── LadderRenderer.ts     # Canvas 2D 梯子繪製（rails、rungs、paths、winner stars）
-│   └── AnimationController.ts # requestAnimationFrame 驅動、FPS 控制、動畫狀態機
+│   ├── renderer.ts           # Canvas 2D 梯子繪製（rails、rungs、paths、winner stars）；requestAnimationFrame 動畫驅動
+│   └── colors.ts             # 玩家色彩系統：colorFromIndex / colorFromIndexDim（最多 50 色）
 ├── state/
-│   ├── RoomStore.ts          # 客戶端房間狀態（基於 ROOM_STATE_FULL / ROOM_STATE 更新）
+│   ├── store.ts              # 客戶端房間狀態（基於 ROOM_STATE_FULL / ROOM_STATE 更新）
 │   └── LocalStorageService.ts # localStorage 讀寫（playerId、ladder_last_nickname）
 ├── ws/
-│   ├── WsClient.ts           # WebSocket 連線管理、指數退避重連（1/2/4/8/30s）
-│   └── EventBus.ts           # 事件訂閱/發布，UI 元件解耦
-└── main.ts                   # 入口：初始化 WsClient、EventBus、UI 模組
+│   └── client.ts             # WebSocket 連線管理、指數退避重連（1/2/4/8/30s）；事件分派至 UI
+└── main.ts                   # 入口：初始化 WS client、store、UI 模組
 ```
 
 **localStorage Keys：**
@@ -361,16 +349,6 @@ packages/client/src/
 
 ```
 packages/shared/src/
-├── domain/
-│   ├── entities/
-│   │   ├── Room.ts           # Room aggregate root
-│   │   ├── Player.ts         # Player value object
-│   │   └── Ladder.ts         # Ladder + Segment entities
-│   ├── value-objects/
-│   │   ├── RoomCode.ts       # 6-char code validation
-│   │   └── RoomStatus.ts     # enum: waiting/running/revealing/finished
-│   └── errors/
-│       └── DomainError.ts    # base typed error
 ├── use-cases/
 │   ├── GenerateLadder.ts     # 梯子生成 use case（pure function）
 │   ├── ValidateGameStart.ts  # N>=2, 1<=W<=N-1 驗證
@@ -379,8 +357,9 @@ packages/shared/src/
 │   ├── mulberry32.ts         # Mulberry32 PRNG 實作
 │   ├── djb2.ts               # seed hash（string → uint32）
 │   └── fisherYates.ts        # Fisher-Yates 洗牌
-└── types/
-    └── index.ts              # 所有共用 TypeScript interface/type
+├── types/
+│   └── index.ts              # 所有共用 TypeScript interface/type（Room、Player、LadderData 等）
+└── index.ts                  # 公開匯出入口
 ```
 
 **主要匯出類型：**
@@ -523,7 +502,7 @@ const winnerEndCols = new Set(shuffled.slice(0, winnerCount));
 
 ### §5.3 Canvas Rendering
 
-**函式：** `packages/client/src/canvas/LadderRenderer.ts`
+**函式：** `packages/client/src/canvas/renderer.ts`
 
 **繪製流程（drawLadder）：**
 
@@ -536,7 +515,7 @@ const winnerEndCols = new Set(shuffled.slice(0, winnerCount));
 4. **Player names（玩家名稱）**：頂部各列顯示玩家暱稱
 5. **Winner stars（中獎標記）**：中獎者 `shadowBlur=10` 金色光暈效果
 
-**顏色系統：**
+**顏色系統（`packages/client/src/canvas/colors.ts`）：**
 - `colorFromIndex(i)`：每位玩家一個不重複色（最多 50 色）
 - `colorFromIndexDim(i)`：淡化版（他人路徑，`globalAlpha=0.6`）
 
