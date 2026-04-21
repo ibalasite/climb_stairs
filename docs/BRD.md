@@ -115,7 +115,7 @@ LINE 爬樓梯遊戲是廣泛使用的抽獎互動形式，但原生版本存在
 |------------|---------|---------|
 | KR1：技術基礎可靠 | 建立房間成功率 ≥ 99.5%，連續 30 天 | MVP 上線後第 1 個月 |
 | KR2：用戶體驗順暢 | P95 玩家加入時間 < 1.5 秒 | MVP 上線前通過 E2E 測試 |
-| KR3：結果公信力 | 1,000 次自動化 seed 測試 100% bijection 驗證通過 | MVP 上線前 |
+| KR3：結果公信力 | 主持人與玩家零舞弊投訴（seed 驗證機制確保可事後驗算） | MVP 上線後 30 天 |
 
 > **⚠️ [TODO]** §3.3 OKR 中的 KR 需補充實際業務成長目標（如：月活用戶數、房間創建數量等），目前僅有技術層面指標。
 
@@ -252,7 +252,7 @@ LINE 爬樓梯遊戲是廣泛使用的抽獎互動形式，但原生版本存在
 6. **動畫主題或皮膚自訂**：MVP 使用單一視覺主題
 7. **抽獎結果匯出（PDF / CSV）**：MVP 不提供結果下載功能
 8. **國際化（i18n）多語言支援**：MVP 以繁體中文為唯一介面語言
-9. **伺服器端水平擴展（Multi-node clustering）**：MVP 以單一 Node.js 實例部署
+9. **多 Pod 水平擴展（HPA Multi-node）**：MVP 以單一 Kubernetes Pod 部署，不啟用 HPA 自動水平擴展；K8s 部署設定本身在 MVP 範圍內（單 Pod），HPA 多 Pod 動態擴展為 Post-MVP 功能
 10. **聲音效果與背景音樂**：MVP 不包含音效
 
 ### §5.3 Assumptions & Dependencies
@@ -368,7 +368,7 @@ LINE 爬樓梯遊戲是廣泛使用的抽獎互動形式，但原生版本存在
 | WebSocket 連線數 | 5,000 個 | 單一伺服器實例 |
 | Redis 記憶體 | ~8.8 MB（100 房間） | 每房間 ~88 KB |
 
-**水平擴展策略（Post-MVP）**：Kubernetes HPA 依 WebSocket 連線數自動擴展後端 Pod；Traefik Ingress 做 sticky session；Redis 作為唯一共享狀態層。
+**水平擴展策略（Post-MVP）**：MVP 以單一 Pod 部署；Post-MVP 啟用 Kubernetes HPA 依 WebSocket 連線數自動擴展後端 Pod；Traefik Ingress 做 sticky session；Redis 作為唯一共享狀態層解耦 Pod 間狀態依賴。
 
 ### §8.4 Security
 
