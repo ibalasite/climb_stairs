@@ -199,7 +199,7 @@ sequenceDiagram
     F->>R: PUBLISH room:{code}:events ROOM_STATE(revealing)
     F-->>C: Broadcast ROOM_STATE { status: revealing } (seed 不公開)
 
-    Note over C,F: 逐步揭曉
+    Note over C,F: 逐步揭曉（手動模式）
     C->>F: WS MSG: REVEAL_NEXT {}
     F->>R: INCR room:{code}:revealedCount (原子)
     R-->>F: newCount
@@ -207,7 +207,15 @@ sequenceDiagram
     F->>R: PUBLISH REVEAL_INDEX { playerIndex, result, revealedCount, totalCount }
     F-->>C: Broadcast REVEAL_INDEX
 
-    Note over C,F: 結束本局
+    Note over C,F: 一鍵全揭（REVEAL_ALL_TRIGGER）
+    C->>F: WS MSG: REVEAL_ALL_TRIGGER {}
+    F->>R: GET room:{code}:ladder + GET room:{code}:results (pipeline)
+    R-->>F: ladder + results[]
+    F->>R: WATCH+MULTI/EXEC SET revealedCount=totalCount / status=finished / TTL 降至 1h
+    F->>R: PUBLISH ROOM_STATE { status: finished, seed, results: ResultSlotPublic[] }
+    F-->>C: Broadcast ROOM_STATE (seed 首次公開，results 省略 path 符合 64KB 限制)
+
+    Note over C,F: 結束本局（手動模式）
     C->>F: WS MSG: END_GAME {} (revealedCount == totalCount)
     F->>R: WATCH+MULTI/EXEC SET status=finished / TTL 降至 1h
     F->>R: PUBLISH ROOM_STATE { status: finished, seed, results[] }
@@ -218,7 +226,8 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant C as Client Browser
+    participant C as Client Browser (新連線)
+    participant Cold as Client Browser (舊連線)
     participant F as Fastify Pod
     participant R as Redis
 
@@ -229,7 +238,7 @@ sequenceDiagram
     R-->>F: 0 (未被踢)
     F->>F: 驗證 JWT HS256
     F->>F: PlayerSessionIndex.get(playerId) => 舊 sessionId
-    F-->>C_old: SESSION_REPLACED (unicast 給舊連線)
+    F-->>Cold: SESSION_REPLACED (unicast 給舊連線)
     F->>R: pipeline GET room:{code}, room:{code}:ladder, room:{code}:revealedCount
     F->>R: WATCH+MULTI/EXEC SET player.isOnline=true + TTL reset
     F->>R: PUBLISH ROOM_STATE (player 重新上線)
@@ -390,7 +399,7 @@ graph TD
 1. **先升級 Redis**：StatefulSet `replicas` 從 1 改為 2，等待 replica 同步完成
 2. **驗證 Pub/Sub**：確認 `prom-client` 已暴露 `ws_active_connections` Gauge
 3. **Deployment 啟用多 Pod**：移除固定 `replicas: 1`，新增 HPA（minReplicas: 2, maxReplicas: 10, metric: ws_active_connections 目標 200）
-4. **確認 Ingress affinity**：`nginx.ingress.kubernetes.io/affinity: cookie`（MVP 已設定）
+4. **確認 Ingress affinity**：Traefik sticky session（`traefik.ingress.kubernetes.io/service.sticky.cookie: "true"`）（MVP 已設定）
 5. **滾動更新觀察**：客戶端指數退避重連後收到 ROOM_STATE_FULL 恢復狀態
 6. **Pub/Sub 驗證**：跨 Pod 廣播正常（k6 模擬多 Pod 場景）
 
