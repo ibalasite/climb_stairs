@@ -144,10 +144,11 @@ font-family: system-ui, -apple-system, 'Segoe UI',
 .btn-sm       → 小尺寸版本：width: auto，padding 縮小
 ```
 
-**Hover / Active 狀態**：
+**Hover / Active / Focus 狀態**：
 - Hover（未 disabled）：`opacity: 0.88; transform: translateY(-1px)`
 - Active：`transform: translateY(0)`
-- Disabled：`opacity: 0.4; cursor: not-allowed`
+- Disabled：`opacity: 0.4; cursor: not-allowed; pointer-events: none`
+- Focus-visible：`outline: 2px solid var(--accent); outline-offset: 2px`（確保鍵盤操作可見對比度 AA）
 - Transition：`200ms`（`--duration`）
 
 ### §4.2 Input（輸入框）
@@ -171,10 +172,11 @@ background: var(--card)     → #1a1a2e
 border: 1px solid var(--border)
 border-radius: 12px
 padding: 1.5rem
-max-width: 420px
+width: 100%          → 手機預設全寬
+max-width: 420px     → @media (min-width: 768px) 限制最大寬
 ```
 
-大廳與等待室的所有功能區塊均以 Card 包裝，最大寬度 420px，手機全寬展示。
+大廳與等待室的所有功能區塊均以 Card 包裝。手機（< 768px）全寬展示（`width: 100%`）；平板及桌機（>= 768px）限制最大寬度 `420px` 並水平置中。
 
 ### §4.4 Badge（徽章）
 
@@ -220,10 +222,15 @@ width: 10px; height: 10px; border-radius: 50%
 
 ```
 width: 8px; height: 8px; border-radius: 50%
+display: inline-block; vertical-align: middle
 .connected    → background: #55c855（綠）
 .connecting   → background: #ffd700（金，pulse 動畫）
 .disconnected → background: #e05555（紅）
 ```
+
+**互動狀態**：
+- 此元件為純展示（`role="img"`），不接受 focus；aria 由父元素 `aria-label` 描述
+- 若包裝在可點擊父容器內，focus 落在父容器上（繼承父容器 `focus-visible` 樣式）
 
 ---
 
@@ -387,9 +394,9 @@ width: 8px; height: 8px; border-radius: 50%
 
 ### §5.4 Result View（結果顯示）
 
-結果在 Game View 的 Sidebar 中即時顯示，並在 `finished` 狀態後全螢幕呈現得獎名單。
+結果在 Game View 的 Sidebar 中即時顯示，並在 `finished` 狀態後以全螢幕呈現得獎名單。
 
-**結果列表項目（`.result-item`）**：
+**Sidebar 結果列表（行內版）**：
 
 ```
 中獎者：
@@ -403,19 +410,54 @@ width: 8px; height: 8px; border-radius: 50%
 └─────────────────────────────────────────┘
 ```
 
+**`finished` 全螢幕結果頁佈局**：
+
+```
+┌──────────────────────────────────────────────────────┐
+│  HEADER（房間名稱 + FINISHED status badge）           │
+├─────────────────────────────────────────┬────────────┤
+│                                         │ ┌────────┐ │
+│    Canvas（金色光暈路徑持續顯示）         │ │ 🏆 得獎 │ │
+│                                         │ │ 名單   │ │
+│                                         │ │ ─────  │ │
+│                                         │ │  1. ♛  │ │
+│                                         │ │  Alice  │ │
+│                                         │ │  ──── │ │
+│                                         │ │  2. Bob │ │
+│                                         │ │  3.Carol│ │
+│                                         │ │  ...    │ │
+│                                         │ │（捲動） │ │
+│                                         │ ├────────┤ │
+│                                         │ │[再玩一局]│ │  主持人限定
+│                                         │ └────────┘ │
+└─────────────────────────────────────────┴────────────┘
+
+手機版（< 768px）：
+┌──────────────────────────────────────────────────────┐
+│  HEADER                                              │
+├──────────────────────────────────────────────────────┤
+│    Canvas（金色光暈路徑持續顯示，max 50vh）            │
+├──────────────────────────────────────────────────────┤
+│  得獎名單（橫向捲動列表，max-height: 200px）           │
+├──────────────────────────────────────────────────────┤
+│  [再玩一局]（主持人限定）                              │
+└──────────────────────────────────────────────────────┘
+```
+
 **結果項目元素**：
 - `.result-rank`：序號（`0.75rem, text-dim`）
 - `.result-crown`：中獎者顯示 ♛（`color: #ffd700`）
 - `.result-name`：玩家暱稱（`font-weight: 500`）
 - `.result-you`：自己額外顯示「(你)」標記（`color: #6c63ff, font-size: 0.72rem`）
+- `.result-item--self`：自己條目加粗 + 紫色左側邊框（`border-left: 3px solid #6c63ff`）
 
-**動畫**：每個 result-item 進場動畫 `fadeSlideIn 300ms ease both`（`opacity: 0 → 1`, `translateY(8px → 0)`）
+**動畫**：每個 result-item 進場動畫 `fadeSlideIn 300ms ease both`（`opacity: 0 → 1`, `translateY(8px → 0)`）；各項目間隔 `50ms` 依序錯開（`animation-delay: calc(index * 50ms)`）
 
-**`finished` 全螢幕結果頁**：
-- 金色勝者路徑光暈持續顯示於 Canvas
-- 底部 Sidebar 結果列表可捲動查看全部
+**`finished` 全螢幕結果頁行為**：
+- 金色勝者路徑光暈持續顯示於 Canvas（`shadowBlur: 10, shadowColor: #ffd700`）
+- 得獎名單 Sidebar 可捲動查看全部玩家排名
 - 主持人額外看到「再玩一局」按鈕（`.btn-ghost`）
-- 玩家看到自己的結果醒目標示（紫色邊框高亮）
+- 玩家自己的條目以紫色左邊框（`border-left: 3px solid #6c63ff`）醒目標示
 
 ---
 
@@ -426,8 +468,22 @@ width: 8px; height: 8px; border-radius: 50%
 | 連線狀態 | `.conn-dot` class | 顏色 | 動畫 |
 |---------|-------------------|------|------|
 | connected | `.connected` | `#55c855`（綠） | 無 |
-| connecting（重連中） | `.connecting` | `#ffd700`（金） | `pulse 1s ease infinite`（opacity 1→0.3→1） |
+| connecting（重連中） | `.connecting` | `#ffd700`（金） | `pulse 1s ease infinite` |
 | disconnected | `.disconnected` | `#e05555`（紅） | 無 |
+
+**Pulse 動畫 `@keyframes` 定義**：
+
+```css
+@keyframes pulse {
+  0%   { opacity: 1.0; }
+  50%  { opacity: 0.3; }
+  100% { opacity: 1.0; }
+}
+
+.conn-dot.connecting {
+  animation: pulse 1s ease infinite;
+}
+```
 
 **重連行為**：
 - 玩家斷線：Toast「連線中斷，重新連線中…」，conn-dot 轉金色 pulse
@@ -450,12 +506,14 @@ width: 8px; height: 8px; border-radius: 50%
 | 參數 | 規格 |
 |------|------|
 | 驅動方式 | `requestAnimationFrame`（瀏覽器原生 60fps） |
-| Progress 計算 | 線性進度（0→1），基於時間 delta 累積 |
-| 動畫球（Ball Marker） | 白芯圓（radius = 10px）+ 玩家色（radius = 8px）+ `shadowBlur: 16` |
+| 單一玩家動畫時長 | `1200ms`（約 1.2 秒）完成一條路徑從頭到尾 |
+| Progress 計算 | 線性進度（0→1），基於時間 delta 累積：`delta / 1200` per frame |
+| Easing | 線性（`linear`）；進度 0→0.8 為正常速，0.8→1.0 輕微減速（`easeOutQuad`） |
+| 動畫球（Ball Marker） | 外圈白芯（`radius = BALL_RADIUS + 2 = 10px`）+ 內圈玩家色（`radius = BALL_RADIUS = 8px`）+ `shadowColor: 玩家色`, `shadowBlur: 16` |
 | 已完成路徑 | `globalAlpha = 0.6`（半透明，讓後來的路徑不被遮擋） |
 | 動畫中路徑 | `globalAlpha = 1.0`（全不透明，視覺焦點） |
 | 中獎光暈觸發 | `progress >= 1` 且 `isWinner`：`shadowColor = #ffd700`, `shadowBlur = 10` |
-| REVEAL_ALL 時限 | 全部動畫 2 秒內完成；超過 2 秒直接跳至終止幀（final frame） |
+| REVEAL_ALL 時限 | 全部動畫 2 秒內完成；超過 2 秒直接跳至終止幀（final frame）；所有 in-progress 動畫 `progress` 強制設為 1.0 |
 
 **路徑插值方式**（`drawPath` 函數）：
 - 將路徑步驟轉換為 waypoints 陣列
@@ -474,12 +532,37 @@ width: 8px; height: 8px; border-radius: 50%
 
 ### §6.3 Responsive Design
 
-| 斷點 | 佈局策略 |
-|------|---------|
-| < 320px | 最小支援寬度；不保證完整體驗 |
-| 320–767px | 手機版：所有 Card 全寬；Game View 縱向排列；Sidebar 橫向捲動 |
-| 768–1023px | 平板：Game View 左右分欄（Canvas + 280px Sidebar） |
-| 1024px+ | 桌機：同上，Canvas 更大空間 |
+| 斷點 | CSS Media Query | 佈局策略 |
+|------|----------------|---------|
+| < 320px | —（不保證）| 最小支援寬度；不保證完整體驗 |
+| 320–767px | `@media (max-width: 767px)` | 手機版：所有 Card `width: 100%`；Game View 縱向排列；Sidebar 橫向捲動 |
+| 768–1023px | `@media (min-width: 768px)` | 平板：Game View 左右分欄（Canvas + `280px` Sidebar） |
+| 1024px+ | `@media (min-width: 1024px)` | 桌機：同上，Canvas 獲得更大空間，Header 可顯示更多資訊 |
+
+**CSS 斷點實作範例**：
+
+```css
+/* 手機版（預設） */
+.game-layout {
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+}
+
+/* 平板及以上 */
+@media (min-width: 768px) {
+  .game-layout {
+    grid-template-columns: 1fr 280px;
+    grid-template-rows: auto 1fr;
+  }
+}
+
+/* 桌機：Sidebar 稍寬 */
+@media (min-width: 1024px) {
+  .game-layout {
+    grid-template-columns: 1fr 320px;
+  }
+}
+```
 
 **手機版 Game View 特殊調整**：
 - `grid-template-rows: auto 1fr auto auto`（Header / Canvas / Sidebar / Controls）
@@ -517,14 +600,46 @@ width: 8px; height: 8px; border-radius: 50%
 
 - 所有按鈕、連結可鍵盤 Tab 操作
 - Input focus 狀態：`border-color: var(--accent)`（紫色邊框，清晰可見）
-- 按鈕 focus-visible：瀏覽器預設 outline（不覆蓋）
-- 模態提示（被踢除等）：focus trap 至確認按鈕
+- 按鈕 focus-visible：`outline: 2px solid var(--accent); outline-offset: 2px`（不依賴瀏覽器預設，確保對比度達 AA）
+- 模態提示（被踢除、Session 取代等）：focus trap 至確認按鈕；關閉後 focus 返回觸發元素
+- 遊戲狀態切換（waiting → running → revealing → finished）：不強制移動 focus，保持用戶當前 focus 位置
+- 踢除按鈕（`.btn-danger.btn-sm`）：Tab 可到達，`aria-label="踢除 {暱稱}"`，Enter/Space 觸發
+- Room Code 複製區域：`role="button"` + `tabindex="0"`，Enter/Space 觸發複製
 
 ### §7.4 Motion Sensitivity
 
-- Canvas 動畫為遊戲核心，無法完全移除
-- 若需支援 `prefers-reduced-motion`：動畫球消失（direct path），路徑 `progress` 直接跳至 1.0
-- Toast 動畫：`prefers-reduced-motion` 下改為 `opacity` 淡入（不移動）
+適用位置：所有 CSS 動畫均須在 `@media (prefers-reduced-motion: reduce)` 區塊中覆寫。
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  /* Canvas 動畫為遊戲核心：直接跳至終止幀，不播放逐幀動畫 */
+  /* renderer.ts 中偵測此媒體查詢：若為 true，progress 直接設為 1.0 */
+
+  /* Toast：改為 opacity 淡入，移除位移動畫 */
+  .toast {
+    transition: opacity 200ms ease;
+    transform: none !important;
+  }
+
+  /* Result item 進場：僅 opacity，不位移 */
+  .result-item {
+    animation: fadeIn 200ms ease both;
+  }
+
+  /* Connection dot pulse：停止 pulse */
+  .conn-dot.connecting {
+    animation: none;
+    opacity: 0.7;
+  }
+
+  /* Button hover：移除 translateY */
+  .btn:hover {
+    transform: none;
+  }
+}
+```
+
+- Canvas 動畫：renderer.ts 啟動時呼叫 `window.matchMedia('(prefers-reduced-motion: reduce)')` 偵測；若為 `true`，`revealPlayer()` 內所有動畫直接跳至終止幀（`progress = 1.0`），不執行 `requestAnimationFrame` 逐幀繪製
 
 ---
 
@@ -588,9 +703,10 @@ width: 8px; height: 8px; border-radius: 50%
   --danger:      #e05555;
 
   /* Shape */
-  --radius:      12px;
-  --radius-sm:   8px;
-  --duration:    200ms;
+  --radius-lg:   16px;   /* 大圓角：全頁遮罩卡片 */
+  --radius:      12px;   /* 標準圓角：Card、Modal */
+  --radius-sm:   8px;    /* 小圓角：Button、Input、Toast */
+  --duration:    200ms;  /* 標準過渡時間 */
 }
 ```
 
