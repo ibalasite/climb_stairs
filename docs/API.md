@@ -1,6 +1,6 @@
 # API — Ladder Room Online API Design Document
 
-> Version: v2.0
+> Version: v2.1
 > Date: 2026-04-21
 > Based on: EDD v2.0, PRD v1.4, legacy-API v1.2
 
@@ -340,9 +340,11 @@ interface JoinRoomResponse {
 
 | HTTP | 錯誤碼 | 說明 |
 |------|--------|------|
+| 400 | `CANNOT_KICK_HOST` | 踢除目標為 Host 本身 |
 | 401 | `AUTH_INVALID_TOKEN` | JWT 無效 |
 | 401 | `AUTH_TOKEN_EXPIRED` | JWT 已過期 |
 | 403 | `PLAYER_NOT_HOST` | 操作者不是房主 |
+| 404 | `ROOM_NOT_FOUND` | 房間不存在 |
 | 404 | `PLAYER_NOT_FOUND` | 目標玩家不存在 |
 | 409 | `INVALID_STATE` | 房間狀態非 `waiting` |
 
@@ -363,6 +365,7 @@ interface JoinRoomResponse {
 ```json
 {
   "code": "AB3K7X",
+  "title": null,
   "status": "running",
   "hostId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "players": [],
@@ -385,6 +388,8 @@ interface JoinRoomResponse {
 | 400 | `INSUFFICIENT_PLAYERS` | 玩家數 N < 2 |
 | 400 | `PRIZES_NOT_SET` | `winnerCount` 尚未設定 |
 | 400 | `INVALID_PRIZES_COUNT` | `winnerCount >= N` |
+| 401 | `AUTH_INVALID_TOKEN` | JWT 無效 |
+| 401 | `AUTH_TOKEN_EXPIRED` | JWT 已過期 |
 | 403 | `PLAYER_NOT_HOST` | 操作者不是房主 |
 | 409 | `INVALID_STATE` | 房間狀態非 `waiting` |
 
@@ -409,6 +414,7 @@ interface RevealRequest {
 ```json
 {
   "code": "AB3K7X",
+  "title": null,
   "status": "revealing",
   "ladder": {
     "rowCount": 20,
@@ -430,6 +436,8 @@ interface RevealRequest {
 | HTTP | 錯誤碼 | 說明 |
 |------|--------|------|
 | 400 | `INVALID_REVEAL_MODE` | `mode` 欄位不合法 |
+| 401 | `AUTH_INVALID_TOKEN` | JWT 無效 |
+| 401 | `AUTH_TOKEN_EXPIRED` | JWT 已過期 |
 | 403 | `PLAYER_NOT_HOST` | 操作者不是房主 |
 | 409 | `INVALID_STATE` | 房間狀態非 `revealing` |
 
@@ -450,6 +458,7 @@ interface RevealRequest {
 ```json
 {
   "code": "AB3K7X",
+  "title": null,
   "status": "finished",
   "ladder": {
     "seed": 1879452061,
@@ -468,6 +477,8 @@ interface RevealRequest {
 
 | HTTP | 錯誤碼 | 說明 |
 |------|--------|------|
+| 401 | `AUTH_INVALID_TOKEN` | JWT 無效 |
+| 401 | `AUTH_TOKEN_EXPIRED` | JWT 已過期 |
 | 403 | `PLAYER_NOT_HOST` | 操作者不是房主 |
 | 409 | `INVALID_STATE` | 房間狀態非 `revealing` |
 | 409 | `END_GAME_REQUIRES_ALL_REVEALED` | 尚有未揭曉路徑（`revealedCount < totalCount`） |
@@ -513,6 +524,8 @@ interface RevealRequest {
 | HTTP | 錯誤碼 | 說明 |
 |------|--------|------|
 | 400 | `INSUFFICIENT_ONLINE_PLAYERS` | 在線玩家數 < 2 |
+| 401 | `AUTH_INVALID_TOKEN` | JWT 無效 |
+| 401 | `AUTH_TOKEN_EXPIRED` | JWT 已過期 |
 | 403 | `PLAYER_NOT_HOST` | 操作者不是房主 |
 | 409 | `INVALID_STATE` | 房間狀態非 `finished` |
 
