@@ -2,7 +2,7 @@
   "version": "2.0",
   "project_dir": "/Users/tobala/projects/climb_stairs",
   "pdd_path": "/Users/tobala/projects/climb_stairs/docs/PDD.md",
-  "current_step": "19",
+  "current_step": "20",
   "lang_stack": "ts-fastify-ws-redis-vanillajs-vite",
   "client_type": "web",
   "auto_mode": "full",
@@ -31,9 +31,10 @@
     "16",
     "17",
     "18",
-    "19"
+    "19",
+    "20"
   ],
-  "last_updated": "2026-04-21T13:20:00Z",
+  "last_updated": "2026-04-21T21:17:00Z",
   "change_desc": "HOST copy 邀請 link（含 6 碼房號）+ localStorage 暱稱記憶，一鍵加入",
   "change_branch": "change/20260420-host-copy-invite-link-with-room-code-and-nickname-memory",
   "todo_id": "ECR-20260420-001",
