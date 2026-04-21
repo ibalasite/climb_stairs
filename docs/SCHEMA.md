@@ -1,6 +1,6 @@
 # SCHEMA.md — Ladder Room Online Redis Schema Design
 
-> Version: v2.0
+> Version: v2.1
 > Date: 2026-04-21
 > Based on: EDD v2.0, PRD v1.4, legacy-SCHEMA v1.1
 > Redis is the sole persistence layer. There is no SQL database. All state lives in Redis key-value structures with explicit TTLs.
@@ -45,7 +45,7 @@ room:ALPHA1:sessions
 | 資料類型 | 儲存方式 |
 |---------|---------|
 | Room（複雜物件） | JSON 字串，儲存在 Redis String 鍵 |
-| LadderData（含 seed、segments、results） | JSON 字串，儲存在 Redis String 鍵 |
+| LadderData（含 seed、seedSource、segments） | JSON 字串，儲存在 Redis String 鍵 |
 | revealedCount | Redis 原生計數器（INCR），整數字串如 `"3"` |
 | kickedPlayerIds | Redis Set，成員為 playerId 字串 |
 | sessions | Redis Hash，field 為 playerId，value 為 sessionId |
@@ -272,7 +272,7 @@ export interface RevealIndexPayload {
 // RevealAllPayload 為伺服器層型別，不從 packages/shared 匯出；
 // 伺服器實作時使用 Omit<ResultSlot, 'path'>[] 構造，省略 path 以符合 64KB 限制。
 interface RevealAllPayload {
-  results: readonly ResultSlotPublic[];   // ResultSlotPublic = Omit<ResultSlot, 'path'>
+  results: readonly Omit<ResultSlot, 'path'>[];   // 省略 path，符合 64KB 限制
 }
 
 // PLAYER_KICKED（unicast）
@@ -344,7 +344,7 @@ export interface RoomSummaryPayload {
 | 類型 | 正整數 |
 | 最小值 | 1 |
 | 最大值 | N - 1（N = 全部玩家數，含 isOnline=false） |
-| 設定時機 | 建立房間時（POST /rooms）或 waiting 狀態（UPDATE_WINNER_COUNT） |
+| 設定時機 | 建立房間時（POST /rooms）或 waiting 狀態時由房主調整 |
 | PLAY_AGAIN 後 | 若 W >= 新玩家數，自動重設為 null |
 
 ### §4.4 autoRevealIntervalSec（自動揭示間隔）
@@ -388,5 +388,5 @@ export interface RoomSummaryPayload {
 
 *SCHEMA 版本：v2.1*
 *生成時間：2026-04-21（devsop-autodev STEP-09）*
-*修訂時間：2026-04-21（devsop-autodev STEP-12 Schema Review Round 1）*
+*修訂時間：2026-04-21（devsop-autodev STEP-12 Schema Review Round 2）*
 *基於 EDD v2.0 + PRD v1.4 + legacy-SCHEMA v1.1 + packages/shared/src/types/index.ts*
