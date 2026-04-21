@@ -137,6 +137,7 @@ LINE 原生爬樓梯遊戲是廣泛使用的抽獎互動形式，但存在以下
 - [ ] AC-H04-2: Given 狀態為 `revealing`，When 主持人點擊「下一位」，Then 伺服器廣播 `REVEAL_INDEX`（含對應玩家 index），所有客戶端同步播放該玩家的行走動畫。
 - [ ] AC-H04-3: Given 所有路徑已逐步揭曉，When 主持人點擊「下一位」，Then 系統不回應（按鈕 disabled），頁面顯示「結束本局」按鈕。
 - [ ] AC-H04-4: Given 所有路徑已揭曉且主持人點擊「結束本局」（觸發 `END_GAME`），When 伺服器收到 `END_GAME`，Then 狀態轉為 `finished`，廣播 `ROOM_STATE`（status=`finished`，含完整得獎名單及 seed），所有客戶端顯示最終結果頁面；操作須在 1 秒內完成。
+- [ ] AC-H04-4b: Given 尚有未揭曉路徑（revealedCount < totalCount）且主持人觸發 `END_GAME`，When 伺服器驗證，Then 拒絕並回傳 `INVALID_STATE` 錯誤（含說明 `END_GAME_REQUIRES_ALL_REVEALED`），狀態維持 `revealing`。
 - [ ] AC-H04-5: Given 狀態為非 `running`，When 主持人嘗試觸發 `BEGIN_REVEAL`，Then 伺服器拒絕並回傳 `INVALID_STATE` 錯誤，狀態不變。
 - [ ] AC-H04-6: Given 狀態為非 `revealing`，When 主持人嘗試觸發 `REVEAL_NEXT`，Then 伺服器拒絕並回傳 `INVALID_STATE` 錯誤，revealIndex 不遞增。
 
@@ -166,6 +167,7 @@ LINE 原生爬樓梯遊戲是廣泛使用的抽獎互動形式，但存在以下
 - [ ] AC-H06-1: Given 狀態為 `revealing` 且尚有未揭曉路徑，When 主持人點擊「全部揭曉」，Then 伺服器廣播 `REVEAL_ALL`，所有客戶端同步播放剩餘所有路徑動畫，2 秒內完成渲染；若超過 2 秒，動畫立即跳至終止幀。
 - [ ] AC-H06-2: Given `REVEAL_ALL` 廣播後，When 伺服器完成全部揭曉，Then 伺服器自動將 `revealedCount` 設為 `totalCount`，並立即觸發 `finished` 狀態轉換，廣播 `GAME_ENDED`（含 status: finished, seed, results[]）；無需主持人再次確認。
 - [ ] AC-H06-3: Given 狀態為 `revealing` 且所有路徑已揭曉，When 主持人點擊「全部揭曉」，Then 系統不回應（按鈕 disabled）。
+- [ ] AC-H06-4: Given 狀態為非 `revealing`，When 主持人嘗試觸發「全部揭曉」，Then 伺服器拒絕並回傳 `INVALID_STATE` 錯誤，狀態不變。
 
 ---
 
@@ -196,6 +198,7 @@ LINE 原生爬樓梯遊戲是廣泛使用的抽獎互動形式，但存在以下
 - [ ] AC-H08-2: Given 再玩一局後 W 越界，When 系統重置，Then W 被設為 null，主持人看到「請重新設定中獎名額」提示。
 - [ ] AC-H08-3: Given 再玩一局後剩餘在線玩家數 < 2，When 主持人點擊「再玩一局」，Then 系統拒絕並回傳 `INSUFFICIENT_PLAYERS` 錯誤，前端提示「在線玩家不足（至少需要 2 位），無法開始新局」。
 - [ ] AC-H08-4: Given 主持人的 JWT token 在 `waiting`/`running`/`revealing` 狀態中過期，When 主持人嘗試執行任何 Host 操作，Then 伺服器回傳 HTTP 401（含錯誤 `TOKEN_EXPIRED`），前端顯示「您的主持人身份已過期，請重新整理頁面重新獲取主持權」；其他玩家連線不受影響。
+- [ ] AC-H08-5: Given 房間狀態為非 `finished`，When 主持人嘗試觸發 `PLAY_AGAIN`，Then 伺服器拒絕並回傳 `INVALID_STATE` 錯誤，狀態不變。
 
 ---
 
@@ -652,7 +655,7 @@ LINE 原生爬樓梯遊戲是廣泛使用的抽獎互動形式，但存在以下
 | US-H07：踢除玩家 | FR-11-1～FR-11-4 | BRD §3.4 REQ-07, §5.1 |
 | US-H08：再玩一局 | FR-12-1～FR-12-3 | BRD §3.4 REQ-08, §5.1 |
 | US-H09：複製邀請連結 | FR-14-3, FR-14-4 | BRD §3.4 REQ-09, §5.1 |
-| US-P01：加入房間 | FR-02-1～FR-02-3, FR-08-1～FR-08-2, FR-14-2 | BRD §3.4 REQ-10, REQ-11, §5.1 |
+| US-P01：加入房間 | FR-02-1～FR-02-3, FR-02-6, FR-08-1～FR-08-2, FR-14-2 | BRD §3.4 REQ-10, REQ-11, §5.1 |
 | US-P02：即時玩家列表 | FR-02-4, FR-03-1, FR-09-4 | BRD §3.4 REQ-12, §5.1 |
 | US-P03：路徑揭曉動畫 | FR-06-1～FR-06-6 | BRD §3.4 REQ-13, §5.1 |
 | US-P04：中獎結果確認 | FR-07-1～FR-07-3, FR-05-3 | BRD §3.4 REQ-14, §5.1 |
