@@ -30,9 +30,10 @@
     "15",
     "16",
     "17",
-    "18"
+    "18",
+    "19"
   ],
-  "last_updated": "2026-04-21T13:12:00Z",
+  "last_updated": "2026-04-21T13:20:00Z",
   "change_desc": "HOST copy 邀請 link（含 6 碼房號）+ localStorage 暱稱記憶，一鍵加入",
   "change_branch": "change/20260420-host-copy-invite-link-with-room-code-and-nickname-memory",
   "todo_id": "ECR-20260420-001",
