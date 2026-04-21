@@ -21,10 +21,6 @@ function broadcast(roomCode: string, payload: unknown, excludePlayerId?: string)
   }
 }
 
-function broadcastAll(roomCode: string, payload: unknown): void {
-  broadcast(roomCode, payload);
-}
-
 /**
  * Strip the ladder (seed-derived structure) from a room object before
  * sending it to clients. The ladder must never be exposed while the game
@@ -421,7 +417,7 @@ async function handleWsConnection(
         p.id === playerId ? { ...p, isOnline: true } : p
       );
       const updated = await repo.update(roomCode, { players: updatedPlayers });
-      broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(updated) });
+      broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(updated) });
     }
   } catch { /* ignore */ }
 
@@ -446,7 +442,7 @@ async function handleWsConnection(
         );
         await repo.update(roomCode, { players: updatedPlayers });
         const updated = await repo.findByCode(roomCode);
-        if (updated) broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(updated) });
+        if (updated) broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(updated) });
       }
     } catch { /* ignore */ }
   });
@@ -483,19 +479,19 @@ async function handleWsMessage(
 
       case 'START_GAME': {
         const room = await gameService.startGame(roomCode, playerId);
-        broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
         break;
       }
 
       case 'BEGIN_REVEAL': {
         const room = await gameService.beginReveal(roomCode, playerId);
-        broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
         break;
       }
 
       case 'REVEAL_NEXT': {
         const { result, room } = await gameService.revealNext(roomCode, playerId);
-        broadcastAll(roomCode, {
+        broadcast(roomCode, {
           type: 'REVEAL_INDEX',
           payload: {
             playerIndex: room.revealedCount - 1,
@@ -509,25 +505,25 @@ async function handleWsMessage(
 
       case 'REVEAL_ALL_TRIGGER': {
         const { results, room } = await gameService.revealAll(roomCode, playerId);
-        broadcastAll(roomCode, { type: 'REVEAL_ALL', payload: { results, room: sanitizeRoomForClient(room) } });
+        broadcast(roomCode, { type: 'REVEAL_ALL', payload: { results, room: sanitizeRoomForClient(room) } });
         break;
       }
 
       case 'END_GAME': {
         const room = await gameService.endGame(roomCode, playerId);
-        broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
         break;
       }
 
       case 'PLAY_AGAIN': {
         const room = await gameService.playAgain(roomCode, playerId);
-        broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
         break;
       }
 
       case 'RESET_ROOM': {
         const room = await gameService.resetRoom(roomCode, playerId);
-        broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
         break;
       }
 
@@ -556,7 +552,7 @@ async function handleWsMessage(
         }
         const intervalSec = rawIntervalSec;
         const room = await repo.update(roomCode, { revealMode: mode, autoRevealIntervalSec: intervalSec });
-        broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
         break;
       }
 
@@ -571,7 +567,7 @@ async function handleWsMessage(
           kickedWs.send(JSON.stringify({ type: 'PLAYER_KICKED', payload: { kickedPlayerId: targetId, reason: 'host_kick' } }));
           kickedWs.close(4003, 'Kicked');
         }
-        broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
         break;
       }
 
