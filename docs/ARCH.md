@@ -8,7 +8,7 @@
 
 ## §1 System Overview
 
-Ladder Room Online 採用四層架構：**Client → Nginx Ingress → Fastify/WS Server → Redis**。
+Ladder Room Online 採用四層架構：**Client → Traefik Ingress → Fastify/WS Server → Redis**。
 
 | 層級 | 組件 | 說明 |
 |------|------|------|
@@ -263,7 +263,7 @@ waiting  -->  running  -->  revealing  -->  finished
 |---------|---------|-----------|------------|
 | waiting → running | START_GAME | 否 | 否（尚未生成） |
 | running → revealing | BEGIN_REVEAL | 否 | LadderDataPublic（省略 seed） |
-| revealing → finished | END_GAME | 是（首次公開） | LadderData（完整） |
+| revealing → finished | END_GAME / REVEAL_ALL_TRIGGER | 是（首次公開） | LadderData（完整） |
 | finished → waiting | PLAY_AGAIN | 清空 | 清空 |
 
 ### §4.2 Redis Pub/Sub 廣播流
@@ -425,9 +425,9 @@ Redis 單節點是 MVP SPOF。當 ioredis `error` 事件觸發時：
 
 ```mermaid
 graph TD
-    Internet["Internet"] --> Nginx["Nginx Ingress\nTLS 終止\nHSTS max-age=31536000"]
-    Nginx --> FastifyHTTP["Fastify HTTP Handler\n1. AJV Schema 驗證\n2. Rate Limiting"]
-    Nginx --> WsUpgrade["WsServer.handleUpgrade()\n1. Origin 白名單驗證\n2. JWT HS256 解析 & 驗證\n3. kickedPlayerIds 攔截 close 4003"]
+    Internet["Internet"] --> TraefikIngress["Traefik Ingress\nTLS 終止\nHSTS max-age=31536000"]
+    TraefikIngress --> FastifyHTTP["Fastify HTTP Handler\n1. AJV Schema 驗證\n2. Rate Limiting"]
+    TraefikIngress --> WsUpgrade["WsServer.handleUpgrade()\n1. Origin 白名單驗證\n2. JWT HS256 解析 & 驗證\n3. kickedPlayerIds 攔截 close 4003"]
     FastifyHTTP --> AuthPlugin["auth.ts plugin\nJWT 驗證 + role 比對"]
     AuthPlugin --> RoomService["RoomService / GameService\nroom.hostId 雙重驗證"]
     WsUpgrade --> WsSession["WsSession\n速率限制 60 msg/min close 4029\nmaxPayload 65536 bytes"]
@@ -452,12 +452,12 @@ graph TD
 **WebSocket Origin 驗證：** `WsServer.handleUpgrade()` 在 JWT 驗證之前，需檢查 HTTP `Origin` 請求標頭是否符合環境變數 `CORS_ORIGIN`（白名單比對）。瀏覽器 WS 升級不受 CORS policy 自動保護（無 preflight），Origin 比對是防止 CSRF-over-WebSocket 的必要伺服端措施。
 
 **信任邊界說明：**
-- Nginx 內網（cluster-internal）到 Fastify 視為可信，TLS 由 Nginx 終止
+- Traefik 內網（cluster-internal）到 Fastify 視為可信，TLS 由 Traefik 終止
 - Redis 視為可信內部服務（NetworkPolicy 隔離）
 - 所有來自 Client（HTTP body、WS payload）視為不可信，須完整驗證
 
 ---
 
 *ARCH 版本：v2.0*
-*生成時間：2026-04-21（devsop-autodev STEP-09）*
+*生成時間：2026-04-21（devsop-autodev STEP-10 review）*
 *基於 EDD v2.0 + PRD v1.4 + legacy-ARCH v1.3*
