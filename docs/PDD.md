@@ -5,7 +5,7 @@
 
 | 欄位 | 內容 |
 |------|------|
-| Version | 1.0 |
+| Version | 1.1 |
 | Status | Draft |
 | Date | 2026-04-21 |
 | Author | AI Design Agent（devsop-autodev STEP-05） |
@@ -199,16 +199,25 @@ max-width: 420px     → @media (min-width: 768px) 限制最大寬
 
 ```
 position: fixed, bottom: 1.5rem, left: 50%（水平置中）
+transform: translateX(-50%)
+min-width: 200px; max-width: min(90vw, 380px)
+padding: 0.75rem 1rem
 background: var(--card-2)
+border: 1px solid var(--border)
 border-radius: 8px
-transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1)
+transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease
 z-index: 9999
 ```
 
 **狀態分類**：
 - `.toast-error`：`border-color: var(--danger); color: var(--danger)`
 - `.toast-success`：`border-color: var(--success); color: var(--success)`
-- 預設：中性色
+- 預設：中性色（`border-color: var(--border); color: var(--text)`）
+
+**顯示與關閉行為**：
+- 自動關閉：3 秒後淡出（`opacity: 0`）並從 DOM 移除
+- 手動關閉：右側 `×` 關閉按鈕（`aria-label="關閉提示"`）；點擊立即關閉
+- 同時最多顯示 1 則 Toast；新 Toast 出現時替換舊 Toast（不堆疊）
 
 ### §4.6 Player Dot（玩家狀態指示器）
 
@@ -217,6 +226,11 @@ width: 10px; height: 10px; border-radius: 50%
 顏色：colorFromIndex(player.colorIndex)（玩家對應顏色）
 .offline → opacity: 0.35（斷線狀態）
 ```
+
+**互動狀態**：
+- 此元件為純展示（`role="img"`），不接受獨立 focus
+- Hover 觸發父容器（`.player-item`）的 hover 背景（`background: rgba(255,255,255,0.04)`）
+- 無獨立 tooltip；玩家狀態由旁邊的離線標籤文字（`.player-offline-label`）說明
 
 ### §4.7 Connection Dot（連線狀態指示器）
 
@@ -389,7 +403,9 @@ display: inline-block; vertical-align: middle
 - `revealing` 狀態：
   - 「下一位」按鈕（`.btn-primary`）
   - 「全部揭曉」按鈕（`.btn-gold`）
-  - 自動揭曉間隔設定（`1-30` 秒 number input + 切換開關）
+  - 自動揭曉間隔設定：
+    - Toggle 開關（`.auto-reveal-toggle`）：預設關閉；Hover 時背景 `rgba(108,99,255,0.15)`；checked 時滑塊色 `var(--accent)`；`aria-label="自動揭曉"`；`role="switch"`；`aria-checked="true/false"`
+    - 間隔秒數輸入（`type="number"`, `min="1"`, `max="30"`）：開關關閉時 `disabled; opacity: 0.4`；有效值才啟用自動揭曉計時器
 - `finished` 狀態：「再玩一局」按鈕（`.btn-ghost`）
 
 ### §5.4 Result View（結果顯示）
@@ -742,6 +758,6 @@ colorFromIndexDim(index: number): string {
 
 ---
 
-*PDD 版本：v1.0*
+*PDD 版本：v1.1*
 *生成時間：2026-04-21*
 *基於：PRD v1.0 + legacy-PDD v2.2 + BRD v1.0 + codebase（renderer.ts, index.html, colors.ts）*
