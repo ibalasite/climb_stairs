@@ -84,6 +84,7 @@ interface Room {
   hostId: string;                                  // Host 的 playerId
   readonly players: readonly Player[];             // 最多 50 人，含離線玩家
   winnerCount: number | null;                      // W（1 <= W <= N-1）；null 直到 Host 設定
+  rowCount: number | null;                         // null 直到 START_GAME；clamp(N*3, 20, 60)
   ladder: LadderData | null;                       // null 直到 BEGIN_REVEAL
   results: readonly ResultSlot[] | null;
   revealedCount: number;
@@ -230,6 +231,7 @@ interface CreateRoomResponse {
       { "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479", "nickname": "Alice", "colorIndex": 0, "isHost": true, "isOnline": true, "joinedAt": 1745049600000, "result": null }
     ],
     "winnerCount": 3,
+    "rowCount": null,
     "ladder": null,
     "results": null,
     "revealedCount": 0,
@@ -275,6 +277,7 @@ interface CreateRoomResponse {
   "hostId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "players": [],
   "winnerCount": 1,
+  "rowCount": null,
   "revealedCount": 0,
   "revealMode": "manual",
   "autoRevealIntervalSec": null,
@@ -370,6 +373,7 @@ interface JoinRoomResponse {
   "hostId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "players": [],
   "winnerCount": 1,
+  "rowCount": 20,
   "ladder": null,
   "revealedCount": 0,
   "revealMode": "manual",
@@ -379,7 +383,7 @@ interface JoinRoomResponse {
 }
 ```
 
-> **注意**：`seed` 與 `seedSource` 在 `status=finished` 之前均不對客戶端公開。`rowCount` 公式為 `clamp(N*3, 20, 60)`。
+> **注意**：`seed` 與 `seedSource` 在 `status=finished` 之前均不對客戶端公開。`rowCount` 公式為 `clamp(N*3, 20, 60)`（N=2→20, N=7→21, N=21→60）。
 
 **Error Responses：**
 
@@ -642,6 +646,7 @@ interface RoomStatePayload {
   hostId: string;
   players: readonly Player[];
   winnerCount: number | null;
+  rowCount: number | null;   // null 直到 START_GAME；clamp(N*3, 20, 60)；seed 公開前不含 seed
   revealedCount: number;
   revealMode: "manual" | "auto";
   autoRevealIntervalSec: number | null;
