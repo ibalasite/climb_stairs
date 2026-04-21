@@ -475,6 +475,7 @@ async function handleWsMessage(
   try {
     switch (msg.type) {
       case 'PING':
+        send('PONG');
         break;
 
       case 'START_GAME': {
