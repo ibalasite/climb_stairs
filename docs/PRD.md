@@ -94,6 +94,7 @@ LINE 原生爬樓梯遊戲是廣泛使用的抽獎互動形式，但存在以下
 - [ ] AC-H01-2: Given 房間建立成功，When 主持人進入房間，Then 頁面顯示 Room Code、目前玩家列表（空）、設定中獎名額的輸入框，以及可選填的房間名稱 title（0～50 字）輸入框，狀態為 `waiting`。
 - [ ] AC-H01-3: Given 建立房間請求因網路異常失敗，When 系統偵測到錯誤，Then 顯示「建立失敗，請重試」提示並保留輸入內容，不產生孤立房間。
 - [ ] AC-H01-4: Given Room Code 生成碰撞次數超過 10 次，When 系統無法在上限次數內找到唯一碼，Then 回傳 `ROOM_CODE_GENERATION_FAILED` 錯誤，前端顯示「建立失敗，請重試」。
+- [ ] AC-H01-5: Given 房間狀態為 `waiting`，When 主持人修改房間名稱（0～50 Unicode 字元）並送出，Then 伺服器接受並廣播更新後的 `ROOM_STATE`（含新 title）；若狀態非 `waiting`，則回傳 `TITLE_UPDATE_NOT_ALLOWED_IN_STATE` 錯誤。
 
 ---
 
@@ -107,6 +108,7 @@ LINE 原生爬樓梯遊戲是廣泛使用的抽獎互動形式，但存在以下
 - [ ] AC-H02-1: Given 房間狀態為 `waiting`，When 主持人在輸入框填入 W（1 ≤ W ≤ N-1，N 含 isOnline=false 的斷線玩家），Then 系統接受並廣播更新後的 `ROOM_STATE` 給所有在線玩家。
 - [ ] AC-H02-2: Given 主持人輸入 W ≤ 0 或 W ≥ N，When 主持人送出，Then 系統顯示「中獎名額須介於 1 到玩家數減 1 之間」錯誤，不更新狀態。
 - [ ] AC-H02-3: Given 再玩一局後剔除離線玩家且 W ≥ 新 N，When 系統偵測越界，Then 自動將 W 重設為 null 並通知主持人「中獎名額已重設，請重新設定」。
+- [ ] AC-H02-4: Given 房間狀態為非 `waiting`（如 `running`/`revealing`/`finished`），When 主持人嘗試更新 W，Then 伺服器拒絕並回傳 `INVALID_STATE` 錯誤，W 值不變。
 
 ---
 
