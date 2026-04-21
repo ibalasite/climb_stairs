@@ -245,7 +245,7 @@ graph TD
   - `logs`：串流所有 Pod 日誌
 - Docker image 策略：
   - Server：`Dockerfile`（Distroless Node.js 20，多階段建構，`imagePullPolicy: Never`）
-  - Client：`Dockerfile.local`（Nginx 1.27-alpine，多階段建構，`imagePullPolicy: Never`）
+  - Client：`Dockerfile.client`（Nginx 1.27-alpine，多階段建構，`imagePullPolicy: Never`）
 
 ---
 
@@ -622,10 +622,10 @@ interface ClientEnvelope<T = unknown> {
 
 ```
 connect
-  → JWT 驗證（WsServer.handleUpgrade）
+  → JWT 驗證（main.ts ws.Server upgrade handler）
   → kickedPlayerIds 攔截（close 4003 if kicked）
   → Origin 驗證（CORS_ORIGIN 白名單）
-  → WsSession 建立
+  → WS session 建立（roomSessions map）
   → unicast ROOM_STATE_FULL
 
 game loop
@@ -753,7 +753,7 @@ JWT TTL：**6 小時**（`exp = iat + 21600`）。
 
 - **JWT HS256**（`jose` 套件），payload：`{ playerId, roomCode, role: "host" | "player", exp }`
 - Host 操作雙重驗證：JWT `role=host` AND Redis `room.hostId === playerId`（防止 token 偽造或 host 轉移後舊 token 濫用）
-- WS Upgrade：JWT 驗證在 `WsServer.handleUpgrade()` 完成；WS 連線建立後不重驗 exp（MVP 接受的安全取捨）
+- WS Upgrade：JWT 驗證在 `main.ts` 的 `ws.Server` upgrade handler 完成；WS 連線建立後不重驗 exp（MVP 接受的安全取捨）
 
 ---
 
@@ -972,10 +972,10 @@ coverage-gate:
 
 ```bash
 # 1. build server image
-docker build -t ladder-server:local packages/server/
+docker build -t ladder-server:local -f Dockerfile .
 
 # 2. build client image
-docker build -t ladder-client:local -f Dockerfile.local packages/client/
+docker build -t ladder-client:local -f Dockerfile.client .
 
 # 3. load images to Rancher Desktop
 nerdctl image load -i <(docker save ladder-server:local)
@@ -1067,7 +1067,7 @@ graph TD
 - 主持人控制操作（踢人、揭曉控制）需要低延遲雙向通道
 - 所有目標瀏覽器均原生支援 WebSocket，無需 polling fallback
 
-**取捨：** 需自行實作心跳、重連、房間廣播邏輯；透過 `WsSession` 封裝後複雜度可控。
+**取捨：** 需自行實作心跳、重連、房間廣播邏輯；MVP 實作集中於 `main.ts`（roomSessions Map + broadcast helper）；複雜度可控。
 
 ---
 
