@@ -322,6 +322,7 @@ interface JoinRoomResponse {
 
 | HTTP | 錯誤碼 | 說明 |
 |------|--------|------|
+| 400 | `INVALID_NICKNAME` | `nickname` 格式不合法 |
 | 404 | `ROOM_NOT_FOUND` | 房間不存在 |
 | 409 | `ROOM_FULL` | 已達 50 人上限 |
 | 409 | `NICKNAME_TAKEN` | 暱稱在此房間已被使用 |
