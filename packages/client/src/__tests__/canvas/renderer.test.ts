@@ -13,9 +13,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // ─── Mock Canvas Context ──────────────────────────────────────────────────────
 
 type CtxCallRecord = { method: string; args: unknown[] };
+type CtxPropRecord = { prop: string; value: unknown };
 
-function makeMockCtx(): CanvasRenderingContext2D & { _calls: CtxCallRecord[] } {
+function makeMockCtx(): CanvasRenderingContext2D & {
+  _calls: CtxCallRecord[];
+  _propSets: CtxPropRecord[];
+} {
   const calls: CtxCallRecord[] = [];
+  const propSets: CtxPropRecord[] = [];
 
   const record =
     (method: string) =>
@@ -23,21 +28,22 @@ function makeMockCtx(): CanvasRenderingContext2D & { _calls: CtxCallRecord[] } {
       calls.push({ method, args });
     };
 
-  const ctx = {
-    _calls: calls,
+  const trackProp = (prop: string, init: unknown) => {
+    let val = init;
+    return {
+      get: () => val,
+      set: (v: unknown) => {
+        propSets.push({ prop, value: v });
+        val = v;
+      },
+      enumerable: true,
+      configurable: true,
+    };
+  };
 
-    // State
-    globalAlpha: 1.0,
-    lineWidth: 1,
-    strokeStyle: '#000',
-    fillStyle: '#000',
-    shadowColor: 'transparent',
-    shadowBlur: 0,
-    font: '',
-    textAlign: 'start' as CanvasTextAlign,
-    textBaseline: 'alphabetic' as CanvasTextBaseline,
-    lineCap: 'butt' as CanvasLineCap,
-    lineJoin: 'miter' as CanvasLineJoin,
+  const base: Record<string, unknown> = {
+    _calls: calls,
+    _propSets: propSets,
 
     // Methods
     clearRect: record('clearRect'),
@@ -50,7 +56,35 @@ function makeMockCtx(): CanvasRenderingContext2D & { _calls: CtxCallRecord[] } {
     fillText: record('fillText'),
     resetTransform: record('resetTransform'),
     scale: record('scale'),
-  } as unknown as CanvasRenderingContext2D & { _calls: CtxCallRecord[] };
+  };
+
+  const ctx = Object.create(null) as CanvasRenderingContext2D & {
+    _calls: CtxCallRecord[];
+    _propSets: CtxPropRecord[];
+  };
+
+  // Copy plain properties
+  for (const [k, v] of Object.entries(base)) {
+    Object.defineProperty(ctx, k, { value: v, writable: true, enumerable: true, configurable: true });
+  }
+
+  // Tracked state properties
+  const trackedProps: [string, unknown][] = [
+    ['globalAlpha', 1.0],
+    ['lineWidth', 1],
+    ['strokeStyle', '#000'],
+    ['fillStyle', '#000'],
+    ['shadowColor', 'transparent'],
+    ['shadowBlur', 0],
+    ['font', ''],
+    ['textAlign', 'start'],
+    ['textBaseline', 'alphabetic'],
+    ['lineCap', 'butt'],
+    ['lineJoin', 'miter'],
+  ];
+  for (const [prop, init] of trackedProps) {
+    Object.defineProperty(ctx, prop, trackProp(prop, init));
+  }
 
   return ctx;
 }
@@ -213,12 +247,12 @@ describe('drawLadder', () => {
 
     // strokeStyle should have been set during rail drawing
     // Each player gets their own hsl color derived from colorIndex
-    // Verify strokeStyle was mutated at least once (exact value tested via colors.ts unit tests)
-    const hasHsl = mockCtx._calls.some(
-      () => typeof mockCtx.strokeStyle === 'string' && mockCtx.strokeStyle.startsWith('hsl'),
+    // Verify strokeStyle was assigned at least once with an hsl() value
+    const strokeStyleSets = mockCtx._propSets.filter((p) => p.prop === 'strokeStyle');
+    const hasHsl = strokeStyleSets.some(
+      (p) => typeof p.value === 'string' && p.value.startsWith('hsl'),
     );
-    // The assignment happens on the ctx object; checking that draw ran without error suffices for the skeleton
-    expect(true).toBe(true); // placeholder — implement assertion after colors integration
+    expect(hasHsl).toBe(true);
   });
 
   // ── Revealed path opacity ─────────────────────────────────────────────────
@@ -234,9 +268,10 @@ describe('drawLadder', () => {
       // No animatingIndex — path is "completed", should be 0.6
     });
 
-    // globalAlpha is set inline; verify the final reset to 1.0
-    // Full assertion requires inspecting setter calls — tracked as TODO
-    expect(true).toBe(true); // skeleton placeholder
+    // globalAlpha is set to 0.6 for a non-animating revealed path, then reset to 1.0
+    const alphaSets = mockCtx._propSets.filter((p) => p.prop === 'globalAlpha').map((p) => p.value);
+    expect(alphaSets).toContain(0.6);   // semi-transparent for completed path
+    expect(alphaSets[alphaSets.length - 1]).toBe(1.0); // final reset to opaque
   });
 
   it('draws animating path with full opacity (globalAlpha=1.0)', () => {
@@ -251,8 +286,11 @@ describe('drawLadder', () => {
       animProgress: 0.5,
     });
 
-    // When animatingIndex === 0 with progress < 1, globalAlpha should be 1.0
-    expect(true).toBe(true); // skeleton placeholder
+    // When animatingIndex === 0 with progress < 1, globalAlpha should be set to 1.0 (fully opaque)
+    const alphaSets = mockCtx._propSets.filter((p) => p.prop === 'globalAlpha').map((p) => p.value);
+    // 0.6 must NOT appear — animating path stays fully opaque
+    expect(alphaSets).not.toContain(0.6);
+    expect(alphaSets).toContain(1.0);
   });
 
   // ── Winner gold shadow ────────────────────────────────────────────────────
@@ -268,8 +306,8 @@ describe('drawLadder', () => {
     });
 
     // shadowColor should have been set to '#ffd700' for the winner path
-    // Exact assertion requires proxying ctx property setters — skeleton only
-    expect(true).toBe(true); // skeleton placeholder
+    const shadowColorSets = mockCtx._propSets.filter((p) => p.prop === 'shadowColor').map((p) => p.value);
+    expect(shadowColorSets).toContain('#ffd700');
   });
 
   // ── Player name truncation ────────────────────────────────────────────────
