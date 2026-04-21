@@ -399,7 +399,7 @@ LINE 原生爬樓梯遊戲是廣泛使用的抽獎互動形式，但存在以下
 對應 User Stories: US-P05
 
 - **FR-10-1**: 玩家重連時帶上 `playerId`，伺服器驗證後回傳對應房間狀態快照（依當前 status 決定欄位集合）。
-- **FR-10-2**: Ghost Player 情境（localStorage 遺失）：玩家以無 `playerId` 方式加入，視為新玩家，暱稱若重複則提示衝突。
+- **FR-10-2**: Ghost Player 情境（localStorage 遺失）：玩家以無 `playerId` 方式加入，`waiting` 狀態視為新玩家，暱稱若重複則提示衝突；`running`/`revealing`/`finished` 狀態回傳 `ROOM_NOT_JOINABLE`，不允許加入。
 - **FR-10-3**: 同一 `playerId` 重複連線時，後來的連線更新 `isOnline=true`，舊 session 收到 `SESSION_REPLACED` 後斷線。
 - **FR-10-4**: 重連時若房間狀態已為 `revealing` 且部分路徑已揭曉，客戶端直接呈現已揭曉的靜態結果，不重播已完成動畫。
 
@@ -563,6 +563,7 @@ LINE 原生爬樓梯遊戲是廣泛使用的抽獎互動形式，但存在以下
 | 情境 | 預期行為 |
 |------|---------|
 | 主持人在 `waiting` 狀態斷線 | 房間維持 `waiting`，其他玩家連線不中斷；主持人重連後恢復控制權 |
+| 主持人在 `running` 狀態斷線 | 房間維持 `running`，其他玩家連線不中斷；主持人重連後可繼續操作（例如點擊「開始揭曉」） |
 | 主持人在 `revealing` 狀態斷線（自動揭曉進行中） | 自動揭曉計時器繼續（Server 端），主持人重連後可繼續控制 |
 | 主持人斷線超過 60 秒 | 其他玩家仍保持連線，房間狀態維持；主持人以原 playerId 重連後恢復 |
 
