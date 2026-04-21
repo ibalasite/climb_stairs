@@ -2,7 +2,7 @@
   "version": "2.0",
   "project_dir": "/Users/tobala/projects/climb_stairs",
   "pdd_path": "/Users/tobala/projects/climb_stairs/docs/PDD.md",
-  "current_step": "29",
+  "current_step": "31",
   "lang_stack": "ts-fastify-ws-redis-vanillajs-vite",
   "client_type": "web",
   "auto_mode": "full",
@@ -40,7 +40,10 @@
     "26",
     "27",
     "28",
-    "29"
+    "29",
+    "30",
+    "31",
+    "23"
   ],
   "last_updated": "2026-04-21T23:00:00Z",
   "change_desc": "HOST copy 邀請 link（含 6 碼房號）+ localStorage 暱稱記憶，一鍵加入",
