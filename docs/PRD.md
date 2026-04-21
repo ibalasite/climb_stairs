@@ -122,6 +122,7 @@ LINE 原生爬樓梯遊戲是廣泛使用的抽獎互動形式，但存在以下
 - [ ] AC-H03-3: Given 遊戲開始後，When 任何玩家收到 `ROOM_STATE`，Then 所有客戶端渲染的樓梯結構與橫槓位置完全一致，Canvas 動畫 FPS 桌機 ≥ 30、手機 ≥ 24。
 - [ ] AC-H03-4: Given 房間只有 Host 一人（N < 2），When 主持人點擊「開始遊戲」，Then 系統拒絕並回傳 `INSUFFICIENT_PLAYERS` 錯誤，前端顯示「人數不足（至少需要 2 位玩家）」，狀態維持 `waiting`。
 - [ ] AC-H03-5: `rowCount` 公式為 `clamp(N×3, 20, 60)`。Given N=3 時 rowCount=20；N=10 時 rowCount=30；N=21 時 rowCount=60，When 遊戲開始後，Then 伺服器廣播的 `rowCount` 與公式計算值完全一致（E2E 自動化驗證三個邊界值）。
+- [ ] AC-H03-6: Given 房間狀態已為 `running`（已有另一請求正在處理或已完成開局），When 主持人重複點擊「開始遊戲」，Then 伺服器回傳 `INVALID_STATE` 錯誤，狀態不重置，不重新生成 seed 或 ladderMap。
 
 ---
 
@@ -137,6 +138,7 @@ LINE 原生爬樓梯遊戲是廣泛使用的抽獎互動形式，但存在以下
 - [ ] AC-H04-3: Given 所有路徑已逐步揭曉，When 主持人點擊「下一位」，Then 系統不回應（按鈕 disabled），頁面顯示「結束本局」按鈕。
 - [ ] AC-H04-4: Given 所有路徑已揭曉且主持人點擊「結束本局」（觸發 `END_GAME`），When 伺服器收到 `END_GAME`，Then 狀態轉為 `finished`，廣播 `ROOM_STATE`（status=`finished`，含完整得獎名單及 seed），所有客戶端顯示最終結果頁面；操作須在 1 秒內完成。
 - [ ] AC-H04-5: Given 狀態為非 `running`，When 主持人嘗試觸發 `BEGIN_REVEAL`，Then 伺服器拒絕並回傳 `INVALID_STATE` 錯誤，狀態不變。
+- [ ] AC-H04-6: Given 狀態為非 `revealing`，When 主持人嘗試觸發 `REVEAL_NEXT`，Then 伺服器拒絕並回傳 `INVALID_STATE` 錯誤，revealIndex 不遞增。
 
 ---
 
@@ -150,6 +152,7 @@ LINE 原生爬樓梯遊戲是廣泛使用的抽獎互動形式，但存在以下
 - [ ] AC-H05-1: Given 主持人選擇自動模式並設定間隔 T（1 ≤ T ≤ 30，T 須為正整數），When 遊戲進入 `revealing`，Then 每隔 T 秒伺服器自動廣播下一個 `REVEAL_INDEX`，直到全部揭曉完畢。
 - [ ] AC-H05-2: Given 自動揭曉進行中，When 主持人切換回手動模式，Then 自動計時停止，改由主持人手動觸發後續揭曉，已揭曉項目不受影響。
 - [ ] AC-H05-3: Given 主持人輸入 T ≤ 0、T > 30、T 非整數或 T 為非數字，When 系統驗證，Then 回傳 `INVALID_AUTO_REVEAL_INTERVAL` 錯誤並顯示「間隔須為 1～30 的整數」，不啟動自動揭曉。
+- [ ] AC-H05-4: Given 自動揭曉計時器觸發時所有路徑已由手動操作揭曉完畢，When 計時器嘗試廣播下一個 `REVEAL_INDEX`，Then 伺服器不廣播多餘事件，計時器自動停止，系統維持正常 `finished` 狀態流轉。
 
 ---
 
@@ -226,6 +229,8 @@ LINE 原生爬樓梯遊戲是廣泛使用的抽獎互動形式，但存在以下
 - [ ] AC-P01-4: Given 房間人數已達 50 人上限，When 玩家嘗試加入，Then 伺服器回傳 `ROOM_FULL` 錯誤，玩家看到「房間已滿，無法加入」提示。
 - [ ] AC-P01-5: Given 玩家透過邀請連結（含 `?room={roomCode}` URL 參數）進入頁面，When 頁面載入完成，Then Room Code 輸入框自動預填 URL 參數中的房間碼，玩家僅需輸入暱稱即可加入。
 - [ ] AC-P01-6: Given 玩家曾經成功加入過任何房間，When 玩家再次進入加入頁面，Then 暱稱輸入框自動預填 localStorage 中儲存的上次暱稱（key: `ladder_last_nickname`）；Room Code 與暱稱均已預填時，「加入」按鈕呈現啟用狀態，玩家一鍵即可加入。
+- [ ] AC-P01-7: Given 玩家輸入不存在或已過期的 Room Code，When 伺服器驗證，Then 回傳 `ROOM_NOT_FOUND` 錯誤，前端顯示「找不到此房間，請確認房間碼」提示。
+- [ ] AC-P01-8: Given 房間狀態已為 `running` 或 `revealing`（遊戲已開始），When 新玩家嘗試加入，Then 伺服器回傳 `ROOM_NOT_JOINABLE` 錯誤，前端顯示「此房間遊戲已開始，無法加入」提示。
 
 ---
 
@@ -274,7 +279,8 @@ LINE 原生爬樓梯遊戲是廣泛使用的抽獎互動形式，但存在以下
 **Acceptance Criteria**:
 - [ ] AC-P05-1: Given 玩家斷線後重新開啟頁面且 localStorage 中存有 `playerId`，When 玩家訪問房間連結，Then 系統以 `playerId` 自動重連，伺服器回傳完整房間狀態；重連時間 < 3 秒（量測：從頁面 DOMContentLoaded 事件起計，至收到伺服器回傳房間狀態快照並渲染完成）。
 - [ ] AC-P05-2: Given 玩家重連時房間狀態已為 `revealing` 且部分路徑已揭曉，When 收到狀態快照，Then 客戶端直接呈現已揭曉的靜態結果，不重播已完成動畫。
-- [ ] AC-P05-3: Given 玩家 localStorage 中 `playerId` 遺失（Ghost Player），When 玩家嘗試以原房間碼加入，Then 系統視為新玩家處理，若暱稱已存在則提示「暱稱已被使用」。
+- [ ] AC-P05-3: Given 玩家 localStorage 中 `playerId` 遺失（Ghost Player），When 玩家嘗試以原房間碼加入且房間狀態為 `waiting`，Then 系統視為新玩家處理，若暱稱已存在則提示「暱稱已被使用」。
+- [ ] AC-P05-4: Given 玩家 localStorage 中 `playerId` 遺失（Ghost Player），When 玩家嘗試以原房間碼加入且房間狀態為 `running` 或 `revealing`，Then 伺服器回傳 `ROOM_NOT_JOINABLE` 錯誤，前端顯示「此房間遊戲已開始，無法加入」提示。
 
 ---
 
@@ -311,6 +317,7 @@ LINE 原生爬樓梯遊戲是廣泛使用的抽獎互動形式，但存在以下
 - **FR-02-3**: 同一房間最多允許 50 名玩家（含主持人）；超過上限時新連線回傳 `ROOM_FULL`。
 - **FR-02-4**: 系統須維護玩家 `isOnline` 狀態，WebSocket 斷線後標記為 `isOnline=false`，保留其名額與路徑直至「再玩一局」。
 - **FR-02-5**: Host 本人自動加入 players 陣列，也是抽獎玩家之一。
+- **FR-02-6**: 玩家加入時若 Room Code 不存在或已過期，伺服器回傳 `ROOM_NOT_FOUND`；若房間狀態為 `running`、`revealing` 或 `finished`，回傳 `ROOM_NOT_JOINABLE`。
 
 ### FR-03: WebSocket 連線管理 [P0]
 
@@ -553,6 +560,22 @@ LINE 原生爬樓梯遊戲是廣泛使用的抽獎互動形式，但存在以下
 | 主持人在 `waiting` 狀態斷線 | 房間維持 `waiting`，其他玩家連線不中斷；主持人重連後恢復控制權 |
 | 主持人在 `revealing` 狀態斷線（自動揭曉進行中） | 自動揭曉計時器繼續（Server 端），主持人重連後可繼續控制 |
 | 主持人斷線超過 60 秒 | 其他玩家仍保持連線，房間狀態維持；主持人以原 playerId 重連後恢復 |
+
+### §6.7 無效房間碼與加入限制
+
+| 情境 | 預期行為 |
+|------|---------|
+| 玩家輸入不存在或已過期的 Room Code | 伺服器回傳 `ROOM_NOT_FOUND` 錯誤，前端顯示「找不到此房間，請確認房間碼」 |
+| 玩家嘗試加入狀態為 `running`/`revealing` 的房間 | 伺服器回傳 `ROOM_NOT_JOINABLE` 錯誤，前端顯示「此房間遊戲已開始，無法加入」 |
+| 房間狀態為 `finished` 時有新玩家嘗試加入 | 伺服器回傳 `ROOM_NOT_JOINABLE` 錯誤（遊戲已結束），前端顯示「此房間已結束，無法加入」 |
+
+### §6.8 並發操作邊界
+
+| 情境 | 預期行為 |
+|------|---------|
+| 主持人重複快速點擊「開始遊戲」 | 第一個請求成功後，後續請求因狀態已非 `waiting` 而收到 `INVALID_STATE`，seed/ladderMap 不重新生成 |
+| 主持人在 `revealing` 狀態重複點擊「下一位」（多次快速點擊） | 每次 `REVEAL_NEXT` 僅遞增一次 revealIndex，伺服器以原子操作防止重複遞增 |
+| 自動揭曉計時器與手動 `REVEAL_NEXT` 同時觸發 | 伺服器以原子操作確保 revealIndex 僅遞增一次，不產生重複廣播 |
 
 ---
 
