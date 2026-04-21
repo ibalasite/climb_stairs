@@ -36,18 +36,33 @@
 <a class="sidebar__link" href="schema.html">🗄️ Schema 文件</a>
 <a class="sidebar__link" href="design.html">🎨 Design 設計文件</a>
 <a class="sidebar__link" href="align_report.html">📊 對齊報告</a>
+<a class="sidebar__link" href="brd.html">📄 Brd</a>
+<a class="sidebar__link" href="idea.html">📄 Idea</a>
+<a class="sidebar__link" href="migration_code_snapshot.html">📄 Migration Code Snapshot</a>
+<a class="sidebar__link" href="test_plan.html">📄 Test Plan</a>
 <a class="sidebar__link" href="bdd.html">🧪 BDD Scenarios</a>
       </div>
     </aside>
     <div class="sidebar-resizer" id="sidebarResizer"></div>
     <main class="doc-content"><h1>ARCH — Ladder Room Online Architecture Design Document</h1>
-<blockquote><p>Version: v1.2</p></blockquote>
-<blockquote><p>Date: 2026-04-19</p></blockquote>
-<blockquote><p>Revised: 2026-04-19 (STEP-07: aligned with EDD v1.3)</p></blockquote>
-<blockquote><p>Based on: EDD v1.3, PRD v1.3, PDD v2.2</p></blockquote>
+<blockquote><p>Version: v2.0</p></blockquote>
+<blockquote><p>Date: 2026-04-21</p></blockquote>
+<blockquote><p>Based on: EDD v2.0, PRD v1.4, legacy-ARCH v1.3</p></blockquote>
 <hr>
-<h2>1. 架構概覽</h2>
-<p>Ladder Room Online 採用 <strong>Clean Architecture</strong> 分層設計，核心原則為依賴方向永遠指向內層 (Domain)，外層 (Infrastructure/Presentation) 依賴抽象介面而非具體實作。</p>
+<h2>§1 System Overview</h2>
+<p>Ladder Room Online 採用四層架構：<strong>Client → Traefik Ingress → Fastify/WS Server → Redis</strong>。</p>
+<table>
+<tr><th>層級</th><th>組件</th><th>說明</th></tr>
+<tr><td>Client</td><td>Vanilla TypeScript + Vite + HTML5 Canvas</td><td>瀏覽器端；HTTPS REST API + WSS 長連接即時事件；Canvas 2D 渲染梯子動畫</td></tr>
+<tr><td>Ingress</td><td>Traefik（Kubernetes Ingress）</td><td>TLS 終止、HTTPS/WSS 路由分派、sticky session、catch-all 路由至 Client Nginx Pod</td></tr>
+<tr><td>Server</td><td>Fastify + ws（Server Pod）</td><td>HTTP REST（<code>/api/*</code>）及 WebSocket（<code>/ws</code>）共用進程；Fastify 處理 REST；ws 原生 WebSocket 處理即時通訊</td></tr>
+<tr><td>Storage</td><td>Redis（StatefulSet）</td><td>房間狀態持久化（CRUD）、原子操作（WATCH/MULTI/EXEC）、Pub/Sub 跨 Pod 廣播</td></tr>
+</table>
+<p><strong>核心設計決策：</strong></p>
+<ol><li><strong>Vanilla TypeScript + Vite</strong>（無 UI 框架）— 確保最小 JS bundle，無框架冗餘依賴</li><li><strong>WebSocket（ws 原生）</strong>（非 Socket.IO）— 雙向通訊，標準協定，無 polling fallback 需求</li><li><strong>Redis 作為唯一持久層</strong>（非 in-memory）— Pod 重啟後狀態存活，跨 Pod Pub/Sub 廣播</li><li><strong>Clean Architecture + packages/shared</strong>（核心邏輯前後端共用）— 算法一致性可驗證，結果可事後審計</li><li><strong>Mulberry32 PRNG + djb2 seed + Fisher-Yates</strong>（確定性 PRNG）— 100% 客戶端結果一致，無舞弊空間</li><li><strong>Kubernetes 兩 Pod 架構</strong>（server pod + client nginx pod）— 本機與生產環境統一，前後端分離部署</li></ol>
+<hr>
+<h2>§2 Component Architecture</h2>
+<h3>§2.1 Clean Architecture 分層</h3>
 <div class="diagram-container"><pre class="mermaid">graph TD
     subgraph shared["packages/shared (前後端共用)"]
         D["Domain Layer\nRoom · Player · Ladder · DomainError\n純 Entity / Value Object"]
@@ -64,17 +79,7 @@
     UC --> APP
     APP --> INF
     PRES --> APP</pre></div>
-<table>
-<tr><th>層級</th><th>所在套件</th><th>職責</th><th>外部依賴</th></tr>
-<tr><td>Domain</td><td>packages/shared</td><td>Entity、Value Object、純業務規則、DomainError</td><td>無</td></tr>
-<tr><td>Use Cases</td><td>packages/shared</td><td>協調 Domain 物件完成業務流程，回傳純資料結構</td><td>僅依賴 Domain</td></tr>
-<tr><td>Application</td><td>packages/server/src/application</td><td>呼叫 Use Cases、協調 Repository 介面、發布 WS 事件</td><td>Use Cases + 抽象 Interface</td></tr>
-<tr><td>Infrastructure</td><td>packages/server/src/infrastructure</td><td>Redis 實作、WebSocket 封裝、ioredis / jose SDK</td><td>實作 Application Interface</td></tr>
-<tr><td>Presentation</td><td>packages/server/src/presentation</td><td>HTTP Route、AJV Schema 驗證、WS 訊息分派</td><td>Application Service</td></tr>
-</table>
-<p><strong>黃金法則：</strong> 任何模組只能 <code>import</code> 同層或內層的模組；<code>packages/shared</code> 不得 <code>import</code> 任何 Node.js 內建 I/O 模組（fs、net、http 等）。</p>
-<hr>
-<h2>2. 套件依賴關係</h2>
+<h3>§2.2 套件依賴關係</h3>
 <div class="diagram-container"><pre class="mermaid">graph LR
     CLIENT["packages/client\nVanilla TS + Vite + Canvas"]
     SHARED["packages/shared\nDomain + Use Cases + PRNG\nzero I/O"]
@@ -82,317 +87,326 @@
 
     CLIENT -->|"import types,\nGenerateLadder,\nComputeResults,\nPRNG"| SHARED
     SERVER -->|"import types,\nValidateGameStart,\nGenerateLadder,\nComputeResults"| SHARED</pre></div>
-<h3>packages/shared — 輸出清單</h3>
-<table>
-<tr><th>路徑</th><th>輸出內容</th><th>限制</th></tr>
-<tr><td><code>src/domain/entities/</code></td><td>Room, Player, Ladder, LadderSegment</td><td>純 TypeScript class/interface</td></tr>
-<tr><td><code>src/domain/value-objects/</code></td><td>RoomCode, RoomStatus</td><td>純函式驗證</td></tr>
-<tr><td><code>src/domain/errors/</code></td><td>DomainError 基類及子類</td><td>無外部依賴</td></tr>
-<tr><td><code>src/use-cases/</code></td><td>GenerateLadder, ValidateGameStart, ComputeResults</td><td>純函式，可在瀏覽器執行</td></tr>
-<tr><td><code>src/prng/</code></td><td>djb2, createMulberry32, fisherYatesShuffle</td><td>無 <code>Math.random()</code></td></tr>
-<tr><td><code>src/types/index.ts</code></td><td>所有共用 TypeScript interface/type</td><td>不含 class 實作</td></tr>
-</table>
-<p><strong>Import 規則：</strong></p>
-<ul><li><code>packages/client</code> 可 import shared 的全部匯出</li><li><code>packages/server</code> 可 import shared 的全部匯出</li><li><code>packages/shared</code> 不得 import client 或 server 的任何模組</li><li>client 與 server 之間無直接 import（透過 WS/HTTP 通訊）</li></ul>
-<h3>packages/server — 輸出清單</h3>
-<p><code>packages/server</code> 不對外匯出模組；它是可執行進程。<code>container.ts</code> 是唯一組裝點。</p>
-<h3>packages/client — 輸出清單</h3>
-<p><code>packages/client</code> 不對外匯出模組；Vite 建構成靜態資產部署至 GitHub Pages。</p>
-<hr>
-<h2>3. 模組職責</h2>
-<p>以下為 <code>packages/server/src</code> 各模組的單句職責說明。</p>
+<h3>§2.3 Kubernetes Pod 拓撲</h3>
+<div class="diagram-container"><pre class="mermaid">graph TD
+    subgraph Client["Client Browser"]
+        TS["Vanilla TS + Vite"]
+        Canvas["HTML5 Canvas"]
+        WSClient["WsClient"]
+        TS --> Canvas
+        TS --> WSClient
+    end
+
+    subgraph Ingress["Traefik Ingress (ladder.local)"]
+        NginxHTTP["HTTP /api/*\nFastify REST"]
+        NginxWS["WebSocket /ws\nWS Upgrade"]
+        NginxStatic["Static / (catch-all)\nClient Pod"]
+    end
+
+    subgraph K8sCluster["Kubernetes Cluster (namespace: ladder-room)"]
+        SVC["Service: ladder-server-service\nClusterIP port:80->3000"]
+        ClientSVC["Service: ladder-client-service\nClusterIP port:80"]
+
+        subgraph ClientPod["Client Pod"]
+            NginxPod["Nginx 1.27-alpine\nladder-client:local\nSPA static files"]
+        end
+
+        subgraph Pods["Fastify Pods (MVP: replicas=1)"]
+            Pod1["Pod-1 Fastify+ws\nport:3000"]
+        end
+
+        SVC --> Pod1
+        ClientSVC --> NginxPod
+
+        subgraph Redis["Redis StatefulSet"]
+            RedisMaster["Redis Master\nredis-0"]
+            RedisReplica["Redis Replica\nredis-1 (Post-MVP)"]
+            RedisMaster --> RedisReplica
+        end
+
+        Pod1 --> RedisMaster
+        Pod1 --> |"PSUBSCRIBE room:*:events"| RedisMaster
+    end
+
+    WSClient --> |"WSS /ws?room=...&token=..."| NginxWS
+    TS --> |"HTTPS /api/*"| NginxHTTP
+    NginxHTTP --> |"sticky session"| SVC
+    NginxWS --> |"sticky session"| SVC
+    NginxStatic --> ClientSVC</pre></div>
+<h3>§2.4 模組職責總覽</h3>
 <table>
 <tr><th>模組路徑</th><th>職責</th></tr>
-<tr><td><code>container.ts</code></td><td>以工廠函式組裝所有依賴（DI 根），回傳完整注入樹，不含任何業務邏輯</td></tr>
+<tr><td><code>container.ts</code></td><td>以工廠函式組裝所有依賴（DI 根），回傳完整注入樹，不含業務邏輯</td></tr>
 <tr><td><code>main.ts</code></td><td>啟動 Fastify 伺服器、掛載 WsServer、初始化 PubSubBroker，並設定 graceful shutdown</td></tr>
-<tr><td><code>presentation/routes/rooms.ts</code></td><td>處理房間 CRUD HTTP 路由（POST /rooms、GET /rooms/:code、POST /rooms/:code/start 等）</td></tr>
-<tr><td><code>presentation/routes/players.ts</code></td><td>處理玩家 HTTP 路由（POST /rooms/:code/players、DELETE /rooms/:code/players/:id）</td></tr>
-<tr><td><code>presentation/schemas/</code></td><td>定義 Fastify AJV JSON Schema，對所有 HTTP 請求/回應做格式驗證</td></tr>
 <tr><td><code>application/services/RoomService.ts</code></td><td>協調房間建立、加入、踢出等業務流程，呼叫 RoomRepository 並發布 ROOM_STATE 廣播</td></tr>
-<tr><td><code>application/services/GameService.ts</code></td><td>協調遊戲開局（START_GAME，僅生成 seedSource，不生成梯子）、開始揭示（BEGIN_REVEAL，<code>running → revealing</code>，<strong>此時才原子生成 LadderData + ResultSlots</strong>）、逐一揭示（REVEAL_NEXT）、全揭（REVEAL_ALL_TRIGGER）、結束（END_GAME，<code>revealing → finished</code>，seed 首次公開）、再玩一局（PLAY_AGAIN，取代 RESET_ROOM）流程，呼叫 GenerateLadder/ComputeResults 並觸發廣播</td></tr>
-<tr><td><code>application/handlers/WsMessageHandler.ts</code></td><td>解析 ClientEnvelope，執行<strong>二次</strong> role + room.hostId 驗證（主要 JWT 簽章驗證已在 WsServer.handleUpgrade 完成），分派至對應 Service 方法</td></tr>
+<tr><td><code>application/services/GameService.ts</code></td><td>協調遊戲開局（START_GAME）、開始揭曉（BEGIN_REVEAL）、逐一揭曉（REVEAL_NEXT）、全揭（REVEAL_ALL_TRIGGER）、結束（END_GAME）、再玩一局（PLAY_AGAIN）流程</td></tr>
+<tr><td><code>application/handlers/WsMessageHandler.ts</code></td><td>解析 ClientEnvelope，執行二次 role + room.hostId 驗證，分派至對應 Service 方法</td></tr>
 <tr><td><code>application/handlers/PubSubHandler.ts</code></td><td>訂閱 Redis <code>room:*:events</code> 頻道，將收到的 PubSubMessage 轉發至房間內所有本地 WsSession</td></tr>
-<tr><td><code>infrastructure/redis/RedisClient.ts</code></td><td>建立並匯出 ioredis 單例（含連線重試設定）</td></tr>
-<tr><td><code>infrastructure/redis/RoomRepository.ts</code></td><td>實作 IRoomRepository：對 Redis 進行 Room 的 CRUD、TTL 管理；一般操作使用 WATCH/MULTI/EXEC 原子操作；BEGIN_REVEAL 使用 Lua Script 確保 GenerateLadder 結果與 status=revealing 原子寫入</td></tr>
+<tr><td><code>infrastructure/redis/RoomRepository.ts</code></td><td>實作 IRoomRepository：對 Redis 進行 Room CRUD、TTL 管理；BEGIN_REVEAL 使用 Lua Script</td></tr>
 <tr><td><code>infrastructure/redis/PubSubBroker.ts</code></td><td>封裝 Redis PUBLISH 與 SUBSCRIBE，抽象跨 Pod 廣播細節</td></tr>
-<tr><td><code>infrastructure/websocket/WsServer.ts</code></td><td>封裝 <code>ws.Server</code>，處理 HTTP Upgrade、JWT 驗證、踢除攔截（close 4003），建立 WsSession</td></tr>
-<tr><td><code>infrastructure/websocket/WsSession.ts</code></td><td>管理單一 WebSocket 連線的生命週期：心跳、訊息序列化/反序列化、速率限制（60 msg/min）、斷線計時</td></tr>
+<tr><td><code>infrastructure/websocket/WsServer.ts</code></td><td>封裝 ws.Server，處理 HTTP Upgrade、JWT 驗證、踢除攔截（close 4003），建立 WsSession</td></tr>
+<tr><td><code>infrastructure/websocket/WsSession.ts</code></td><td>管理單一 WebSocket 連線生命週期：心跳、速率限制（60 msg/min）、斷線計時</td></tr>
 </table>
-<h3>3.1 本地計時器所有權（Auto-Reveal Timer &amp; Host-Transfer Timer）</h3>
-<p>Pod 本地記憶體中存在兩種 <code>setTimeout</code>/<code>setInterval</code> 計時器，其所有者與恢復策略如下：</p>
+<hr>
+<h2>§3 Sequence Diagrams</h2>
+<h3>§3.1 Room Creation</h3>
+<div class="diagram-container"><pre class="mermaid">sequenceDiagram
+    participant C as Client Browser
+    participant N as Traefik Ingress
+    participant F as Fastify Pod
+    participant R as Redis
+
+    C->>N: POST /api/rooms { hostNickname, winnerCount }
+    N->>F: HTTP forward
+    F->>R: SET room:{code} NX EX 86400 (原子建立)
+    R-->>F: OK / nil (衝突時重試，最多 10 次)
+    F-->>C: 201 { roomCode, playerId, token(JWT), room }
+
+    C->>N: POST /api/rooms/:code/players { nickname }
+    N->>F: HTTP forward
+    F->>R: SISMEMBER room:{code}:kicked
+    F->>R: WATCH room:{code} + MULTI/EXEC (原子加入)
+    R-->>F: OK
+    F-->>C: 201 { playerId, token, room }</pre></div>
+<h3>§3.2 Game Start</h3>
+<div class="diagram-container"><pre class="mermaid">sequenceDiagram
+    participant C as Client Browser
+    participant N as Traefik Ingress
+    participant F as Fastify Pod
+    participant R as Redis
+
+    Note over C,F: WebSocket 連線建立
+    C->>N: WSS /ws?room={code}&token={token}
+    N->>F: WebSocket Upgrade (sticky session)
+    F->>F: 驗證 Origin + JWT HS256 + kickedPlayerIds
+    F->>R: GET room:{code} load state
+    R-->>F: Room JSON
+    F-->>C: HTTP 101 WS Connected
+    F->>C: ROOM_STATE_FULL { room, ladder:null, results:null, selfPlayerId }
+
+    Note over C,F: Host 開始遊戲
+    C->>F: WS MSG: START_GAME {}
+    F->>F: 驗證 JWT role=host + room.hostId
+    F->>R: WATCH room:{code}
+    F->>R: MULTI => SET status=running, seedSource=UUID, rowCount / DEL ladder / EXEC
+    R-->>F: EXEC OK (原子操作)
+    F->>R: PUBLISH room:{code}:events ROOM_STATE(running)
+    F-->>C: Broadcast ROOM_STATE { status: running, rowCount } (不含 seed/ladder)</pre></div>
+<h3>§3.3 Path Reveal</h3>
+<div class="diagram-container"><pre class="mermaid">sequenceDiagram
+    participant C as Client Browser
+    participant F as Fastify Pod
+    participant R as Redis
+
+    Note over C,F: Host 開始揭曉
+    C->>F: WS MSG: BEGIN_REVEAL {}
+    F->>F: 應用層計算 generateLadder + computeResults (純 CPU)
+    F->>R: Lua Script 原子寫入 ladder/results/status=revealing
+    R-->>F: OK
+    F->>R: PUBLISH room:{code}:events ROOM_STATE(revealing)
+    F-->>C: Broadcast ROOM_STATE { status: revealing } (seed 不公開)
+
+    Note over C,F: 逐步揭曉（手動模式）
+    C->>F: WS MSG: REVEAL_NEXT {}
+    F->>R: INCR room:{code}:revealedCount (原子)
+    R-->>F: newCount
+    F->>R: GET room:{code}:ladder => results[newCount-1]
+    F->>R: PUBLISH REVEAL_INDEX { playerIndex, result, revealedCount, totalCount }
+    F-->>C: Broadcast REVEAL_INDEX
+
+    Note over C,F: 一鍵全揭（REVEAL_ALL_TRIGGER）
+    C->>F: WS MSG: REVEAL_ALL_TRIGGER {}
+    F->>R: GET room:{code}:ladder + GET room:{code}:results (pipeline)
+    R-->>F: ladder + results[]
+    F->>R: WATCH+MULTI/EXEC SET revealedCount=totalCount / status=finished / TTL 降至 1h
+    F->>R: PUBLISH ROOM_STATE { status: finished, seed, results: ResultSlotPublic[] }
+    F-->>C: Broadcast ROOM_STATE (seed 首次公開，results 省略 path 符合 64KB 限制)
+
+    Note over C,F: 結束本局（手動模式）
+    C->>F: WS MSG: END_GAME {} (revealedCount == totalCount)
+    F->>R: WATCH+MULTI/EXEC SET status=finished / TTL 降至 1h
+    F->>R: PUBLISH ROOM_STATE { status: finished, seed, results[] }
+    F-->>C: Broadcast ROOM_STATE (seed 首次公開)</pre></div>
+<h3>§3.4 WS Reconnection</h3>
+<div class="diagram-container"><pre class="mermaid">sequenceDiagram
+    participant C as Client Browser (新連線)
+    participant Cold as Client Browser (舊連線)
+    participant F as Fastify Pod
+    participant R as Redis
+
+    Note over C: WS 斷線 (網路抖動)
+    C->>C: 指數退避重連 (1s->2s->4s->8s->30s)
+    C->>F: WSS /ws?room={code}&token={token} (重連)
+    F->>R: SISMEMBER room:{code}:kicked
+    R-->>F: 0 (未被踢)
+    F->>F: 驗證 JWT HS256
+    F->>F: PlayerSessionIndex.get(playerId) => 舊 sessionId
+    F-->>Cold: SESSION_REPLACED (unicast 給舊連線)
+    F->>R: pipeline GET room:{code}, room:{code}:ladder, room:{code}:revealedCount
+    F->>R: WATCH+MULTI/EXEC SET player.isOnline=true + TTL reset
+    F->>R: PUBLISH ROOM_STATE (player 重新上線)
+    F-->>C: ROOM_STATE_FULL (unicast，重建完整畫面)</pre></div>
+<hr>
+<h2>§4 Data Flow Architecture</h2>
+<h3>§4.1 狀態機轉換</h3>
+<pre><code class="">waiting  --&gt;  running  --&gt;  revealing  --&gt;  finished
+                                              |
+                                         (PLAY_AGAIN)
+                                              |
+                                           waiting</code></pre>
 <table>
-<tr><th>計時器</th><th>所有者模組</th><th>觸發條件</th><th>Pod 重啟後恢復</th></tr>
-<tr><td>auto-reveal interval</td><td><code>GameService</code>（靜態 Map <code>roomCode → NodeJS.Timeout</code>）</td><td>SET_REVEAL_MODE mode=auto；intervalSec 1-30s</td><td>重連客戶端收到 ROOM_STATE_FULL（status=revealing）後，Host 須重新送 SET_REVEAL_MODE 恢復計時；服務端<strong>不</strong>自動恢復計時，以避免幽靈計時器。<strong>客戶端恢復觸發機制：</strong> Client 收到 ROOM_STATE_FULL 且 <code>autoRevealActive === true</code>（payload 欄位）時，Host UI 顯示「重新啟動自動揭示」提示並自動重發 SET_REVEAL_MODE；非 Host 客戶端無需操作</td></tr>
-<tr><td>(Out of Scope for MVP) host-transfer grace（60s）</td><td><code>WsSession</code>（<code>disconnect</code> event 觸發，Timer ID 存於 Session）</td><td>WS close event（host 斷線）；playerId === room.hostId</td><td>重啟後 timer 消失；若 host 60s 內未重連，下一個連線至該房間的請求（心跳或新訊息）觸發 GameService 補跑 hostTransferIfNeeded() 邏輯（檢查 room.hostId.isOnline === false 且 updatedAt + 60s &lt; now）</td></tr>
+<tr><th>狀態轉換</th><th>觸發事件</th><th>seed 公開</th><th>ladder 公開</th></tr>
+<tr><td>waiting → running</td><td>START_GAME</td><td>否</td><td>否（尚未生成）</td></tr>
+<tr><td>running → revealing</td><td>BEGIN_REVEAL</td><td>否</td><td>LadderDataPublic（省略 seed）</td></tr>
+<tr><td>revealing → finished</td><td>END_GAME / REVEAL_ALL_TRIGGER</td><td>是（首次公開）</td><td>LadderData（完整）</td></tr>
+<tr><td>finished → waiting</td><td>PLAY_AGAIN</td><td>清空</td><td>清空</td></tr>
 </table>
-<p><strong>設計決策：</strong> 計時器不序列化至 Redis，以保持 Pod 無狀態。Pod 重啟後，auto-reveal 依賴 Host 主動恢復，host-transfer 依賴下一個到達事件補跑。此為 MVP 單 Pod 下可接受的 trade-off；Post-MVP 多 Pod 時，計時器只在擁有 Host Session 的 Pod 上存在，廣播仍透過 Pub/Sub 正確傳遞。</p>
-<hr>
-<h2>4. 主要設計決策</h2>
-<h3>4.1 選用原生 <code>ws</code> 而非 Socket.IO</h3>
-<p><strong>決策：</strong> WebSocket 伺服器採用 <code>ws</code> 套件，不使用 Socket.IO。</p>
-<p><strong>理由：</strong></p>
-<ul><li>Socket.IO 的 polling fallback 在本專案中無需求（所有目標瀏覽器均支援原生 WebSocket）。</li><li><code>ws</code> 的 bundle size 遠小於 Socket.IO，降低 Node.js 冷啟動時間。</li><li>跨語言客戶端（未來可能有原生 App）直接使用標準 WS 協定無需額外 adapter。</li></ul>
-<p><strong>取捨：</strong> 需要自行實作房間廣播、心跳、重連邏輯；透過 <code>WsSession</code> 封裝後複雜度可控。</p>
-<hr>
-<h3>4.2 Monorepo 結構</h3>
-<p><strong>決策：</strong> 三套件 monorepo（packages/shared、packages/server、packages/client）。</p>
-<p><strong>理由：</strong></p>
-<ul><li><code>packages/shared</code> 在前後端共用梯子生成算法（PRNG + GenerateLadder + ComputeResults），確保兩端結果可獨立驗證（PRD FR-03-1 可審計性）。</li><li>單一 CI pipeline 同時執行跨套件類型檢查，及早捕捉介面不相容問題。</li><li><code>tsconfig</code> 互相引用，型別變更即時傳播，無需手動同步 <code>@types/*</code>。</li></ul>
-<p><strong>取捨：</strong> npm workspace 增加初始設定複雜度；大型 monorepo 工具（Turborepo）在 MVP 階段略顯過重，以 npm workspaces 即可。</p>
-<hr>
-<h3>4.3 Redis Pub/Sub 用於跨 Pod 廣播</h3>
-<p><strong>決策：</strong> 每個 Pod SUBSCRIBE <code>room:*:events</code>，任一 Pod 觸發事件時 PUBLISH 至對應頻道，所有 Pod 的 PubSubHandler 負責轉發至本地 WsSession。</p>
-<p><strong>理由：</strong></p>
-<ul><li>Redis 是唯一共享狀態層，Pub/Sub 不需要引入第三方訊息佇列（Kafka、RabbitMQ）即可完成 Pod 間廣播。</li><li><code>room:*:events</code> pattern subscription 確保新房間自動被訂閱，無需手動管理 channel 清單。</li><li>MVP 為單實例，Pub/Sub 退化為本地呼叫，overhead 可忽略。</li></ul>
-<p><strong>取捨：</strong> Redis Pub/Sub 為 at-most-once 語意，訊息不持久化；若 Pod 在 PUBLISH 後崩潰，尚未收到廣播的客戶端需依賴 WS 重連後的 ROOM_STATE_FULL 補齊狀態。</p>
-<hr>
-<h3>4.4 不使用 ORM</h3>
-<p><strong>決策：</strong> 直接使用 ioredis 命令，Room 以 JSON 字串儲存於單一 Redis key。</p>
-<p><strong>理由：</strong></p>
-<ul><li>Room 是聚合根（aggregate root），以 JSON 整包讀取/寫入更符合 Redis 用途，避免多次 HGET 組合。</li><li>ORM（Prisma、TypeORM）為 SQL 導向，不適合 Redis 的 key-value 模型。</li><li>原子操作（WATCH/MULTI/EXEC、INCR）需直接控制 Redis 命令；ORM 抽象層反而降低可控性。</li></ul>
-<p><strong>取捨：</strong> 需手動維護 JSON 序列化/反序列化與型別斷言；<code>RoomRepository</code> 單元測試須 mock RedisClient。</p>
-<hr>
-<h3>4.5 Constructor Injection + container.ts 工廠</h3>
-<p><strong>決策：</strong> 所有依賴透過 constructor 注入，<code>container.ts</code> 集中組裝，不引入 DI 框架（InversifyJS 等）。</p>
-<p><strong>理由：</strong></p>
-<ul><li>無框架 DI 對 Vitest 測試友善：直接傳入 mock 物件，不需 <code>@injectable()</code> 裝飾器或 metadata。</li><li><code>container.ts</code> 作為組裝根（Composition Root），依賴圖一目了然。</li><li>避免引入 <code>reflect-metadata</code> polyfill 增加 bundle 大小。</li></ul>
-<p><strong>取捨：</strong> 大型應用程式中手動組裝容易遺漏依賴；本專案服務數量固定（&lt; 10 個），risk 可控。</p>
-<hr>
-<h3>4.6 JWT HS256 (jose) 作為 Session Token</h3>
-<p><strong>決策：</strong> WS 升級與 host-only HTTP 操作均使用 JWT HS256（<code>jose</code> 套件），payload 為 <code>{ playerId, roomCode, role: &quot;host&quot; | &quot;player&quot;, exp }</code>。</p>
-<p><strong>理由：</strong></p>
-<ul><li>無狀態驗證：每個請求自帶身份資訊，不需額外 Redis 查詢即可驗證 role。</li><li><code>jose</code> 支援 Web Crypto API，瀏覽器端未來可直接驗證（可審計）。</li><li>HS256 在 shared secret 模型下實作簡單，適合 MVP 單服務架構。</li></ul>
-<p><strong>Token 有效期：</strong> JWT <code>exp</code> 設為 <strong>6 小時</strong>（21600 秒）。玩家 token 在房間生命週期內有效；finished 房間 TTL 為 1h，token 在此仍有效但 Redis 中已無 Room 資料（<code>RoomRepository.findByCode</code> 回傳 null → 403）。</p>
-<p><strong>取捨：</strong> Token 一旦簽發無法提前撤銷（除非加黑名單）；host 轉移後舊 host token 在 exp 前仍有效，須以 <code>room.hostId</code> 做雙重驗證。Token 6h exp 在極端情況下 Room TTL（24h waiting）屆滿前 token 可能先過期，此時玩家需重新加入取得新 token。</p>
-<p><strong>已知安全取捨（JWT exp vs 長連線 WS）：</strong> JWT <code>exp</code> 僅在 WS Upgrade 握手時（<code>handleUpgrade</code>）及 HTTP 請求時被驗證；一旦 WS 連線建立成功，後續訊息<strong>不重驗 exp</strong>（<code>WsMessageHandler</code> 只做 role + hostId 比對，不重新解析 JWT）。這意味著若玩家 token 在連線中途到期（6h 後），其 WS 連線仍維持有效直至斷線或主動 close。<strong>此為 MVP 接受的安全取捨</strong>：房間生命週期 ≤ 24h，遊戲時長通常遠低於 6h；若需要強制 exp 執行，Post-MVP 可在 WsSession 加入定時 token 輪替機制（每 N 分鐘要求客戶端以新 token 重連）。</p>
-<hr>
-<h3>4.7 MVP 單實例，HPA 為 Post-MVP</h3>
-<p><strong>決策：</strong> MVP 部署單一 Node.js 實例，不啟用 Kubernetes HPA 與多 Pod（PRD Out-of-Scope #9）。</p>
-<p><strong>理由：</strong></p>
-<ul><li>PRD NFR-02 目標 5,000 WS 連線（100 房 × 50 人）在單實例 Node.js 上可達成。</li><li>避免 MVP 過早投入 sticky session、Nginx affinity、Redis Sentinel 等複雜度。</li><li>架構已預留多 Pod 設計（Pub/Sub、RoomRepository 無本地狀態）：Post-MVP 啟用 HPA 只需改 k8s manifest。</li></ul>
-<p><strong>取捨：</strong> 單實例無高可用；Pod 重啟期間所有 WS 連線中斷，客戶端依賴指數退避重連恢復。</p>
-<p><strong>Redis 失敗降級策略（MVP）：</strong> Redis 單節點是 MVP SPOF。當 ioredis <code>error</code> 事件觸發（連線斷開）時：</p>
-<ul><li><code>RoomRepository</code> 所有方法拋出 <code>SYS_REDIS_ERROR</code>，由 Application 層捕捉後對觸發方 WS Session 發送 <code>ERROR { code: &quot;SYS_REDIS_ERROR&quot; }</code> 並保持連線。</li><li>新的 HTTP 加入請求（POST /rooms/:code/players）回傳 <code>503 Service Unavailable</code>。</li><li><code>GET /api/v1/health</code> 回傳 <code>{ redis: &quot;error&quot; }</code> 讓 Kubernetes readinessProbe 立即將 Pod 移出 Service endpoints，避免繼續接收流量。</li><li>ioredis 內建指數退避重連（<code>retryStrategy</code>），Redis 重啟後自動恢復；WS 客戶端透過重連收到最新 ROOM_STATE_FULL。</li></ul>
-<p><strong>Post-MVP Redis HA：</strong> 升級路徑為 Redis Sentinel（單 master + replica 自動 failover）或 Redis Cluster（分片）；PubSubBroker 改用 ioredis Cluster/Sentinel 模式，業務邏輯無需修改。</p>
-<hr>
-<h2>5. 依賴注入 (DI) 設計</h2>
-<h3>5.1 Constructor Injection 模式</h3>
-<p>所有 Service、Handler、Repository 的依賴均透過 constructor 參數傳入，類別內部不直接 <code>new</code> 依賴物件：</p>
-<pre><code class="language-typescript">// 正確：依賴從外部注入
-class GameService {
-  constructor(
-    private readonly roomRepo: IRoomRepository,
-    private readonly pubSub: IPubSubBroker,
-  ) {}
-}
-
-// 錯誤：內部直接建立依賴
-class GameService {
-  private roomRepo = new RoomRepository(redis); // 禁止
-}</code></pre>
-<h3>5.2 container.ts 工廠結構</h3>
-<pre><code class="">container.ts
-  ├── redisClient    = new RedisClient(config.REDIS_URL)
-  ├── roomRepo       = new RoomRepository(redisClient)
-  ├── pubSubBroker   = new PubSubBroker(redisClient)
-  ├── roomService    = new RoomService(roomRepo, pubSubBroker)
-  ├── gameService    = new GameService(roomRepo, pubSubBroker)
-  ├── wsMessageHandler = new WsMessageHandler(roomService, gameService)
-  ├── pubSubHandler  = new PubSubHandler(pubSubBroker, wsSessionMap)
-  └── wsServer       = new WsServer(config, wsMessageHandler, wsSessionMap)</code></pre>
-<p><code>container.ts</code> 回傳 <code>{ fastify, wsServer, pubSubHandler }</code>，<code>main.ts</code> 呼叫後啟動伺服器。</p>
-<h3>5.3 測試時替換 Test Double</h3>
-<pre><code class="language-typescript">// 單元測試：直接傳入 mock，不需要 DI 框架
-const mockRepo: IRoomRepository = {
-  findByCode: vi.fn().mockResolvedValue(room),
-  save: vi.fn().mockResolvedValue(undefined),
-  // ...
-};
-const svc = new GameService(mockRepo, mockPubSub);</code></pre>
-<p>定義 <code>IRoomRepository</code>、<code>IPubSubBroker</code> 介面於 <code>application/</code> 層，<code>infrastructure/</code> 層實作；測試只依賴介面，不啟動真實 Redis。整合測試則使用 <code>testcontainers</code> 啟動真實 Redis 容器。</p>
-<hr>
-<h2>6. 狀態管理策略</h2>
-<h3>6.1 Redis 為唯一真相來源</h3>
-<p>所有房間狀態（Room JSON）以 <code>room:{code}</code> key 儲存於 Redis，Pod 本地記憶體不快取業務狀態。</p>
-<pre><code class="">Redis Keys:
-  room:{code}               → Room JSON（含 players、kickedPlayerIds、revealedCount 快照）
-  room:{code}:ladder        → LadderData JSON（含 seed、seedSource、segments、results）；
-                              BEGIN_REVEAL 時才創建，START_GAME 時不存在
-  room:{code}:revealedCount → Integer，INCR 原子遞增（唯一計數真相來源）
-
-Key TTL:
-  waiting / running 房間 → 24h（EXPIRE，玩家活動時 EXPIRE 重置）
-  finished 房間          → 1h（END_GAME 觸發後 EXPIRE 更新）
-  最後一人斷線           → 5 分鐘（close event 原子設定 EXPIRE 300）
-
-安全邊界（seed 公開時機）：
-  status=waiting/running  → seed 不存在（尚未生成）
-  status=revealing        → seed 存在於 Redis，但 ROOM_STATE_FULL 以 LadderDataPublic（省略 seed）傳送客戶端
-  status=finished         → seed 首次對客戶端公開（含於 ROOM_STATE 廣播，PRD AC-H03-1, NFR-05）</code></pre>
-<p><strong><code>revealedCount</code> 雙欄位說明（一致性關鍵）：</strong></p>
-<p><code>room:{code}:revealedCount</code> Redis key 是唯一計數真相來源，以 INCR 保證原子性。Room JSON 內的 <code>revealedCount</code> 欄位是快照值，<strong>僅</strong>在下列時機同步寫入：</p>
-<ol><li>START_GAME MULTI/EXEC：在 Room JSON 內置 0，同時 DEL <code>room:{code}:revealedCount</code>（或 SET 0）。</li><li>REVEAL_NEXT 流程（見第 7.1 節）：先 INCR 取得 <code>newCount</code>，再以 MULTI/EXEC 原子更新 Room JSON（<code>room.revealedCount = newCount</code>）與 PUBLISH，確保 JSON 與 INCR key 同步。</li><li>ROOM_STATE_FULL（重連）：GameService 在組裝 payload 前，以 <code>GET room:{code}:revealedCount</code> 取最新值覆蓋 Room JSON 的 <code>revealedCount</code> 欄位後再回傳。</li></ol>
-<p>如此可避免 INCR 成功但 JSON SET 失敗造成的 split-brain。</p>
-<h3>6.2 記憶體中保存的內容</h3>
-<pre><code class="">Pod 本地記憶體（重啟後消失）：
-  WsSessionMap（主索引）: Map&lt;sessionId, WsSession&gt;
-    - 索引：sessionId（UUID，連線時生成）
-    - 內容：ws.WebSocket 物件、playerId、roomCode、rate limit counter
-    - 生命週期：與 WS 連線共存亡
-
-  PlayerSessionIndex（副索引）: Map&lt;playerId, sessionId&gt;
-    - 目的：O(1) 查詢同一 playerId 的現有 Session（SESSION_REPLACED、HOST_TRANSFERRED、KICK_PLAYER 廣播用）
-    - 維護：連線時 set，斷線時 delete；若同一 playerId 新連線建立，覆蓋舊值後關閉舊 Session（SESSION_REPLACED）
-
-  PubSubBroker 的訂閱 socket（ioredis duplicate connection）</code></pre>
-<p><strong>設計決策：</strong> WsSessionMap 存記憶體而非 Redis，因 WebSocket socket 物件本身無法序列化。使用雙索引（sessionId 主索引 + playerId 副索引）可避免 O(n) 線性掃描；廣播時 PubSubHandler 依 roomCode 篩選本地 WsSession 集合，SESSION_REPLACED / KICK_PLAYER 透過 PlayerSessionIndex 做 O(1) 定址。</p>
-<h3>6.3 一致性保證</h3>
-<table>
-<tr><th>操作</th><th>一致性機制</th></tr>
-<tr><td>START_GAME</td><td>WATCH + MULTI/EXEC；EXEC null → 重試最多 3 次；同時 DEL revealedCount key；<strong>不生成梯子，不廣播 seed</strong></td></tr>
-<tr><td>BEGIN_REVEAL</td><td>Lua Script 原子執行：GenerateLadder/ComputeResults 在應用層計算，Lua 原子寫入 ladder/results/status=revealing；同時 DEL revealedCount key</td></tr>
-<tr><td>END_GAME</td><td>WATCH + MULTI/EXEC：status → finished；成功後廣播含 seed 的 ROOM_STATE；Redis TTL 延長至 1h</td></tr>
-<tr><td>PLAY_AGAIN（取代 RESET_ROOM）</td><td>WATCH + MULTI/EXEC 原子更新整包 Room JSON；清空 ladder/kickedPlayerIds/revealedCount</td></tr>
-<tr><td>REVEAL_NEXT（revealedCount 遞增）</td><td>先 INCR 取得 newCount，再 WATCH + MULTI/EXEC 將 newCount 寫入 Room JSON 並 PUBLISH；三步操作確保 JSON 與 INCR key 同步（若 EXEC null 則重試，最多 3 次）</td></tr>
-<tr><td>ROOM_STATE_FULL（重連）</td><td>GameService 以 GET room:{code}:revealedCount 取最新值覆蓋 Room JSON 的快照後再組裝 payload；revealing 狀態回傳 LadderDataPublic（省略 seed）</td></tr>
-<tr><td>玩家加入/離線</td><td>以 Room JSON 整包 SET，配合 WATCH 防止 lost update</td></tr>
-</table>
-<hr>
-<h2>7. 跨 Pod 廣播機制</h2>
-<h3>7.1 Pub/Sub 訊息流</h3>
+<h3>§4.2 Redis Pub/Sub 廣播流</h3>
 <div class="diagram-container"><pre class="mermaid">graph TD
-    HostWS["Host Client\nWS 連線 → Pod-1"]
+    HostWS["Host Client\nWS 連線 => Pod-1"]
     Pod1["Pod-1\nGameService"]
     Redis["Redis\nPUBLISH room:ABC:events"]
     Pod1Sub["Pod-1 PubSubHandler\n(本地訂閱)"]
-    Pod2Sub["Pod-2 PubSubHandler\n(遠端訂閱)"]
-    PlayersPod1["Pod-1 上的玩家\nWsSession × M"]
-    PlayersPod2["Pod-2 上的玩家\nWsSession × K"]
+    Pod2Sub["Pod-2 PubSubHandler\n(遠端訂閱, Post-MVP)"]
+    PlayersPod1["Pod-1 上的玩家\nWsSession x M"]
+    PlayersPod2["Pod-2 上的玩家\nWsSession x K"]
 
     HostWS -->|"REVEAL_NEXT"| Pod1
-    Pod1 -->|"1. INCR revealedCount\n2. WATCH+MULTI/EXEC:\n   SET room JSON (revealedCount=newCount)\n3. PUBLISH room:ABC:events"| Redis
+    Pod1 -->|"1. INCR revealedCount\n2. WATCH+MULTI/EXEC\n3. PUBLISH"| Redis
     Redis -->|"message 事件"| Pod1Sub
     Redis -->|"message 事件"| Pod2Sub
     Pod1Sub -->|"篩選 roomCode=ABC\n廣播 REVEAL_INDEX"| PlayersPod1
     Pod2Sub -->|"篩選 roomCode=ABC\n廣播 REVEAL_INDEX"| PlayersPod2</pre></div>
-<h3>7.2 PubSubMessage 介面</h3>
-<pre><code class="language-typescript">interface PubSubMessage {
-  readonly roomCode: string;
-  readonly event: ServerEnvelope&lt;unknown&gt;;  // WsEventType 事件
-  readonly excludeSessionId?: string;       // 排除觸發方（避免重複收訊）
-}</code></pre>
-<h3>7.3 訂閱拓撲</h3>
-<ul><li>每個 Pod 啟動時建立一條獨立的 ioredis 連線（<code>redis.duplicate()</code>）並 PSUBSCRIBE <code>room:*:events</code></li><li>Pattern subscription 確保新建房間頻道無需手動 SUBSCRIBE</li><li>MVP 單 Pod 時 PUBLISH 觸發自身訂閱，行為與多 Pod 完全一致（零差異）</li><li>PUBLISH 失敗時進行指數退避重試（100ms / 200ms / 400ms）；三次失敗後觸發 critical alert（以 <code>pino.error</code> 輸出 <code>{ event: &quot;PUBSUB_PUBLISH_FAILED&quot;, roomCode, attempt: 3 }</code> JSON 日誌，由 fluent-bit 傳遞至集中 log 系統；生產環境另設 Prometheus counter <code>pubsub_publish_failed_total</code> 供 Alertmanager 觸發 PagerDuty 告警）</li></ul>
-<hr>
-<h2>8. 安全邊界</h2>
-<div class="diagram-container"><pre class="mermaid">graph TD
-    Internet["Internet"] --> Nginx["Nginx Ingress\nTLS 終止\nHSTS max-age=31536000"]
-    Nginx --> FastifyHTTP["Fastify HTTP Handler\n1. AJV Schema 驗證\n2. Rate Limiting"]
-    Nginx --> WsUpgrade["WsServer.handleUpgrade()\n1. JWT 解析 & HS256 驗證\n2. kickedPlayerIds 攔截\n   → close 4003"]
-    FastifyHTTP --> AuthPlugin["auth.ts plugin\nJWT 驗證\nrole 比對"]
-    AuthPlugin --> RoomService["RoomService / GameService\nroom.hostId 雙重驗證"]
-    WsUpgrade --> WsSession["WsSession\n1. 速率限制 60 msg/min\n   超限 close 4029\n2. maxPayload 65536 bytes"]
-    WsSession --> WsMessageHandler["WsMessageHandler\n1. JWT role 驗證\n2. room.hostId 比對\n3. 狀態機驗證"]</pre></div>
+<h3>§4.3 Pod 本地記憶體（重啟後消失）</h3>
 <table>
-<tr><th>安全邊界</th><th>位置</th><th>措施</th></tr>
-<tr><td>JWT 驗證</td><td>WsServer.handleUpgrade、Fastify auth plugin</td><td><code>jose</code> HS256 簽章驗證；exp 檢查</td></tr>
-<tr><td>Host 雙重驗證</td><td>WsMessageHandler、RoomService</td><td>JWT <code>role=host</code> AND <code>room.hostId === playerId</code>，防 token 盜用</td></tr>
-<tr><td>roomCode 格式驗證</td><td>AJV Schema（presentation/schemas）</td><td>正規表達式 <code>[A-HJ-NP-Z2-9]{6}</code></td></tr>
-<tr><td>nickname 注入防護</td><td>AJV Schema</td><td>pattern <code>^[^\x00-\x1F\x7F]{1,20}$</code></td></tr>
-<tr><td>被踢玩家攔截</td><td>WsServer.handleUpgrade（Upgrade 階段）</td><td>檢查 <code>kickedPlayerIds</code>，close code 4003</td></tr>
-<tr><td>WS Payload 大小</td><td>ws.Server 設定</td><td><code>maxPayload: 65536</code>（64KB）</td></tr>
-<tr><td>WS 速率限制</td><td>WsSession</td><td>60 msg/min/連線，超限 close 4029</td></tr>
-<tr><td>HTTP 速率限制</td><td>Fastify rate-limit plugin</td><td>POST /rooms 10/min/IP；JOIN 20/min/IP</td></tr>
-<tr><td>公開 API 最小曝露</td><td>RoomSummaryPayload</td><td>GET /rooms/:code 不含 hostId、kickedPlayerIds</td></tr>
-<tr><td>CSP</td><td>Nginx 回應標頭</td><td><code>default-src &#x27;self&#x27;; connect-src wss://domain</code></td></tr>
-<tr><td>Redis 訪問</td><td>k8s NetworkPolicy</td><td>僅允許 Pod namespace 訪問 redis-svc</td></tr>
-<tr><td>Pod 執行環境</td><td>k8s SecurityContext</td><td><code>runAsNonRoot: true; readOnlyRootFilesystem: true</code></td></tr>
+<tr><th>資料結構</th><th>說明</th></tr>
+<tr><td><code>WsSessionMap</code>: Map&amp;lt;sessionId, WsSession&amp;gt;</td><td>主索引：ws.WebSocket 物件、playerId、roomCode、rate limit counter</td></tr>
+<tr><td><code>PlayerSessionIndex</code>: Map&amp;lt;playerId, sessionId&amp;gt;</td><td>副索引：O(1) 查詢同一 playerId 的現有 Session，用於 SESSION_REPLACED、KICK</td></tr>
+<tr><td>PubSubBroker 訂閱 socket</td><td>ioredis.duplicate() 連線，PSUBSCRIBE <code>room:*:events</code></td></tr>
 </table>
-<p><strong>信任邊界說明：</strong></p>
-<ul><li>Nginx 內網（cluster-internal）到 Fastify 視為可信，TLS 由 Nginx 終止</li><li>Redis 視為可信內部服務（NetworkPolicy 隔離）</li><li>所有來自 Client（HTTP body、WS payload）視為不可信，須完整驗證</li></ul>
-<p><strong>WebSocket Origin 驗證：</strong> <code>WsServer.handleUpgrade()</code> 在 JWT 驗證之前，需檢查 HTTP <code>Origin</code> 請求標頭是否符合環境變數 <code>CORS_ORIGIN</code>（白名單比對）。不符合時以 <code>403 Forbidden</code> 拒絕升級。瀏覽器 WS 升級不受 CORS policy 自動保護（無 preflight），Origin 比對是防止 CSRF-over-WebSocket 的必要伺服端措施。本地開發允許 <code>http://localhost:5173</code>；生產只允許 GitHub Pages 的 origin。</p>
 <hr>
-<h2>9. 開發環境 vs 生產環境</h2>
-<h3>9.1 必要環境變數</h3>
+<h2>§5 Deployment Architecture</h2>
+<h3>§5.1 Kubernetes 部署（namespace: ladder-room）</h3>
+<div class="diagram-container"><pre class="mermaid">graph TD
+    subgraph NS["Namespace: ladder-room"]
+        subgraph IngressLayer["Ingress Layer"]
+            ING["Traefik Ingress\ningressClassName: traefik\naffinity: cookie (sticky session)\nwebsocket-services: ladder-server-service"]
+        end
+
+        subgraph ClientLayer["Client Layer"]
+            CDEP["Deployment: ladder-client\nreplicas: 1\nimage: ladder-client:local\nimagePullPolicy: Never"]
+            CPOD["Nginx 1.27-alpine Pod\nport:80\nSPA static files"]
+            CSVC["Service: ladder-client-service\nClusterIP port:80"]
+            CDEP --> CPOD
+            CSVC --> CPOD
+        end
+
+        subgraph AppLayer["Application Layer"]
+            DEP["Deployment: ladder-server\nreplicas: 1 (MVP)\nimage: distroless/nodejs20\nimagePullPolicy: Never"]
+            POD1["Pod-1 Fastify+ws port:3000"]
+            DEP --> POD1
+            HPA["HPA (Post-MVP)\nminReplicas:2 maxReplicas:10\nmetric: ws_connections target:200"]
+            HPA --> DEP
+        end
+
+        subgraph ServiceLayer["Service Layer"]
+            SVC["Service: ladder-server-service\nClusterIP port:80->3000"]
+        end
+
+        subgraph StatefulLayer["Redis"]
+            RSTS["StatefulSet: redis\nMVP replicas:1"]
+            RPOD0["redis-0 master port:6379"]
+            RSVC["Service: redis-svc ClusterIP"]
+            RSTS --> RPOD0
+        end
+
+        subgraph ConfigLayer["Config"]
+            CM["ConfigMap\nREDIS_HOST PORT LOG_LEVEL CORS_ORIGIN"]
+            SEC["Secret\nJWT_SECRET REDIS_PASSWORD"]
+        end
+
+        ING --> |"/api /ws /health /ready"| SVC
+        ING --> |"/ (catch-all)"| CSVC
+        SVC --> POD1
+        POD1 --> RSVC
+        RSVC --> RPOD0
+        POD1 --> CM
+        POD1 --> SEC
+    end</pre></div>
+<h3>§5.2 本機開發環境（Rancher Desktop）</h3>
+<ul><li>Rancher Desktop 作為本機 Kubernetes 環境（containerd runtime）</li><li><code>/etc/hosts</code> 設定 <code>127.0.0.1 ladder.local</code></li><li>一鍵開發腳本：<code>./scripts/dev-k8s.sh [up|down|restart|logs]</code></li></ul>
+<table>
+<tr><th>命令</th><th>動作</th></tr>
+<tr><td><code>up</code></td><td>docker build + kubectl apply（server + client image）</td></tr>
+<tr><td><code>down</code></td><td>kubectl delete + image 清理</td></tr>
+<tr><td><code>restart</code></td><td>重新 build 並 rolling restart</td></tr>
+<tr><td><code>logs</code></td><td>串流所有 Pod 日誌</td></tr>
+</table>
+<h3>§5.3 Docker Image 策略</h3>
+<table>
+<tr><th>服務</th><th>Dockerfile</th><th>Base Image</th><th>策略</th></tr>
+<tr><td>Server</td><td><code>Dockerfile</code></td><td>Distroless Node.js 20</td><td>多階段建構；imagePullPolicy: Never（本機）</td></tr>
+<tr><td>Client</td><td><code>Dockerfile.client</code></td><td>Nginx 1.27-alpine</td><td>多階段建構；imagePullPolicy: Never（本機）</td></tr>
+</table>
+<h3>§5.4 必要環境變數</h3>
 <table>
 <tr><th>變數</th><th>說明</th><th>本地預設值</th></tr>
 <tr><td><code>NODE_ENV</code></td><td><code>development</code> / <code>production</code></td><td><code>development</code></td></tr>
 <tr><td><code>PORT</code></td><td>Fastify 監聽埠</td><td><code>3000</code></td></tr>
 <tr><td><code>JWT_SECRET</code></td><td>HS256 簽章金鑰（≥ 32 bytes）</td><td><code>dev-secret-do-not-use-in-prod</code></td></tr>
 <tr><td><code>REDIS_URL</code></td><td>ioredis 連線字串</td><td><code>redis://localhost:6379</code></td></tr>
-<tr><td><code>REDIS_PASSWORD</code></td><td>Redis 驗證密碼（<strong>生產必填</strong>，以 k8s Secret 注入；本地 Redis 通常無密碼）</td><td>—（本地不設定）</td></tr>
+<tr><td><code>REDIS_PASSWORD</code></td><td>Redis 驗證密碼（生產必填，以 k8s Secret 注入）</td><td>—（本地不設定）</td></tr>
 <tr><td><code>LOG_LEVEL</code></td><td>pino log level</td><td><code>debug</code></td></tr>
 <tr><td><code>CORS_ORIGIN</code></td><td>允許的 HTTP Origin</td><td><code>http://localhost:5173</code></td></tr>
 </table>
-<h3>9.2 本地開發（無 k8s）</h3>
-<p>使用 <code>docker-compose</code> 啟動 Redis：</p>
-<pre><code class="language-yaml"># docker-compose.dev.yml
-services:
-  redis:
-    image: redis:7-alpine
-    ports: [&quot;6379:6379&quot;]</code></pre>
-<p>啟動步驟：</p>
-<ol><li><code>docker compose -f docker-compose.dev.yml up -d</code></li><li><code>npm run dev --workspace=packages/server</code> （tsx watch mode）</li><li><code>npm run dev --workspace=packages/client</code> （Vite dev server）</li></ol>
-<p>本地開發時 Pub/Sub 退化為單 Pod 自訂閱，行為與生產一致。</p>
-<h3>9.3 生產環境 (Kubernetes)</h3>
+<hr>
+<h2>§6 Scalability Architecture</h2>
+<h3>§6.1 MVP：Single Pod</h3>
+<ul><li><code>replicas: 1</code>，無 HPA</li><li>Redis 單節點（StatefulSet replicas: 1）</li><li>Pub/Sub 退化為本地呼叫，overhead 可忽略</li><li>目標：5,000 WS 連線（100 房 x 50 人），單實例 Node.js 可達成</li></ul>
+<h3>§6.2 Post-MVP：HPA 多 Pod</h3>
+<p>有序升級步驟（避免生產中斷）：</p>
+<ol><li><strong>先升級 Redis</strong>：StatefulSet <code>replicas</code> 從 1 改為 2，等待 replica 同步完成</li><li><strong>驗證 Pub/Sub</strong>：確認 <code>prom-client</code> 已暴露 <code>ws_active_connections</code> Gauge</li><li><strong>Deployment 啟用多 Pod</strong>：移除固定 <code>replicas: 1</code>，新增 HPA（minReplicas: 2, maxReplicas: 10, metric: ws_active_connections 目標 200）</li><li><strong>確認 Ingress affinity</strong>：Traefik sticky session（<code>traefik.ingress.kubernetes.io/service.sticky.cookie: &quot;true&quot;</code>）（MVP 已設定）</li><li><strong>滾動更新觀察</strong>：客戶端指數退避重連後收到 ROOM_STATE_FULL 恢復狀態</li><li><strong>Pub/Sub 驗證</strong>：跨 Pod 廣播正常（k6 模擬多 Pod 場景）</li></ol>
+<h3>§6.3 計時器所有權</h3>
 <table>
-<tr><th>元件</th><th>生產設定</th><th>本地差異</th></tr>
-<tr><td>TLS</td><td>Nginx Ingress cert-manager Let&#x27;s Encrypt</td><td>無 TLS</td></tr>
-<tr><td>Redis</td><td>StatefulSet 兩副本（master + replica）</td><td>單節點</td></tr>
-<tr><td>水平擴展</td><td>HPA（Post-MVP）；MVP 固定 replicas: 1</td><td>無</td></tr>
-<tr><td>Sticky Session</td><td>Nginx <code>nginx.ingress.kubernetes.io/affinity: cookie</code>；<strong>MVP 即部署此 annotation</strong>（replicas:1 下為 no-op，但確保 HPA 啟用時無需改 manifest）</td><td>無需要</td></tr>
-<tr><td>Secrets</td><td>k8s Secret（JWT_SECRET、REDIS_PASSWORD）</td><td><code>.env</code> 檔案</td></tr>
-<tr><td>Log</td><td>pino JSON → fluent-bit DaemonSet → 集中 log 系統</td><td>終端機輸出</td></tr>
-<tr><td>監控</td><td>Prometheus + <code>/metrics</code> port 8080</td><td>無</td></tr>
-<tr><td>Image</td><td>Distroless Node.js 20（distroless/nodejs20-debian12）</td><td>Node.js 直接執行</td></tr>
-<tr><td>Liveness Probe</td><td><code>httpGet /api/v1/health</code> initialDelaySeconds:10 periodSeconds:10</td><td>無</td></tr>
-<tr><td>Readiness Probe</td><td><code>httpGet /api/v1/health</code> 須回傳 <code>{ redis: &quot;ok&quot; }</code>；失敗時 Pod 從 Service endpoints 移除，停止接收新流量</td><td>無</td></tr>
+<tr><th>計時器</th><th>所有者</th><th>Pod 重啟後恢復策略</th></tr>
+<tr><td>auto-reveal interval</td><td><code>GameService</code>（靜態 Map <code>roomCode → NodeJS.Timeout</code>）</td><td>Host 重發 SET_REVEAL_MODE；Client 收到 ROOM_STATE_FULL 且 <code>autoRevealActive=true</code> 時自動觸發</td></tr>
+<tr><td>host-transfer grace（60s）</td><td><code>WsSession</code>（disconnect event 觸發）</td><td>Pod 重啟後 timer 消失；下一個到達事件補跑 hostTransferIfNeeded()</td></tr>
 </table>
-<p><strong>生產與本地的關鍵差異：</strong></p>
-<ul><li>生產使用 <code>REDIS_PASSWORD</code>（ioredis auth 選項），本地預設無密碼</li><li>生產 <code>NODE_ENV=production</code> 時 pino 輸出純 JSON（無 pretty print）</li><li>生產 Docker image 使用 multi-stage build，最終 image 僅含 dist/ 與 node_modules（production only）</li></ul>
+<h3>§6.4 Redis 失敗降級策略（MVP）</h3>
+<p>Redis 單節點是 MVP SPOF。當 ioredis <code>error</code> 事件觸發時：</p>
+<ul><li><code>RoomRepository</code> 所有方法拋出 <code>SYS_REDIS_ERROR</code></li><li>Application 層捕捉後對觸發方 WS Session 發送 <code>ERROR { code: &quot;SYS_REDIS_ERROR&quot; }</code> 並保持連線</li><li>新的 HTTP 加入請求回傳 <code>503 Service Unavailable</code></li><li><code>GET /health</code> 回傳 <code>{ redis: &quot;error&quot; }</code> — Kubernetes readinessProbe 立即將 Pod 移出 Service endpoints</li></ul>
 <hr>
-<h2>10. 擴展路徑</h2>
-<h3>10.1 新增 WebSocket 事件類型</h3>
-<ol><li><strong>Client → Server 新事件：</strong></li></ol>
-<ul><li>在 <code>packages/shared/src/types/index.ts</code> 的 <code>WsMsgType</code> union 加入新類型</li><li>在 <code>WsMessageHandler.ts</code> 的 <code>switch(envelope.type)</code> 加入新 case</li><li>呼叫對應 Service 方法；若需要新業務邏輯則在 <code>RoomService</code> 或 <code>GameService</code> 新增 method</li></ul>
-<ol><li><strong>Server → Client 新事件：</strong></li></ol>
-<ul><li>在 <code>WsEventType</code> union 加入新類型</li><li>定義對應的 Payload interface（如 <code>XxxPayload</code>）</li><li>在 Service 層呼叫 <code>pubSubBroker.publish()</code> 觸發廣播</li></ul>
-<ol><li><strong>前端：</strong> 在 <code>packages/client/src/ws/EventBus.ts</code> 訂閱新事件類型</li></ol>
-<h3>10.2 新增 HTTP 路由</h3>
-<ol><li>在 <code>packages/shared/src/types/index.ts</code> 定義 Request/Response DTO interface</li><li>在 <code>presentation/schemas/</code> 新增 AJV JSON Schema 檔案</li><li>在 <code>presentation/routes/</code> 新增或擴充 route 檔案，注入對應 Service</li><li>在 <code>container.ts</code> 確認 Service 依賴已組裝</li><li>在 <code>main.ts</code> 的 <code>fastify.register()</code> 掛載新路由</li></ol>
-<h3>10.3 新增 Use Case</h3>
-<ol><li>在 <code>packages/shared/src/use-cases/</code> 新增純函式（零 I/O）</li><li>撰寫對應單元測試（Vitest），確保 <code>shared</code> 覆蓋率 ≥ 90%</li><li>在 <code>GameService</code> 或 <code>RoomService</code> 呼叫新 Use Case</li><li>Use Case 若需新的 Domain 規則，先在 <code>packages/shared/src/domain/</code> 新增 Entity/Value Object</li></ol>
-<p><strong>PRNG 擴展注意事項：</strong> 若未來房間容量或梯子複雜度大幅提升（例如超過 50 人 × 50 格），<code>createMulberry32</code> + <code>fisherYatesShuffle</code> 的效能仍可接受（純 CPU，無 I/O），不需更換演算法；若需提升隨機品質（如防碰撞需求），可替換 PRNG 實作而不改變介面（<code>src/prng/index.ts</code> 僅匯出函式簽名，實作可替換）。</p>
-<h3>10.4 新增 Repository / 外部服務</h3>
-<ol><li>在 <code>application/</code> 層定義新介面（如 <code>INotificationService</code>）</li><li>在 <code>infrastructure/</code> 層實作介面</li><li>在 <code>container.ts</code> 組裝並注入至依賴的 Service</li><li>測試時使用 mock 實作，不引入真實外部服務</li></ol>
-<h3>10.5 啟用 HPA（Post-MVP）</h3>
-<blockquote><p><strong>MVP vs Post-MVP 部署差異：</strong></p></blockquote>
-<blockquote><p>- MVP：<code>replicas: 1</code>，HPA 資源不部署，Redis 單節點（<code>StatefulSet replicas: 1</code>）</p></blockquote>
-<blockquote><p>- Post-MVP：<code>minReplicas: 2, maxReplicas: 10</code>（EDD 10.3），Redis StatefulSet replicas: 2（master + replica）</p></blockquote>
-<p>&gt;</p>
-<blockquote><p>MVP manifest 已包含 Nginx affinity annotation（no-op 於單 Pod），確保升級 Post-MVP 時不需修改 Ingress 設定。</p></blockquote>
-<p><strong>有序升級步驟（避免生產中斷）：</strong></p>
-<ol><li><strong>先升級 Redis</strong>：將 Redis StatefulSet <code>replicas</code> 從 1 改為 2，等待 replica 同步完成再繼續。</li><li><strong>驗證 Pub/Sub</strong>：部署前確認 <code>prom-client</code> 已暴露 <code>ws_active_connections</code> Gauge（main.ts 已預留）。</li><li><strong>Deployment 啟用多 Pod</strong>：移除固定 <code>replicas: 1</code>，新增 HPA 資源（minReplicas: 2, maxReplicas: 10, metric: ws_active_connections 目標 200）。</li><li><strong>確認 Ingress affinity</strong>：<code>nginx.ingress.kubernetes.io/affinity: cookie</code>（MVP 已設定，此步驟確認即可）。</li><li><strong>滾動更新觀察</strong>：在 Pod 滾動過程中，在線 WS 連線會因 Pod 更換而中斷；客戶端指數退避重連後收到 ROOM_STATE_FULL 恢復狀態（Redis 狀態不受 Pod 重啟影響）。</li><li><strong>Pub/Sub 驗證</strong>：部署後確認跨 Pod 廣播正常（可用 k6 模擬兩 Pod 上各有玩家的房間執行 REVEAL_NEXT）。</li></ol>
+<h2>§7 Security Architecture</h2>
+<div class="diagram-container"><pre class="mermaid">graph TD
+    Internet["Internet"] --> TraefikIngress["Traefik Ingress\nTLS 終止\nHSTS max-age=31536000"]
+    TraefikIngress --> FastifyHTTP["Fastify HTTP Handler\n1. AJV Schema 驗證\n2. Rate Limiting"]
+    TraefikIngress --> WsUpgrade["WsServer.handleUpgrade()\n1. Origin 白名單驗證\n2. JWT HS256 解析 & 驗證\n3. kickedPlayerIds 攔截 close 4003"]
+    FastifyHTTP --> AuthPlugin["auth.ts plugin\nJWT 驗證 + role 比對"]
+    AuthPlugin --> RoomService["RoomService / GameService\nroom.hostId 雙重驗證"]
+    WsUpgrade --> WsSession["WsSession\n速率限制 60 msg/min close 4029\nmaxPayload 65536 bytes"]
+    WsSession --> WsMessageHandler["WsMessageHandler\nJWT role 驗證\nroom.hostId 比對\n狀態機驗證"]</pre></div>
+<table>
+<tr><th>安全邊界</th><th>位置</th><th>措施</th></tr>
+<tr><td>JWT 驗證</td><td>WsServer.handleUpgrade、Fastify auth plugin</td><td><code>jose</code> HS256 簽章驗證；exp 檢查（允許 30s clock skew）</td></tr>
+<tr><td>Host 雙重驗證</td><td>WsMessageHandler、RoomService</td><td>JWT <code>role=host</code> AND <code>room.hostId === playerId</code></td></tr>
+<tr><td>roomCode 格式驗證</td><td>AJV Schema</td><td>正規表達式 <code>[A-HJ-NP-Z2-9]{6}</code></td></tr>
+<tr><td>nickname 注入防護</td><td>AJV Schema</td><td>pattern <code>^[^\x00-\x1F\x7F]{1,20}$</code></td></tr>
+<tr><td>被踢玩家攔截</td><td>WsServer.handleUpgrade</td><td>檢查 <code>kickedPlayerIds</code>，close code 4003</td></tr>
+<tr><td>WS Payload 大小</td><td>ws.Server 設定</td><td><code>maxPayload: 65536</code>（64KB）</td></tr>
+<tr><td>WS 速率限制</td><td>WsSession</td><td>60 msg/min/連線，超限 close 4029</td></tr>
+<tr><td>HTTP 速率限制</td><td>Fastify rate-limit plugin</td><td>POST /rooms 10/min/IP；JOIN 20/min/IP</td></tr>
+<tr><td>seed 公開時機</td><td>GameService</td><td>seed 在 <code>status=finished</code> 前禁止傳送給任何客戶端</td></tr>
+<tr><td>CSP</td><td>Nginx 回應標頭</td><td><code>default-src &#x27;self&#x27;; connect-src wss://domain</code></td></tr>
+<tr><td>Redis 訪問</td><td>k8s NetworkPolicy</td><td>僅允許 Pod namespace 訪問 redis-svc</td></tr>
+<tr><td>Pod 執行環境</td><td>k8s SecurityContext</td><td><code>runAsNonRoot: true; readOnlyRootFilesystem: true</code></td></tr>
+</table>
+<p><strong>WebSocket Origin 驗證：</strong> <code>WsServer.handleUpgrade()</code> 在 JWT 驗證之前，需檢查 HTTP <code>Origin</code> 請求標頭是否符合環境變數 <code>CORS_ORIGIN</code>（白名單比對）。瀏覽器 WS 升級不受 CORS policy 自動保護（無 preflight），Origin 比對是防止 CSRF-over-WebSocket 的必要伺服端措施。</p>
+<p><strong>信任邊界說明：</strong></p>
+<ul><li>Traefik 內網（cluster-internal）到 Fastify 視為可信，TLS 由 Traefik 終止</li><li>Redis 視為可信內部服務（NetworkPolicy 隔離）</li><li>所有來自 Client（HTTP body、WS payload）視為不可信，須完整驗證</li></ul>
 <hr>
-<p><em>ARCH 版本：v1.3</em></p>
-<p><em>生成時間：2026-04-19</em></p>
-<p><em>修訂時間：2026-04-19（Arch Review Round 1：P1 × 3 修正、P2 × 9 修正）</em></p>
-<p><em>修訂時間：2026-04-19（STEP-07：與 EDD v1.3 對齊）</em></p>
-<p><em>修訂時間：2026-04-19（STEP-08 Round 1：P1 × 1、P2 × 4、P3 × 2 修正）</em></p>
-<p><em>修訂時間：2026-04-19（STEP-08 Round 2：P3 × 1 修正—補充 REDIS_PASSWORD 環境變數說明）</em></p>
-<p><em>修訂重點（v1.2 vs v1.1）：</em></p>
-<p><em>1. GameService 職責描述更新：BEGIN_REVEAL 才原子生成 LadderData，END_GAME 新增，PLAY_AGAIN 取代 RESET_ROOM</em></p>
-<p><em>2. Redis Key Schema 補充 room:{code}:ladder 說明（BEGIN_REVEAL 時才創建）及 seed 公開時機安全邊界</em></p>
-<p><em>3. 一致性保證表新增 BEGIN_REVEAL（Lua Script）、END_GAME、PLAY_AGAIN；ROOM_STATE_FULL 說明 LadderDataPublic</em></p>
-<p><em>修訂重點（v1.3 vs v1.2）：</em></p>
-<p><em>4. Mermaid 依賴方向修正（PRES → APP，符合 Clean Architecture）</em></p>
-<p><em>5. WsMessageHandler 職責說明：明確標注「二次驗證」</em></p>
-<p><em>6. JWT exp 長連線安全取捨（Known Security Trade-off）文件化</em></p>
-<p><em>7. auto-reveal 重連觸發機制（autoRevealActive payload 欄位）補充</em></p>
-<p><em>8. critical alert 機制定義（pino.error + Prometheus counter + Alertmanager）</em></p>
-<p><em>9. RoomRepository 說明補充 Lua Script 用途</em></p>
-<p><em>10. §10.3 新增 PRNG 擴展注意事項；§9.1 新增 REDIS_PASSWORD 環境變數列</em></p>
-<p><em>基於 EDD v1.3 | PRD v1.3 | PDD v2.2</em></p></main>
+<p><em>ARCH 版本：v2.0</em></p>
+<p><em>生成時間：2026-04-21（devsop-autodev STEP-10 review）</em></p>
+<p><em>基於 EDD v2.0 + PRD v1.4 + legacy-ARCH v1.3</em></p></main>
   </div>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';

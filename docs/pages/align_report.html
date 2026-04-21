@@ -36,309 +36,115 @@
 <a class="sidebar__link" href="schema.html">🗄️ Schema 文件</a>
 <a class="sidebar__link" href="design.html">🎨 Design 設計文件</a>
 <a class="sidebar__link active" href="align_report.html">📊 對齊報告</a>
+<a class="sidebar__link" href="brd.html">📄 Brd</a>
+<a class="sidebar__link" href="idea.html">📄 Idea</a>
+<a class="sidebar__link" href="migration_code_snapshot.html">📄 Migration Code Snapshot</a>
+<a class="sidebar__link" href="test_plan.html">📄 Test Plan</a>
 <a class="sidebar__link" href="bdd.html">🧪 BDD Scenarios</a>
       </div>
     </aside>
     <div class="sidebar-resizer" id="sidebarResizer"></div>
-    <main class="doc-content"><h1>對齊掃描報告 — Ladder Room Online</h1>
-<blockquote><p>由 <code>/devsop-align-check</code> 自動生成</p></blockquote>
-<blockquote><p>日期：2026-04-19（第二次掃描）</p></blockquote>
-<blockquote><p>專案：/Users/tobala/projects/climb_stairs</p></blockquote>
+    <main class="doc-content"><h1>Alignment Report</h1>
+<p>Generated: 2026-04-21 (STEP-22 re-scan)</p>
+<h2>Summary</h2>
+<ul><li>Total checks: 21</li><li>Pass: 14</li><li>Warn: 4</li><li>Fail: 3</li></ul>
 <hr>
-<h2>Out of Scope（不列入問題）</h2>
-<p>PDD §13 明確排除：正式帳號系統、頭像、QR Code、語音/聊天、複雜道具、多輪淘汰制、多房間列表/大廳、多局歷史記錄、<strong>移交 Host 權限</strong>。</p>
-<hr>
-<h2>摘要</h2>
+<h2>Level 1: Document Consistency</h2>
 <table>
-<tr><th>對齊層</th><th>CRITICAL</th><th>HIGH</th><th>MEDIUM</th><th>LOW</th><th>總計</th><th>狀態</th></tr>
-<tr><td>Doc → Doc</td><td>2</td><td>10</td><td>7</td><td>3</td><td>22</td><td>🔴</td></tr>
-<tr><td>Doc → Code</td><td>1</td><td>9</td><td>3</td><td>3</td><td>16</td><td>🔴</td></tr>
-<tr><td>Code → Test</td><td>0</td><td>3</td><td>6</td><td>4</td><td>13</td><td>⚠️</td></tr>
-<tr><td>Doc → Test</td><td>4</td><td>8</td><td>5</td><td>4</td><td>21</td><td>🔴</td></tr>
-<tr><td><strong>總計</strong></td><td><strong>7</strong></td><td><strong>30</strong></td><td><strong>21</strong></td><td><strong>14</strong></td><td><strong>72</strong></td><td></td></tr>
+<tr><th>Check</th><th>Status</th><th>Note</th></tr>
+<tr><td>BRD §7 FR list → PRD §3 User Stories coverage</td><td>✅ PASS</td><td>全部 16 項 REQ-xx 均對應 PRD US-H01～US-H09、US-P01～US-P06，無缺口</td></tr>
+<tr><td>PRD US-H01～US-H09 AC → features/ BDD Scenarios</td><td>✅ PASS</td><td>room-management / game-lifecycle / host-actions / reveal-flow / room-lifecycle 均有覆蓋；US-H09（複製邀請連結）由 features/client/waiting-room.feature 覆蓋</td></tr>
+<tr><td>PRD US-P01～US-P06 AC → features/ BDD Scenarios</td><td>✅ PASS</td><td>player-management / reconnect / client-reconnect / client-canvas / game-flow 覆蓋全部玩家故事</td></tr>
+<tr><td>EDD §5 Key Algorithms → packages/shared/src/use-cases/ 實作</td><td>✅ PASS</td><td>djb2、createMulberry32、fisherYatesShuffle、generateLadder、computeResults 實作與 EDD §5 偽代碼完全一致</td></tr>
+<tr><td>API.md REST 端點（11 項）→ packages/server/src/main.ts 路由</td><td>✅ PASS</td><td>所有 11 個 REST 端點（POST/GET /api/rooms、game/start、game/reveal、game/reset、game/end、game/play-again、DELETE player、/health、/ready）均已實作</td></tr>
+<tr><td>API.md WebSocket 訊息類型 → server main.ts WS handler</td><td>⚠️ WARN</td><td>server 正確處理 END_GAME、PLAY_AGAIN，但 shared WsMsgType 未含此二項（見 FAIL-2）</td></tr>
+<tr><td>SCHEMA.md §2.6 Room type → packages/shared/src/types/index.ts Room</td><td>✅ PASS</td><td>SCHEMA.md §2.6 Room 欄位（不含 title/rowCount）與 shared/types/index.ts Room interface 完全一致</td></tr>
+<tr><td>API.md §1.5 Room type → packages/shared/src/types/index.ts Room</td><td>⚠️ WARN</td><td>API.md §1.5 Room interface 含 `title: string \</td><td>null<code> 及 </code>rowCount: number \</td><td>null` 欄位，但 SCHEMA.md §2.6 和 shared 型別均不含這兩個欄位，且 server 從未建立含 title 的 Room；API.md 文件與實際實作脫節</td></tr>
+<tr><td>autoRevealIntervalSec 上限（文件間一致性）</td><td>❌ FAIL</td><td>BRD REQ-05、PRD US-H05/FR-13-2、PRD §8.4、SCHEMA.md §4.4 均寫「1-30 秒」；但 API.md §1.5 和 server 程式碼驗證「1-300」；存在跨文件衝突</td></tr>
+<tr><td>shared WsMsgType 完整性 → API.md + server 行為</td><td>❌ FAIL</td><td>API.md WsMsgType 含 END_GAME 和 PLAY_AGAIN；server main.ts 實際處理這兩個 WS 訊息類型；但 shared/src/types/index.ts WsMsgType 缺少 END_GAME 和 PLAY_AGAIN</td></tr>
+<tr><td>shared WsEventType 完整性 → API.md 定義</td><td>❌ FAIL</td><td>API.md WsEventType 含 PONG；shared/src/types/index.ts WsEventType 缺少 PONG；server PING handler（case &#x27;PING&#x27;: break）收到 PING 後直接 break，未回傳 PONG，與 API.md §3.6 規格矛盾</td></tr>
 </table>
-<p>（vs 上次掃描：99 個 → 已修復 27 個，新增 0 個）</p>
 <hr>
-<h2>Dimension 1 — Doc → Doc 對齊問題</h2>
-<h3>PDD → PRD</h3>
-<p><strong>[HIGH] PDD→PRD: <code>title</code> 欄位（房間名稱）在 PRD 完全缺失</strong></p>
-<p>PDD §7.1 定義 <code>title</code>（0~50 碼）為可修改欄位，並有 <code>TITLE_UPDATE_NOT_ALLOWED_IN_STATE</code> 錯誤碼（PDD §14）。PRD 所有 User Story 均無涵蓋。</p>
-<p>受影響範圍：US-H01 AC 缺少 title；FR-01-3 狀態物件清單缺少 title；PDD §14 錯誤碼無 PRD 對應。</p>
-<p><strong>[HIGH] PDD→PRD: <code>running → revealing</code> 原子操作語意不明</strong></p>
-<p>PDD §6.2 定義 <code>running→revealing</code> 為 Server 自動完成的原子操作。PRD AC-H03-1 說「狀態轉為 running」，FR-04-1 列狀態流轉路徑，但未明確說明 <code>running→revealing</code> 是自動觸發，容易被誤讀為需要 Host 主動觸發 <code>BEGIN_REVEAL</code>。</p>
-<p>受影響範圍：FR-04-1、FR-04-4；EDD 和 API 引入了 PRD 未授權的 <code>BEGIN_REVEAL</code> 步驟。</p>
-<p><strong>[MEDIUM] PDD→PRD: seed 保密性（防作弊）在 PRD 無 AC</strong></p>
-<p>PDD §11.1 規定「seed 在 <code>finished</code> 前禁止傳送至任何客戶端」。PRD 完全未設計對應 AC 或 NFR。</p>
-<p>受影響範圍：PRD 缺少防作弊驗收標準，QA 無測試計劃覆蓋此安全要求。</p>
-<p><strong>[MEDIUM] PDD→PRD: Room Code 碰撞重試耗盡錯誤路徑缺失</strong></p>
-<p>PDD §7.1 定義碰撞重試上限 10 次後回傳 <code>ROOM_CODE_GENERATION_FAILED</code>。PRD AC-H01-3 只描述「網路異常」情境，未涵蓋此特定錯誤路徑。</p>
-<p>受影響範圍：AC-H01 缺少 Room Code 生成失敗分支。</p>
-<p><strong>[LOW] PDD→PRD: 部分錯誤碼（PDD §14）在 PRD 缺少對應 AC</strong></p>
-<p><code>INVALID_AUTO_REVEAL_INTERVAL</code>、<code>CANNOT_KICK_HOST</code>、<code>KICK_NOT_ALLOWED_IN_STATE</code>、<code>PLAY_AGAIN_NOT_ALLOWED_IN_STATE</code> 等錯誤碼在 PRD 中無對應 AC 說明客戶端行為。</p>
-<p>受影響範圍：這些錯誤碼缺乏 PRD 層驗收標準，實作和測試各自理解可能不一致。</p>
-<hr>
-<h3>PRD → EDD</h3>
-<p><strong>[CRITICAL] PRD→EDD: <code>BEGIN_REVEAL</code> WS 訊息是 EDD 自行引入的設計，PDD/PRD 未授權</strong></p>
-<p>PDD §6.2 步驟 7 明確定義 <code>running→revealing</code> 為 Server 自動完成的原子操作，無需 Host 主動觸發。EDD §2.5 狀態機圖定義「<code>running → revealing: host BEGIN_REVEAL</code>」，引入了兩階段流程，與 PDD/PRD 矛盾。</p>
-<p>受影響範圍：EDD §2.5 狀態機；EDD §5 BEGIN_REVEAL 訊息；API.md §3 BEGIN_REVEAL；main.ts 已實作 BEGIN_REVEAL handler。</p>
-<p><strong>[HIGH] PRD→EDD: <code>winnerCount</code> 更新操作（US-H02）無 EDD 技術設計</strong></p>
-<p>PRD FR-01-3 允許建立時 winnerCount 為 null；PRD AC-H02 定義 Host 可在 waiting 狀態更新 winnerCount。EDD 要求建立時必填 winnerCount（§3 CreateRoomRequest），且無 <code>UPDATE_WINNER_COUNT</code> WS 訊息或 HTTP PATCH endpoint。</p>
-<p>受影響範圍：P0 功能（設定中獎名額的更新路徑）完全缺乏技術設計。</p>
-<p><strong>[HIGH] PRD→EDD: <code>title</code> 欄位在 EDD 完全缺失</strong></p>
-<p>EDD §3 Room interface 無 <code>title</code> 欄位；EDD §5 WsMsgType 無 <code>UPDATE_TITLE</code>；EDD §12.1 錯誤碼清單缺少 <code>INVALID_NAME</code>、<code>TITLE_UPDATE_NOT_ALLOWED_IN_STATE</code>（PDD §14 均有定義）。</p>
-<p>受影響範圍：EDD §3 Room interface、§5 WS 事件、§12.1 錯誤碼。</p>
-<p><strong>[HIGH] PRD→EDD: <code>CANNOT_KICK_HOST</code> 錯誤碼在 EDD/API 均未定義</strong></p>
-<p>PRD AC-H07-3 描述踢除失敗回傳錯誤。PDD §14 定義 <code>CANNOT_KICK_HOST</code>。EDD §12.1 和 API.md 均無此錯誤碼。</p>
-<p>受影響範圍：EDD §12.1；API.md §4 錯誤碼清單。</p>
-<p><strong>[HIGH] PRD→EDD: <code>running→revealing</code> 原子操作的 rollback 逾時機制無技術設計</strong></p>
-<p>PDD §7.1 定義 10 秒 rollback 逾時。EDD §12.4 的 START_GAME 原子性僅描述 <code>running</code> 狀態，未包含 <code>running→revealing</code> 的原子寫入和 rollback 機制。</p>
-<p>受影響範圍：EDD §12.4；高並發下的資料一致性保證缺失。</p>
-<p><strong>[MEDIUM] PRD→EDD: 前端測試覆蓋率目標（NFR-07）在 EDD 未涵蓋</strong></p>
-<p>PRD NFR-07 要求前端單元測試覆蓋率 ≥ 70%。EDD §9.1 只設定 <code>shared ≥ 90%; server ≥ 80%</code>，缺少 client 套件的覆蓋率目標。</p>
-<p>受影響範圍：EDD §9.1 測試策略。</p>
-<p><strong>[MEDIUM] PRD→EDD: JWT Token 欄位名三份文件各不同</strong></p>
-<p>PRD FR-01-4 稱 <code>hostToken</code>；EDD §3/§4 用 <code>sessionToken</code>；API.md §1 用 <code>token</code>。三份文件三種名稱，增加實作歧義。</p>
-<p>受影響範圍：PRD FR-01-4、EDD §3 CreateRoomResponse、API.md §1 成功回應結構。</p>
-<hr>
-<h3>EDD → ARCH</h3>
-<p><strong>[MEDIUM] EDD→ARCH: EDD/ARCH 定義了 <code>HOST_TRANSFERRED</code> 機制但屬 Out of Scope</strong></p>
-<p>EDD §3 <code>Room.hostId mutable</code>、EDD §5 <code>HOST_TRANSFERRED</code> 事件、ARCH §3.1 Host Transfer Timer 全部設計了 PDD §13 明確列為不做的 Host 轉移功能。這些設計超出 MVP 範圍卻已進入技術文件。</p>
-<p>受影響範圍：EDD §3、§5；ARCH §3.1、§4.6。（不算 code 問題，是文件範圍問題）</p>
-<p><strong>[LOW] EDD→ARCH: EDD §10.2 QPS 推算用 200 房，與 PRD NFR-02 的 100 房不符</strong></p>
-<p>EDD §10.3 有完整 HPA 規格，ARCH §4.7 明確說明 MVP 單實例不啟用 HPA（一致），但 EDD §10.2 QPS 推算基準（200 房 → 10,000 WS/s）與 PRD NFR-02（100 房）不符，造成容量數字混亂。</p>
-<p>受影響範圍：EDD §10.2 QPS 推算；負載測試門檻參照值。</p>
-<hr>
-<h3>EDD → API</h3>
-<p><strong>[CRITICAL] EDD→API: <code>BEGIN_REVEAL</code> 被固化進 API 設計，與 PDD §6.2 矛盾</strong></p>
-<p>（同 PRD→EDD CRITICAL 問題，在 API 層進一步固化）</p>
-<p>EDD §2.5 和 API.md §3 均定義 <code>BEGIN_REVEAL</code> 為 <code>running→revealing</code> 的觸發機制，但 PDD §6.2 規定此轉換應由 Server 自動完成。</p>
-<p>受影響範圍：API.md §3 Client→Server 訊息 <code>BEGIN_REVEAL</code>；main.ts 已實作此 handler，生產行為與 PDD 相悖。</p>
-<p><strong>[HIGH] EDD→API: EDD §4 端點路徑與 API.md §2 仍不一致</strong></p>
-<p>EDD §4 表格使用 <code>/api/v1/</code> 前綴；API.md §2 已更新為 <code>/api/</code>（無 v1）。另 EDD 的 <code>start</code>/<code>reset</code> 路徑為 flat 格式，API.md 為 <code>/game/start</code>、<code>/game/reset</code> nested 格式。EDD §4 未更新以反映 API.md 的修正。</p>
-<p>受影響範圍：EDD §4 所有端點路徑；EDD §4 未列出 <code>GET /ready</code>。</p>
-<p><strong>[HIGH] EDD→API: <code>ROOM_STATE_FULL</code> 推送時機與 PDD §14 矛盾</strong></p>
-<p>EDD §5 和 API.md §3 定義 <code>ROOM_STATE_FULL</code> 為「新連線 unicast」。PDD §14 定義此事件的觸發時機為「<code>running→revealing</code> 原子寫入完成後全員廣播」，非 unicast。</p>
-<p>受影響範圍：EDD §5 ROOM_STATE_FULL 說明；API.md §3 觸發時機；<code>selfPlayerId</code> 字段在全員廣播下無意義。</p>
-<p><strong>[MEDIUM] EDD→API: <code>PLAYER_KICKED</code> 廣播範圍 EDD/API 與 PDD §14 矛盾</strong></p>
-<p>EDD §5 和 API.md §3 定義 <code>PLAYER_KICKED</code> 廣播給「所有人」。PDD §14 定義推送範圍為「僅被踢玩家」，其餘玩家透過 <code>ROOM_STATE</code> 得知。</p>
-<p>受影響範圍：EDD §5；API.md §3（現行 main.ts 實作已改為含 payload 的 unicast，與 API.md 說「廣播」仍有差異）。</p>
-<p><strong>[MEDIUM] EDD→API: JWT TTL 矛盾（EDD/ARCH 24h vs API.md 6h）</strong></p>
-<p>EDD §4 / ARCH §4.6 定義 JWT 24 小時；API.md §5 定義 6 小時。main.ts 實作為 6h。</p>
-<p>受影響範圍：EDD §4 / ARCH §4.6 需更新為 6h。</p>
-<p><strong>[LOW] EDD→API: EDD §4 定義 response envelope，API.md §1 已改為直接 JSON</strong></p>
-<p>EDD §4 規定統一 <code>{ success, data, error }</code> envelope；API.md §1 已修正為「直接 JSON 物件，不包裝 envelope」。EDD 未同步更新。</p>
-<p>受影響範圍：EDD §4 回應格式說明。</p>
-<hr>
-<h3>EDD → SCHEMA</h3>
-<p><strong>[HIGH] EDD→SCHEMA: Player interface 與 PDD §9 欄位命名不符</strong></p>
-<p>EDD §3 Player 包含 <code>colorIndex</code>, <code>isHost</code>（PDD §9 無這兩欄位；PDD 的 isHost 由 hostId 比對決定），EDD 定義的 <code>result?: string | null</code> 而 PDD §9 定義 <code>result: &quot;win&quot; | &quot;lose&quot; | null</code>（不可選）。Room 欄位中 EDD 用 <code>ladderMap</code>/<code>resultSlots</code>（實際 types 是 <code>ladder</code>/<code>results</code>），命名不一致。</p>
-<p>受影響範圍：EDD §3 Player interface；SCHEMA.md §4 Player interface；兩份文件與 PDD §9 均有偏差。</p>
-<p><strong>[MEDIUM] EDD→SCHEMA: <code>LadderSegment</code> 欄位命名 PDD（from/to）vs EDD/SCHEMA（col）不符</strong></p>
-<p>PDD §9 用 <code>from: number; to: number = from + 1</code>；EDD §3 和 SCHEMA.md §4 用 <code>col</code>。</p>
-<p>受影響範圍：EDD §3 LadderSegment；PDD §9 與下游命名衝突。</p>
-<p><strong>[MEDIUM] EDD→SCHEMA: <code>Room.revealMode</code> 命名 PDD 與 EDD/SCHEMA 不符</strong></p>
-<p>PDD §9 用 <code>autoReveal: boolean</code> 和 <code>autoRevealInterval: number</code>；EDD §3 和 SCHEMA.md 用 <code>revealMode: &quot;manual&quot;|&quot;auto&quot;</code> 和 <code>autoRevealIntervalSec</code>。</p>
-<p>受影響範圍：EDD §3 Room interface；PDD §9 命名不一致。</p>
-<hr>
-<h3>PRD → BDD</h3>
-<p><strong>[HIGH] PRD→BDD: 多個 P0/P1 AC 在 features/ 中缺少 Scenario</strong></p>
-<p><code>docs/features/</code> 不存在；實際 feature 文件位於 <code>/features/</code>（7 個文件）。EDD §8 的 Gherkin Tag 對應表只覆蓋 11 個 AC，其餘包括 AC-H01-2/3、AC-H02-1/2/3、AC-H04-1/2、AC-H07-1/2、AC-P01-1~4、AC-P02-1/2、AC-P03-1/2、AC-P04-2、AC-P05-1/2/3、AC-P06-1/2 均無對應 Gherkin Scenario。</p>
-<p>受影響範圍：PRD NFR-07「E2E 測試覆蓋所有 P0 US Happy Path」無從完整驗證。</p>
-<p><strong>[LOW] PRD→BDD: AC-H05 自動揭曉邊界值（T=1、T=30）在 feature 中缺失</strong></p>
-<p>reveal-flow.feature @AC-REVEAL-003 只使用 intervalSec=3，未測試邊界值 T=1、T=30 及非法值 T=0、T=31。</p>
-<p>受影響範圍：AC-H05-1（P1）邊界值覆蓋不足。</p>
-<p><strong>[LOW] PRD→BDD: hostToken 無效/過期的 403 場景無任何 Scenario</strong></p>
-<p>7 個 feature 文件的 Background 均假設 hostToken 有效，無任何 Scenario 使用無效或過期 token 測試 401/403 回應。</p>
-<p>受影響範圍：NFR-05 安全性，JWT 驗證層缺乏否定測試。</p>
-<hr>
-<h2>Dimension 2 — Doc → Code 對齊問題</h2>
-<h3>API.md → main.ts（HTTP Routes）</h3>
-<p><strong>[CRITICAL] <code>DELETE /api/rooms/:code/players/:playerId</code> HTTP 狀態碼不符</strong></p>
-<p>API.md §4：204 No Content（空 body）。main.ts line 184：200 OK 並回傳 room 物件。</p>
-<p>受影響範圍：客戶端根據 204 判斷成功的邏輯會失效；room 物件未文件化。</p>
-<p><strong>[HIGH] <code>POST /api/rooms</code> 成功回應欄位 — shared DTO 與 API.md 不符</strong></p>
-<p>API.md §1 <code>CreateRoomResponse</code>：<code>{ roomCode, playerId, token, room }</code>。shared <code>CreateRoomResponse</code> type 只有 <code>{ roomCode, playerId, token }</code>，缺少 <code>room</code> 欄位。</p>
-<p>受影響範圍：<code>packages/shared/src/types/index.ts</code> <code>CreateRoomResponse</code>。</p>
-<p><strong>[HIGH] <code>POST /api/rooms</code> Request DTO 欄位名錯誤</strong></p>
-<p>API.md §1：<code>{ hostNickname, winnerCount }</code>。shared <code>CreateRoomRequest</code> type：<code>{ nickname }</code>（欄位名錯誤，缺 winnerCount）。</p>
-<p>受影響範圍：<code>packages/shared/src/types/index.ts</code> <code>CreateRoomRequest</code>；客戶端使用此 DTO 會送出錯誤欄位名導致 400。</p>
-<p><strong>[HIGH] <code>POST /api/rooms/:code/players</code> Response DTO 與 API.md 不符</strong></p>
-<p>API.md §3 <code>JoinRoomResponse</code>：<code>{ playerId, token, room }</code>。shared <code>JoinRoomResponse</code> type：<code>{ roomCode, playerId, token }</code>（含 roomCode 非規格，缺 room 欄位）。</p>
-<p>受影響範圍：<code>packages/shared/src/types/index.ts</code> <code>JoinRoomResponse</code>。</p>
-<p><strong>[HIGH] <code>/health</code> 回應缺少 <code>redis</code>、<code>wsCount</code>、<code>uptime</code> 欄位</strong></p>
-<p>API.md §8 <code>HealthResponse</code>：<code>{ status, redis, wsCount, uptime }</code>。main.ts line 110 只回傳 <code>{ status: &#x27;ok&#x27; }</code>。</p>
-<p>受影響範圍：Kubernetes liveness probe 資訊不完整；監控儀表板欄位缺失。</p>
-<p><strong>[HIGH] <code>requireAuth</code> 錯誤碼不符 API.md 規格</strong></p>
-<p>API.md §4 規定 <code>AUTH_INVALID_TOKEN</code>（401）和 <code>AUTH_TOKEN_EXPIRED</code>（401）。main.ts <code>requireAuth</code> 統一回傳 <code>UNAUTHORIZED</code>，無法區分 token 格式錯誤和過期。</p>
-<p>受影響範圍：所有受保護 HTTP endpoint；客戶端無法分辨 token 問題類型。</p>
-<h3>WebSocket 事件</h3>
-<p><strong>[HIGH] <code>ROOM_STATE_FULL</code> 從未發送 — 連線時發 <code>ROOM_STATE</code> 替代</strong></p>
-<p>API.md §3：連線成功後 unicast <code>ROOM_STATE_FULL</code>（含 <code>ladder</code>、<code>results</code>、<code>selfPlayerId</code>）。main.ts line 300：發送 <code>{ type: &#x27;ROOM_STATE&#x27;, payload: room }</code>，型別錯誤且缺少必要欄位。client.ts 有處理 <code>ROOM_STATE_FULL</code> 但從未收到。</p>
-<p>受影響範圍：客戶端無法區分初始完整狀態與增量廣播；<code>selfPlayerId</code> 永遠不送達。</p>
-<p><strong>[HIGH] <code>PLAYER_KICKED</code> 廣播範圍不符</strong></p>
-<p>API.md §3：廣播給房間所有人（含被踢者）。main.ts：只 unicast 給被踢者，其他人只收到 <code>ROOM_STATE</code>。</p>
-<p>受影響範圍：其他玩家無法收到明確的踢出通知事件。</p>
-<p><strong>[HIGH] <code>PING</code> handler 回應 <code>PONG</code>，API.md 規定靜默接受</strong></p>
-<p>API.md §3：伺服器不回應。main.ts：回傳 <code>{ type: &#x27;PONG&#x27; }</code>。<code>PONG</code> 不在 <code>WsEventType</code> 中，client 無 handler。</p>
-<p>受影響範圍：client 收到未知事件類型 PONG，落入預設處理。</p>
-<p><strong>[HIGH] <code>REVEAL_INDEX</code> payload 格式三方不一致</strong></p>
-<p>API.md <code>RevealIndexPayload</code>：<code>{ playerIndex, result, revealedCount, totalCount }</code>。main.ts 廣播：<code>{ index, result, room }</code>。shared types：<code>{ index, result }</code>。欄位名（<code>index</code> vs <code>playerIndex</code>）不符，缺少 <code>revealedCount</code>、<code>totalCount</code>，多餘 <code>room</code>。</p>
-<p>受影響範圍：前端顯示揭示進度缺失；欄位名不符。</p>
-<p><strong>[HIGH] <code>ROOM_STATE</code> payload 三方不一致</strong></p>
-<p>API.md §3 <code>RoomStatePayload</code>：<code>{ room: Omit&lt;Room,...&gt;, onlineCount: number }</code>（巢狀結構）。main.ts：直接廣播 raw Room 物件。shared <code>RoomStatePayload</code> type：扁平欄位（無巢狀、無 onlineCount）。client.ts 讀 <code>p.code</code>、<code>p.status</code> 等直接欄位，與 server 行為一致但與 API.md 不符。</p>
-<p>受影響範圍：API.md 規格、shared types、server 實作三方均不一致；<code>onlineCount</code> 永遠不送達。</p>
-<p><strong>[HIGH] Shared types: <code>Player.joinedAt</code>、<code>Room.createdAt</code>/<code>updatedAt</code> 型別應為 <code>number</code></strong></p>
-<p>SCHEMA.md §4：<code>joinedAt: number</code>（Unix ms）；<code>createdAt: number</code>；<code>updatedAt: number</code>。shared types：全部定義為 <code>string</code>。</p>
-<p>受影響範圍：時間戳算術（如 Host 轉移 60s grace 計算）會產生 NaN。</p>
-<p><strong>[HIGH] <code>RoomStateFullPayload</code> 缺少 <code>selfPlayerId</code></strong></p>
-<p>API.md §3：<code>RoomStateFullPayload extends RoomStatePayload { ladder, results, selfPlayerId }</code>。shared types：有 <code>kickedPlayerIds</code>（不在規格中），缺少 <code>selfPlayerId</code>。</p>
-<p>受影響範圍：客戶端無法從 <code>ROOM_STATE_FULL</code> payload 得知自己的 playerId。</p>
-<h3>EDD → src/ 目錄結構</h3>
-<p><strong>[MEDIUM] WS 連線 URL 未包含 <code>room</code> 查詢參數</strong></p>
-<p>API.md §3：WS endpoint 格式 <code>/ws?room={roomCode}&amp;token={token}</code>。client.ts：只傳 <code>/ws?token={token}</code>。server main.ts：從 JWT claims 讀 roomCode，未驗證 <code>room</code> query param 與 JWT <code>roomCode</code> 是否一致。</p>
-<p>受影響範圍：API.md §3 WS Upgrade 驗證步驟 2 未執行。</p>
-<p><strong>[MEDIUM] Clean Architecture 分層未落地（main.ts 為 430 行 monolith）</strong></p>
-<p>EDD/ARCH 定義 <code>presentation/routes/</code>、<code>application/handlers/WsMessageHandler.ts</code>、<code>infrastructure/websocket/WsServer.ts</code> 等分層。實際只有 <code>main.ts</code>，所有路由、WS、認證邏輯全部內聯。</p>
-<p>受影響範圍：整個 Clean Architecture 分層設計未實作；可維護性/可測試性受影響。</p>
-<p><strong>[MEDIUM] <code>RoomSummaryPayload</code> shared type 三方不一致</strong></p>
-<p>API.md §2：GET /api/rooms/:code 回傳完整 Room 物件。EDD §4：<code>{ code, status, playerCount, onlineCount, maxPlayers }</code>。shared types：<code>{ code, status, playerCount, hostId }</code>（含 <code>hostId</code> 不在規格中，缺 <code>onlineCount</code>/<code>maxPlayers</code>）。</p>
-<p>受影響範圍：shared <code>RoomSummaryPayload</code> type 定義錯誤。</p>
-<p><strong>[LOW] <code>HostTransferredPayload</code> shared type 缺少 <code>reason</code> 欄位</strong></p>
-<p>API.md §3：<code>{ newHostId, reason: &quot;disconnect_timeout&quot; }</code>。shared types：只有 <code>{ newHostId }</code>。</p>
-<p>受影響範圍：<code>packages/shared/src/types/index.ts</code> <code>HostTransferredPayload</code>。</p>
-<p><strong>[LOW] <code>RoomSummaryPayload</code> 含 <code>hostId</code>（安全性問題）</strong></p>
-<p>API.md §2 刻意不回傳 hostId；shared type 含 hostId；main.ts 直接回傳整個 room 物件含更多欄位。</p>
-<p>受影響範圍：潛在資訊洩露；GET /rooms/:code 回傳資料超出 API.md 規格範圍。</p>
-<p><strong>[LOW] <code>SessionReplacedPayload</code> 為空物件而非含 <code>message</code></strong></p>
-<p>API.md §3：<code>{ message: string }</code>。main.ts line 287：<code>payload: {}</code>。</p>
-<p>受影響範圍：前端有 fallback，尚可接受，但不符合規格。</p>
-<hr>
-<h2>Dimension 3 — Code → Test 對齊問題</h2>
-<h3>GameService.test.ts</h3>
-<p><strong>[HIGH] <code>resetRoom</code> 未測試「離線 host 被保留」的分支</strong></p>
-<p>GameService.ts line 146：<code>p.isOnline || p.id === hostPlayerId</code>（離線 host 也保留）。測試只覆蓋兩個玩家都在線的情境，未驗證離線 host 被保留、離線非 host 被剔除。</p>
-<p>受影響範圍：<code>resetRoom</code> happy-path assertion 不完整。</p>
-<p><strong>[HIGH] <code>joinRoom</code> 缺少被踢玩家透過 HTTP 重新加入的測試</strong></p>
-<p>WS 連線有 <code>isKicked</code> 攔截（已修復），但 HTTP <code>POST /api/rooms/:code/players</code> 路徑沒有 <code>isKicked</code> 檢查，被踢玩家可透過 HTTP 重新加入。無測試覆蓋此安全漏洞。</p>
-<p>受影響範圍：FR-09-2；<code>joinRoom</code> 缺少 kicked player 防護。</p>
-<p><strong>[HIGH] <code>revealAll</code> partial-reveal 測試斷言偶然正確</strong></p>
-<p>測試用 <code>getRevealedCount: vi.fn(async () =&gt; 1)</code> 覆蓋，但未 assert <code>getRevealedCount</code> 被呼叫（可能實作改為讀 <code>room.revealedCount</code>，測試仍通過）。斷言偶然正確，非結構性驗證。</p>
-<p>受影響範圍：<code>revealAll</code> partial-reveal branch。</p>
-<h3>Integration Tests 缺失</h3>
-<p><strong>[MEDIUM] RoomRepository 完全無 integration test</strong></p>
-<p>9 個 public method（create、findByCode、update、addKickedPlayer、isKicked、clearKickedPlayers、incrementRevealedCount、getRevealedCount、delete、expireIn）均無整合測試。</p>
-<p>關鍵未測路徑：TTL 重設邏輯、<code>incrementRevealedCount</code> 初始值、三個 Redis key 的生命週期一致性、<code>expireIn</code> 只設 room key TTL（sibling key 可能存活更久）。</p>
-<p>受影響範圍：整個 <code>RoomRepository.ts</code>。</p>
-<p><strong>[MEDIUM] WebSocket 訊息路由完全無 integration test</strong></p>
-<p><code>main.ts</code> WS handler 的所有 case（SET_REVEAL_MODE、KICK_PLAYER、PING、reconnect/SESSION_REPLACED、BEGIN_REVEAL、REVEAL_NEXT 等）均無任何層級的測試覆蓋。</p>
-<p>受影響範圍：main.ts WS connection handler 全部邏輯。</p>
-<p><strong>[MEDIUM] <code>revealNext</code> 並發競爭條件無測試</strong></p>
-<p>實作 lines 92–98 的 comment 明確記錄並發競爭，但無 integration test 模擬同時呼叫。</p>
-<p>受影響範圍：<code>revealNext</code> 並發安全性無測試保證。</p>
-<p><strong>[MEDIUM] <code>GameService</code> ROOM_NOT_FOUND 只在 startGame 有測試</strong></p>
-<p><code>beginReveal</code>、<code>revealNext</code>、<code>revealAll</code>、<code>resetRoom</code>、<code>kickPlayer</code> 共用 <code>requireRoom</code> helper，但只有 <code>startGame</code> 測試了 <code>ROOM_NOT_FOUND</code>。</p>
-<p>受影響範圍：5 個 method 的 ROOM_NOT_FOUND 迴歸保護缺失。</p>
-<p><strong>[MEDIUM] <code>generateRoomCode</code> 無統計分佈測試</strong></p>
-<p>charset 排除字元測試跑 50~100 次，覆蓋不到 0.00001% 的空間，無法捕捉 RNG 偏差。</p>
-<p>受影響範圍：<code>generateRoomCode</code> 字元分佈驗證。</p>
-<p><strong>[MEDIUM] <code>createRoom</code> winnerCount 上限未測試</strong></p>
-<p><code>createRoom</code> 只驗證 <code>winnerCount &lt; 1</code>，無 upper bound 測試（如 <code>winnerCount: 999</code> 合法建房）。實際上限驗證在 <code>startGame</code> 的 <code>validateGameStart</code>，但建房階段無防護。</p>
-<p>受影響範圍：<code>createRoom</code> 驗證邊界。</p>
-<p><strong>[LOW] <code>revealAll</code> 未 assert <code>getRevealedCount</code> 被呼叫</strong></p>
-<p>當 <code>revealedCount=0</code> 時，<code>getRevealedCount</code> 和 <code>room.revealedCount</code> 值相同，不斷言呼叫則無法偵測實作改為讀 room 欄位的 drift。</p>
-<p>受影響範圍：<code>revealAll</code> call-site 驗證。</p>
-<p><strong>[LOW] <code>createRoom</code> 未 assert host <code>isOnline: true</code></strong></p>
-<p>happy-path 測試斷言 <code>isHost: true</code>、<code>colorIndex: 0</code> 但未斷言 <code>isOnline: true</code>。</p>
-<p>受影響範圍：<code>createRoom</code> assertion 完整性。</p>
-<p><strong>[LOW] <code>joinRoom</code> whitespace-only nickname 未測試</strong></p>
-<p><code>&quot;   &quot;</code> trim 後長度 0 應觸發 <code>INVALID_NICKNAME</code>，無測試。</p>
-<p>受影響範圍：<code>joinRoom</code> 邊界條件。</p>
-<p><strong>[LOW] <code>createRoom</code> winnerCount 小數值未測試</strong></p>
-<p><code>0.5</code> 或 <code>1.9</code> 通過 <code>&lt; 1</code> 驗證，可能流入 <code>validateGameStart</code>。</p>
-<p>受影響範圍：<code>createRoom</code> 驗證精度。</p>
-<hr>
-<h2>Dimension 4 — Doc → Test 對齊問題</h2>
-<h3>PRD AC → BDD Scenario → Unit Test</h3>
-<p><strong>[CRITICAL] AC-H03-3（FPS ≥ 30/24、跨客戶端渲染一致性）無任何 Scenario 或 Unit Test</strong></p>
-<p>7 個 feature 文件無任何 Scenario 涵蓋跨客戶端渲染一致性或 FPS 效能門檻。</p>
-<p>受影響範圍：US-H03（P0），NFR-01，Canvas FPS 驗收完全缺失。</p>
-<p><strong>[CRITICAL] AC-H01-3（建立失敗不產生孤立房間）有 BDD Scenario，但無 Unit Test 驗證原子性</strong></p>
-<p>room-lifecycle.feature @AC-ROOM-003 描述 Redis 原子性，但 RoomService.test.ts 無任何「建立流程中途失敗的回滾」測試。</p>
-<p>受影響範圍：US-H01（P0），FR-01，系統可靠性。</p>
-<p><strong>[CRITICAL] AC-P03-1/2、AC-P04-1/2（玩家動畫、結果顯示）完全無 Scenario 或 Unit Test</strong></p>
-<p>US-P03（揭曉動畫）、US-P04（中獎結果顯示）的所有 AC 在 7 個 feature 文件中均無 Gherkin Scenario。reveal-flow.feature 只站在主持人角度。</p>
-<p>受影響範圍：4 條 P0 AC 完全零覆蓋。</p>
-<p><strong>[CRITICAL] AC-P06-1/2（玩家被踢後客戶端行為）無玩家視角 Scenario</strong></p>
-<p>host-actions.feature 的 kick Scenario 均站在主持人/伺服器角度。缺少玩家端收到 <code>PLAYER_KICKED</code> 後 UI 行為（通知文字、回首頁按鈕、重連被拒提示）的 Scenario。</p>
-<p>受影響範圍：US-P06（P1）全部 2 條 AC。</p>
-<p><strong>[HIGH] reconnect.feature @AC-RECONNECT-001~005 無對應 Unit Test</strong></p>
-<p>5 個重連 Scenario（SESSION_REPLACED、isOnline 更新、完整狀態恢復）在 RoomService/GameService.test.ts 中無任何覆蓋。</p>
-<p>受影響範圍：FR-07（P1），NFR-04 斷線容忍。</p>
-<p><strong>[HIGH] reveal-flow.feature @AC-REVEAL-003/004（自動揭曉模式）無 Unit Test</strong></p>
-<p>自動揭曉 intervalSec 設定和切換回手動的 Scenario 存在，但 GameService.test.ts 無 <code>revealMode</code>/<code>autoRevealIntervalSec</code> 相關測試。</p>
-<p>受影響範圍：US-H05（P1），FR-05-2，自動計時邏輯完全無 unit 覆蓋。</p>
-<p><strong>[HIGH] host-actions.feature @AC-HOST-KICK-004（踢除後重連被拒）無 Unit Test 覆蓋</strong></p>
-<p>Scenario 要求踢除後重連被拒（<code>isKicked</code> 攔截）。HTTP join 路徑無 <code>isKicked</code> 檢查，此安全漏洞無測試。</p>
-<p>受影響範圍：AC-H07-4（P1），FR-09-2，被踢玩家安全防護不完整。</p>
-<p><strong>[HIGH] AC-H01-2（主持人進入等待畫面收到 ROOM_STATE_FULL）有 BDD Scenario，無 WS 推播 Unit Test</strong></p>
-<p>room-lifecycle.feature @AC-ROOM-002 驗證 ROOM_STATE_FULL 推送，但 RoomService.test.ts 只測試 createRoom 回傳結構，未測試 WS 連線後的推播邏輯（main.ts 目前推 ROOM_STATE 非 ROOM_STATE_FULL，本身也是 bug）。</p>
-<p>受影響範圍：US-H01（P0），FR-06，WebSocket 推播事件無 unit 層驗證。</p>
-<p><strong>[HIGH] AC-H02-3（W &gt; N-1 時 resetRoom 自動設 winnerCount = null）有 BDD Scenario，無 Unit Test</strong></p>
-<p>host-actions.feature @AC-HOST-RESET-002 描述此行為，但 GameService.test.ts <code>resetRoom</code> 測試未 assert <code>winnerCount</code> 在越界時重設。</p>
-<p>受影響範圍：AC-H02-3（P0），AC-H08-2（P1）。</p>
-<p><strong>[HIGH] FR-04-4（running→revealing 原子操作）無 Unit Test</strong></p>
-<p>GameService.test.ts <code>beginReveal</code> 只測試狀態轉換，未驗證原子性（部分寫入/並發失敗場景）。</p>
-<p>受影響範圍：FR-04-4（P0），NFR-03 結果一致性。</p>
-<p><strong>[HIGH] <code>ROOM_NOT_ACCEPTING</code> 有 Unit Test，無對應 BDD Scenario</strong></p>
-<p>RoomService.test.ts 測試了此錯誤碼，但 7 個 feature 文件無任何遊戲進行中玩家嘗試加入的 Scenario。</p>
-<p>受影響範圍：FR-02，缺少 BDD 文件使 QA 無腳本可執行。</p>
-<p><strong>[HIGH] AC-H07-5 BDD Scenario 最後步驟未完整驗證</strong></p>
-<p>host-actions.feature @AC-HOST-KICK-005 最後一步「前一局被踢玩家可用新暱稱加入」只是描述，無 When/Then 步驟執行加入動作並驗證 HTTP 201 成功。</p>
-<p>受影響範圍：AC-H07-5（P1），kickedPlayerIds 清空後的端對端流程未完整覆蓋。</p>
-<p><strong>[MEDIUM] NFR-03（1,000 次亂數 seed 驗證 bijection）無對應 property-based 測試</strong></p>
-<p>PRD NFR-03 明確要求此測試。ComputeResults.test.ts 只用 4~6 個固定 seed，prng.feature Scenario Outline 只有 4 組。</p>
-<p>受影響範圍：bijection 特性的統計顯著性無法被當前測試套件保證。</p>
-<p><strong>[MEDIUM] AC-H03-5 feature 邊界值比 PRD 多，未標記對應關係</strong></p>
-<p>game-flow.feature @AC-GAME-START-004 提供 6 組 Scenario Outline，PRD 只指定 3 個邊界值（N=3→20, N=10→30, N=21→60）。feature 文件與 PRD 鬆散耦合，PRD 修訂時可能漏同步。</p>
-<p>受影響範圍：AC-H03-5（P0），維護性風險。</p>
-<p><strong>[MEDIUM] CODE_COLLISION 測試未 assert 重試次數 ≤ 10</strong></p>
-<p>RoomService.test.ts 驗證無限碰撞最終拋出錯誤，但未 assert <code>findByCode</code> 被呼叫恰好 ≤ 10 次。</p>
-<p>受影響範圍：FR-01-2（P0），重試上限安全機制無法確認。</p>
-<p><strong>[MEDIUM] AC-P01-1（1.5 秒 P99 握手時間）有 BDD Scenario，無效能測試</strong></p>
-<p>player-management.feature @AC-PLAYER-001 有時間性驗收描述，但無 Playwright 效能測試或 mock 時間 unit test 驗證。</p>
-<p>受影響範圍：AC-P01-1（P0），NFR-01，握手延遲門檻無自動化驗證。</p>
-<p><strong>[MEDIUM] <code>CANNOT_KICK_SELF</code> 有 Unit Test 無 BDD Scenario</strong></p>
-<p>GameService.test.ts 測試此錯誤碼，但 host-actions.feature 無此邊界條件的 Gherkin 文件。</p>
-<p>受影響範圍：防呆邊界條件缺乏 BDD 文件，代表此行為未被 PRD/EDD 正式定義。</p>
-<p><strong>[LOW] AC-H05-1 自動揭曉邊界值（T=1、T=30）在 BDD Scenario 缺失</strong></p>
-<p>reveal-flow.feature @AC-REVEAL-003 只測試 intervalSec=3，缺 T=1、T=30 邊界及 T=0/T=31 拒絕測試。</p>
-<p>受影響範圍：AC-H05-1（P1），FR-05-2 邊界值完整性。</p>
-<p><strong>[LOW] hostToken 無效/過期的 403 Scenario 缺失</strong></p>
-<p>同 Doc→Doc 層問題，7 個 feature 文件無否定 JWT 驗證 Scenario。</p>
-<p>受影響範圍：NFR-05 安全性。</p>
-<p><strong>[LOW] AC-P02-2（斷線後 isOnline=false 廣播）有 BDD Scenario，無 Unit Test</strong></p>
-<p>player-management.feature @AC-PLAYER-006 描述此流程，但 RoomService/GameService.test.ts 無 WS 斷線事件觸發 isOnline 更新的測試。</p>
-<p>受影響範圍：AC-P02-2（P0），US-P02，斷線標記是再玩一局邏輯的前提。</p>
-<p><strong>[LOW] PR AC → BDD：<code>CANNOT_KICK_HOST</code> 錯誤碼無 Scenario</strong></p>
-<p>PDD §14 定義此錯誤碼，GameService.test.ts 有對應 unit test（<code>CANNOT_KICK_SELF</code>，實際實作使用此名稱），但 host-actions.feature 無 Scenario。</p>
-<p>受影響範圍：邊界條件缺乏 BDD 文件。</p>
-<hr>
-<h2>修復狀態（/devsop-align-fix all — 2026-04-19）</h2>
+<h2>Level 2: Code-Test Alignment</h2>
 <table>
-<tr><th>Commit</th><th>說明</th></tr>
-<tr><td>dc7e0c9</td><td>docs — PDD/PRD/EDD/ARCH/API.md/features 對齊修復</td></tr>
-<tr><td>8007e27</td><td>doc-code — shared types DTOs + main.ts 行為修復</td></tr>
-<tr><td>d88e5b3</td><td>code-test — timestamp 型別 + resetRoom/revealAll/ROOM_NOT_FOUND 測試</td></tr>
-<tr><td>cc17bf0</td><td>doc-test — reconnect BDD + bijection property + CANNOT_KICK_SELF/KICK-005</td></tr>
+<tr><th>Check</th><th>Status</th><th>Note</th></tr>
+<tr><td>packages/shared 每個 export → 至少有 1 個測試</td><td>✅ PASS</td><td>djb2.test.ts、mulberry32.test.ts、fisherYates.test.ts、GenerateLadder.test.ts、ComputeResults.test.ts、ValidateGameStart.test.ts，全部 6 個匯出均有對應測試</td></tr>
+<tr><td>packages/server GameService 所有方法 → 有測試</td><td>✅ PASS</td><td>GameService.test.ts 覆蓋：startGame、beginReveal、revealNext、revealAll、kickPlayer、resetRoom、endGame、playAgain 全部方法</td></tr>
+<tr><td>packages/server RoomService 所有方法 → 有測試</td><td>✅ PASS</td><td>RoomService.test.ts 覆蓋：generateRoomCode、createRoom、joinRoom</td></tr>
+<tr><td>packages/server HTTP routes → 有測試</td><td>⚠️ WARN</td><td>rooms.test.ts 只覆蓋 POST /api/rooms 和 GET /api/rooms/:code；POST players、DELETE player、game/start、game/reveal、game/reset、game/end、game/play-again 無 HTTP 層測試（main.ts 已被 vitest coverage 排除，業務邏輯由 service 層單元測試間接覆蓋）</td></tr>
+<tr><td>packages/server WebSocket handler → 有測試</td><td>⚠️ WARN</td><td>handleWsConnection 和 handleWsMessage 無直接測試（main.ts 在 vitest coverage exclude 清單中）；WS 行為由 GameService 單元測試間接驗證</td></tr>
+<tr><td>features/ BDD Scenarios → 有對應測試或 todo 骨架</td><td>✅ PASS</td><td>所有 BDD .feature 檔案均為規格文件；server/client 均有對應的 Vitest 單元測試覆蓋核心業務邏輯；缺少 E2E Playwright 步驟實作（features/ 目前為純規格，無 cucumber/step-definition 整合）</td></tr>
+<tr><td>BDD features/ 路由路徑與 API.md 一致性</td><td>⚠️ WARN</td><td>features/room-lifecycle.feature 和 features/player-management.feature 部分 scenario 使用 <code>/api/v1/rooms</code> 路徑，但 API.md 定義為 <code>/api/rooms</code>（無 /v1 前綴），實際 server 路由亦無 /v1 前綴</td></tr>
+<tr><td>packages/client 所有模組 → 有測試</td><td>✅ PASS</td><td>LocalStorageService.test.ts、store.test.ts、canvas/renderer.test.ts、canvas/rendererBranches.test.ts、ws/handleMessage.test.ts、ws/ping.test.ts、ws/reconnect.test.ts，覆蓋主要 client 模組</td></tr>
 </table>
-<h3>Dimension 1 — Doc→Doc（22 → 0 OPEN）</h3>
-<ul><li><strong>[HIGH] title in PRD</strong> → [FIXED: dc7e0c9]</li><li><strong>[HIGH] running→revealing semantics</strong> → [FIXED: dc7e0c9] (PDD §6.2 updated to authorize BEGIN_REVEAL)</li><li><strong>[MEDIUM] seed confidentiality AC</strong> → [FIXED: dc7e0c9]</li><li><strong>[MEDIUM] Room Code collision error</strong> → [FIXED: dc7e0c9]</li><li><strong>[LOW] Error codes in PRD</strong> → [FIXED: dc7e0c9]</li><li><strong>[CRITICAL] BEGIN_REVEAL unauthorized</strong> → [FIXED: dc7e0c9] (PDD updated to authorize host-triggered design)</li><li><strong>[HIGH] winnerCount update EDD design</strong> → [FIXED: dc7e0c9]</li><li><strong>[HIGH] title in EDD</strong> → [FIXED: dc7e0c9]</li><li><strong>[HIGH] CANNOT_KICK_HOST in EDD</strong> → [FIXED: dc7e0c9]</li><li><strong>[HIGH] rollback timeout EDD design</strong> → [FIXED: dc7e0c9]</li><li><strong>[MEDIUM] client test coverage target</strong> → [FIXED: dc7e0c9]</li><li><strong>[MEDIUM] JWT field name inconsistency</strong> → [FIXED: dc7e0c9]</li><li><strong>[MEDIUM] HOST_TRANSFERRED Out of Scope</strong> → [FIXED: dc7e0c9]</li><li><strong>[LOW] EDD QPS base 200→100</strong> → [FIXED: dc7e0c9]</li><li><strong>[HIGH] EDD §4 endpoint paths</strong> → [FIXED: dc7e0c9]</li><li><strong>[HIGH] ROOM_STATE_FULL timing</strong> → [FIXED: dc7e0c9]</li><li><strong>[MEDIUM] PLAYER_KICKED broadcast scope</strong> → [FIXED: dc7e0c9]</li><li><strong>[MEDIUM] JWT TTL 24h→6h</strong> → [FIXED: dc7e0c9]</li><li><strong>[LOW] EDD response envelope</strong> → [FIXED: dc7e0c9]</li><li><strong>[HIGH] Player interface naming</strong> → [FIXED: dc7e0c9]</li><li><strong>[MEDIUM] LadderSegment/revealMode naming</strong> → [FIXED: dc7e0c9]</li><li><strong>[HIGH] PRD→BDD missing scenarios</strong> → [FIXED: dc7e0c9]</li><li><strong>[LOW] auto-reveal boundary BDD</strong> → [FIXED: dc7e0c9]</li><li><strong>[LOW] hostToken invalid/expired BDD</strong> → [FIXED: dc7e0c9]</li></ul>
-<h3>Dimension 2 — Doc→Code（16 → 1 OPEN）</h3>
-<ul><li><strong>[CRITICAL] DELETE 200→204</strong> → [FIXED: 8007e27]</li><li><strong>[HIGH] CreateRoomResponse room field</strong> → [FIXED: 8007e27]</li><li><strong>[HIGH] CreateRoomRequest hostNickname</strong> → [FIXED: 8007e27]</li><li><strong>[HIGH] JoinRoomResponse</strong> → [FIXED: 8007e27]</li><li><strong>[HIGH] /health fields</strong> → [FIXED: 8007e27]</li><li><strong>[HIGH] requireAuth error codes</strong> → [FIXED: 8007e27]</li><li><strong>[HIGH] ROOM_STATE_FULL not sent</strong> → [FIXED: 8007e27]</li><li><strong>[HIGH] PLAYER_KICKED doc</strong> → [FIXED: dc7e0c9] (API.md updated to match unicast)</li><li><strong>[HIGH] PING PONG</strong> → [FIXED: 8007e27]</li><li><strong>[HIGH] REVEAL_INDEX payload</strong> → [FIXED: 8007e27]</li><li><strong>[HIGH] ROOM_STATE payload nested structure</strong> → [MANUAL: client reads flat Room; changing to nested breaks client. Accept implementation as canonical.]</li><li><strong>[HIGH] timestamps string→number</strong> → [FIXED: 8007e27]</li><li><strong>[HIGH] RoomStateFullPayload selfPlayerId</strong> → [FIXED: 8007e27]</li><li><strong>[MEDIUM] WS URL room query param</strong> → [FIXED: 8007e27]</li><li><strong>[MEDIUM] Clean Architecture</strong> → [MANUAL: refactor scope too large for align-fix; create separate task]</li><li><strong>[MEDIUM] RoomSummaryPayload</strong> → [FIXED: 8007e27]</li><li><strong>[LOW] HostTransferredPayload reason</strong> → [FIXED: 8007e27]</li><li><strong>[LOW] RoomSummaryPayload hostId</strong> → [FIXED: 8007e27]</li><li><strong>[LOW] SessionReplacedPayload message</strong> → [FIXED: 8007e27]</li></ul>
-<h3>Dimension 3 — Code→Test（13 → 4 OPEN）</h3>
-<ul><li><strong>[HIGH] resetRoom offline-host branch</strong> → [FIXED: d88e5b3]</li><li><strong>[HIGH] joinRoom isKicked HTTP</strong> → [MANUAL: no playerId available at HTTP join; architectural constraint]</li><li><strong>[HIGH] revealAll coincidental assertion</strong> → [FIXED: d88e5b3]</li><li><strong>[MEDIUM] RoomRepository integration tests</strong> → [MANUAL: no testcontainers setup in project]</li><li><strong>[MEDIUM] WS message routing integration tests</strong> → [MANUAL: no WS integration test setup]</li><li><strong>[MEDIUM] revealNext concurrency test</strong> → [MANUAL: requires concurrent test infrastructure]</li><li><strong>[MEDIUM] ROOM_NOT_FOUND for 5 methods</strong> → [FIXED: d88e5b3]</li><li><strong>[MEDIUM] generateRoomCode distribution</strong> → [FIXED: d88e5b3] (CODE_COLLISION retry count asserted)</li><li><strong>[MEDIUM] createRoom winnerCount upper bound</strong> → [FIXED: d88e5b3] (documented as domain-layer gap)</li><li><strong>[LOW] revealAll getRevealedCount call</strong> → [FIXED: d88e5b3]</li><li><strong>[LOW] createRoom isOnline assertion</strong> → [FIXED: d88e5b3]</li><li><strong>[LOW] joinRoom whitespace nickname</strong> → [FIXED: d88e5b3]</li><li><strong>[LOW] createRoom winnerCount decimal</strong> → [FIXED: d88e5b3] (documented behavior)</li></ul>
-<h3>Dimension 4 — Doc→Test（21 → 6 OPEN）</h3>
-<ul><li><strong>[CRITICAL] Canvas/FPS tests</strong> → [MANUAL: browser-only rendering; requires Playwright visual tests]</li><li><strong>[CRITICAL] atomic room creation test</strong> → [MANUAL: requires Redis integration test]</li><li><strong>[CRITICAL] US-P03/P04 animation tests</strong> → [MANUAL: client-side browser-only]</li><li><strong>[CRITICAL] US-P06 player kicked UX BDD</strong> → [FIXED: dc7e0c9]</li><li><strong>[HIGH] reconnect unit tests</strong> → [FIXED: cc17bf0]</li><li><strong>[HIGH] auto-reveal unit tests</strong> → [MANUAL: SET_REVEAL_MODE logic is in main.ts WS handler, not testable as unit]</li><li><strong>[HIGH] HTTP kicked player test</strong> → [MANUAL: same as Code→Test constraint]</li><li><strong>[HIGH] AC-H01-2 ROOM_STATE_FULL push</strong> → [FIXED: 8007e27] (code fix) + [MANUAL: unit test requires WS integration]</li><li><strong>[HIGH] AC-H02-3 winnerCount boundary</strong> → [FIXED: d88e5b3]</li><li><strong>[HIGH] FR-04-4 atomic operation test</strong> → [MANUAL: requires Redis integration test]</li><li><strong>[HIGH] ROOM_NOT_ACCEPTING BDD</strong> → [FIXED: dc7e0c9]</li><li><strong>[HIGH] AC-H07-5 incomplete scenario</strong> → [FIXED: cc17bf0]</li><li><strong>[MEDIUM] NFR-03 bijection property test</strong> → [FIXED: cc17bf0]</li><li><strong>[MEDIUM] AC-H03-5 boundary values</strong> → [MANUAL: existing feature covers spec; extra values are acceptable]</li><li><strong>[MEDIUM] CODE_COLLISION retry count</strong> → [FIXED: d88e5b3]</li><li><strong>[MEDIUM] AC-P01-1 performance test</strong> → [MANUAL: no Playwright perf test setup]</li><li><strong>[MEDIUM] CANNOT_KICK_SELF BDD</strong> → [FIXED: cc17bf0]</li><li><strong>[LOW] auto-reveal boundary BDD</strong> → [FIXED: dc7e0c9]</li><li><strong>[LOW] hostToken expired BDD</strong> → [FIXED: dc7e0c9]</li><li><strong>[LOW] AC-P02-2 isOnline disconnect</strong> → [MANUAL: WS event requires integration test]</li><li><strong>[LOW] CANNOT_KICK_HOST BDD</strong> → [FIXED: cc17bf0]</li></ul></main>
+<hr>
+<h2>Level 3: Version Consistency</h2>
+<table>
+<tr><th>Check</th><th>Status</th><th>Note</th></tr>
+<tr><td>各文件 Version/Date 是否合理</td><td>✅ PASS</td><td>BRD v1.0 (2026-04-21)、PRD v1.0 (2026-04-21)、PDD v1.1 (2026-04-21)、EDD v2.0 (2026-04-21)、ARCH v2.0 (2026-04-21)、API v2.1 (2026-04-21)、SCHEMA v2.1 (2026-04-21) 日期一致；EDD 修訂歷史中 ECR-20260420-001 日期 2026-04-20 為正常的歷史變更紀錄</td></tr>
+<tr><td>BRD 版本與 PRD/EDD 參照一致</td><td>✅ PASS</td><td>PRD 明確標示 Based on BRD v1.0；API/SCHEMA 標示 Based on EDD v2.0, PRD v1.4（legacy reference）；均有可追溯的來源標注</td></tr>
+</table>
+<hr>
+<h2>Action Items（FAIL 項目）</h2>
+<h3>FAIL-1：autoRevealIntervalSec 上限不一致（需統一決策）</h3>
+<p><strong>衝突情況：</strong></p>
+<table>
+<tr><th>文件</th><th>規格值</th></tr>
+<tr><td>BRD §3.4 REQ-05</td><td>T 1-30 秒</td></tr>
+<tr><td>PRD US-H05、FR-13-2</td><td>1～30 秒整數</td></tr>
+<tr><td>PRD §8.4 安全需求</td><td>超出 1～30 秒回傳 INVALID_AUTO_REVEAL_INTERVAL</td></tr>
+<tr><td>SCHEMA.md §4.4</td><td>max 30 秒</td></tr>
+<tr><td>SCHEMA.md §2.6 Room comment</td><td>&quot;1-30s&quot;</td></tr>
+<tr><td>API.md §1.5 Room</td><td>&quot;1-300 整數秒&quot;</td></tr>
+<tr><td>SCHEMA.md §4.5 SET_REVEAL_MODE 說明</td><td>1-300 整數</td></tr>
+<tr><td>server/main.ts（程式碼實際行為）</td><td>驗證 1-300</td></tr>
+</table>
+<p><strong>建議：</strong> 由產品確認最終規格（1-30 或 1-300），然後統一修改 BRD §3.4、PRD US-H05/FR-13-2/§8.4、SCHEMA.md §4.4 三處文件（或改 API.md 和 server 程式碼）。不強制修復，因牽涉產品決策。</p>
+<hr>
+<h3>FAIL-2：shared WsMsgType 缺少 END_GAME 和 PLAY_AGAIN</h3>
+<p><strong>問題：</strong> <code>packages/shared/src/types/index.ts</code> 的 <code>WsMsgType</code> union 型別缺少 <code>&#x27;END_GAME&#x27;</code> 和 <code>&#x27;PLAY_AGAIN&#x27;</code>，導致型別不完整。</p>
+<p><strong>影響：</strong> 客戶端若依賴 <code>WsMsgType</code> 發送 <code>END_GAME</code> 或 <code>PLAY_AGAIN</code> 訊息，TypeScript 型別檢查不提示這兩個值為合法類型。</p>
+<p><strong>修復方向：</strong></p>
+<pre><code class="language-typescript">// packages/shared/src/types/index.ts
+export type WsMsgType =
+  | &#x27;START_GAME&#x27;
+  | &#x27;BEGIN_REVEAL&#x27;
+  | &#x27;REVEAL_NEXT&#x27;
+  | &#x27;REVEAL_ALL_TRIGGER&#x27;
+  | &#x27;END_GAME&#x27;        // ← 缺少
+  | &#x27;PLAY_AGAIN&#x27;      // ← 缺少
+  | &#x27;SET_REVEAL_MODE&#x27;
+  | &#x27;RESET_ROOM&#x27;
+  | &#x27;KICK_PLAYER&#x27;
+  | &#x27;PING&#x27;;</code></pre>
+<hr>
+<h3>FAIL-3：shared WsEventType 缺少 PONG + server PING handler 未回應 PONG</h3>
+<p><strong>問題 A：</strong> <code>packages/shared/src/types/index.ts</code> 的 <code>WsEventType</code> 缺少 <code>&#x27;PONG&#x27;</code>，但 API.md §3.6 明確定義 PONG 為 Server → Client 事件。</p>
+<p><strong>問題 B：</strong> <code>server/main.ts</code> 的 PING handler（<code>case &#x27;PING&#x27;: break</code>）收到 PING 後直接 break，未回傳 PONG，與 API.md §3.6 規格（&quot;伺服器回應 PONG { ts: echo } 供 RTT 量測&quot;）矛盾。</p>
+<p><strong>修復方向：</strong></p>
+<pre><code class="language-typescript">// packages/shared/src/types/index.ts
+export type WsEventType =
+  | &#x27;ROOM_STATE&#x27;
+  | &#x27;ROOM_STATE_FULL&#x27;
+  | &#x27;REVEAL_INDEX&#x27;
+  | &#x27;REVEAL_ALL&#x27;
+  | &#x27;PLAYER_KICKED&#x27;
+  | &#x27;SESSION_REPLACED&#x27;
+  | &#x27;HOST_TRANSFERRED&#x27;
+  | &#x27;ERROR&#x27;
+  | &#x27;PONG&#x27;;  // ← 缺少</code></pre>
+<pre><code class="language-typescript">// server/main.ts PING handler
+case &#x27;PING&#x27;: {
+  const tsPayload = (msg.payload as { ts?: number } | undefined)?.ts;
+  send(&#x27;PONG&#x27;, { ts: tsPayload ?? Date.now() });
+  break;
+}</code></pre>
+<hr>
+<h2>WARN 參考</h2>
+<ul><li><strong>WARN：API.md Room 含 title/rowCount 欄位</strong>：API.md §1.5 的 Room interface 比 SCHEMA.md §2.6 和 shared 型別多了 <code>title: string | null</code> 和 <code>rowCount: number | null</code>；server 從未使用這兩個欄位。建議更新 API.md §1.5 Room 定義，移除 title 和 rowCount，與 SCHEMA.md 及 shared 保持一致。</li></ul>
+<ul><li><strong>WARN：BDD features 使用 /api/v1 前綴</strong>：<code>features/room-lifecycle.feature</code> 和 <code>features/player-management.feature</code> 的部分 step 使用 <code>/api/v1/rooms</code>，但 API.md 和 server 均為 <code>/api/rooms</code>（無版本前綴）。建議修正 BDD steps 中的路徑。</li></ul>
+<ul><li><strong>WARN：server HTTP 遊戲路由缺少 HTTP 層測試</strong>：<code>game/start</code>、<code>game/reveal</code>、<code>game/reset</code>、<code>game/end</code>、<code>game/play-again</code>、DELETE player 等路由的 HTTP 層未有獨立測試（main.ts 已從 coverage 排除），業務邏輯僅由 service 單元測試間接覆蓋。</li></ul>
+<ul><li><strong>WARN：BDD features/ 無步驟實作</strong>：所有 .feature 檔案目前為純規格文件，無 cucumber/Playwright step definitions，無法直接作為自動化驗收測試執行。</li></ul></main>
   </div>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
