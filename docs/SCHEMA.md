@@ -14,7 +14,7 @@
 | Key 模式 | Redis Type | Value | TTL | 用途 |
 |---------|-----------|-------|-----|------|
 | `room:{code}` | String (JSON) | 序列化的 Room 物件（含 players 陣列） | 24h（每次狀態變更重設） | 房間主狀態 |
-| `room:{code}:ladder` | String (JSON) | LadderData JSON（seed、segments、results） | 與主鍵同步 | 梯子結構與結果（BEGIN_REVEAL 時才創建） |
+| `room:{code}:ladder` | String (JSON) | LadderData JSON（seed、seedSource、segments） | 與主鍵同步 | 梯子結構（BEGIN_REVEAL 時才創建） |
 | `room:{code}:revealedCount` | String (counter) | 整數字串，如 `"0"` 到 `"N"` | 與主鍵同步 | 揭示進度原子計數器（INCR） |
 | `room:{code}:kicked` | Set | `{ playerId1, playerId2, ... }` | 與主鍵同步 | 踢除玩家 ID 集合，用於重連 WS Upgrade 檢查 |
 | `room:{code}:sessions` | Hash | `{ playerId: sessionId }` | 與主鍵同步 | 追蹤活躍 WebSocket Session |
@@ -388,5 +388,5 @@ export interface RoomSummaryPayload {
 
 *SCHEMA 版本：v2.1*
 *生成時間：2026-04-21（devsop-autodev STEP-09）*
-*修訂時間：2026-04-21（devsop-autodev STEP-12 Schema Review Round 2）*
+*修訂時間：2026-04-21（devsop-autodev STEP-12 Schema Review Round 3）*
 *基於 EDD v2.0 + PRD v1.4 + legacy-SCHEMA v1.1 + packages/shared/src/types/index.ts*
