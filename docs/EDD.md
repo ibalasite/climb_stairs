@@ -1320,3 +1320,37 @@ export const LocalStorageService = {
 - **影響範圍**：§localStorage 規格（新增 ladder_last_nickname key）、§Client 架構（新增 LocalStorageService）
 - **修正/實作內容**：新增 Client-Side Storage 規格章節（ladder_last_nickname + 邀請連結規格 + LocalStorageService 模組設計）
 - **commit**：70b1e66
+
+---
+
+## 技術選型確認（STEP-02）
+
+**確認時間**：2026-04-21  
+**執行步驟**：STEP-02（devsop-autodev 語言/框架選型確認）  
+**lang_stack**：`ts-fastify-ws-redis-vanillajs-vite`
+
+### 選型決策（沿用現有，與 BRD 需求一致）
+
+| 層級 | 選型 | BRD 需求對應 |
+|------|------|-------------|
+| Runtime | Node.js 20 LTS | BRD §5.3 Dependencies：Node.js 20 LTS |
+| 語言 | TypeScript（strict mode，前後端共用） | BRD §3.1 G5：結果一致性，shared 演算法 |
+| HTTP Server | Fastify | BRD §1.2 Q3：MVP 技術邊界 |
+| WebSocket | ws（原生，maxPayload: 65536） | BRD §8.1：廣播延遲 P95 < 2 秒；REQ-19 |
+| 快取 / 狀態 | Redis 6+（WATCH/MULTI/EXEC） | BRD §5.3 Dependencies；REQ-20 |
+| 前端框架 | Vanilla TypeScript + Vite（無 UI 框架） | BRD §3.2 KPIs：bundle < 80KB / 150KB gzip |
+| Monorepo | pnpm workspaces（packages/server, client, shared） | BRD §13 M1：專案腳手架 |
+| 測試 | Vitest（後端 ≥ 80%，前端 ≥ 70%）+ Playwright E2E | BRD §5.3 Dependencies；§12.2 Go 條件 |
+| 部署 | Kubernetes（Rancher Desktop）+ Docker | BRD REQ-20；§8.3 Scalability |
+| Architecture | Clean Architecture（packages/shared 零 I/O 核心邏輯） | BRD §1.2 Q4：公平性保證；REQ-17 |
+
+### 與 BRD 需求匹配驗證
+
+- **Q3 技術邊界**（BRD §1.2）：Node.js 20 + Fastify + WebSocket(ws) + Redis + Vanilla TypeScript + Vite + K8s — 完全匹配。
+- **REQ-17 Mulberry32 PRNG**（BRD §3.4）：shared 模組架構確保前後端共用同一演算法實作，TypeScript strict mode 確保型別安全。
+- **REQ-19 WS 訊息大小 64KB**（BRD §3.4）：ws `maxPayload: 65536` 直接對應。
+- **REQ-20 K8s + Redis**（BRD §3.4）：部署策略與可靠性需求一致。
+- **Bundle 預算**（BRD §3.2 KPIs）：Vanilla TypeScript + Vite（無 UI 框架）是滿足 < 80KB / 150KB gzip 的最輕量選擇。
+- **覆蓋率門檻**（BRD §12.2 Go 條件）：Vitest + Playwright 組合可支援後端 ≥ 80%、前端 ≥ 70%、E2E P0 User Story 全覆蓋。
+
+**結論**：現有 lang_stack `ts-fastify-ws-redis-vanillajs-vite` 與 BRD 業務需求、非功能需求及 Go/No-Go 條件完全匹配，無需調整。
