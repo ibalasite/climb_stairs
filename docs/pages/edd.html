@@ -15,12 +15,12 @@
         <input class="search-input" type="search" placeholder="搜尋文件...">
         <div class="search-results"></div>
       </div>
-      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">GitHub</a>
+      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">⌥ GitHub</a>
       <button class="sidebar-toggle" id="sidebarToggle" title="收合/展開側欄">☰</button>
     </div>
   </header>
   <div class="doc-page-banner">
-    <p class="banner-breadcrumb"><a href="index.html">climb_stairs</a> &rsaquo; 工程設計文件 (EDD)</p>
+    <p class="banner-breadcrumb"><a href="index.html">climb_stairs</a> › 工程設計文件 (EDD)</p>
     <h1 class="banner-title">工程設計文件 (EDD)</h1>
   </div>
   <div class="page-wrapper">
@@ -28,18 +28,17 @@
       <div class="sidebar__section">
         <div class="sidebar__label">文件</div>
         <a class="sidebar__link" href="index.html">🏠 首頁</a>
-<a class="sidebar__link" href="pdd.html">📋 產品設計文件 (PDD)</a>
+<a class="sidebar__link" href="idea.html">💡 構想文件 (IDEA)</a>
+<a class="sidebar__link" href="brd.html">📋 商業需求文件 (BRD)</a>
 <a class="sidebar__link" href="prd.html">📝 產品需求文件 (PRD)</a>
+<a class="sidebar__link" href="pdd.html">🎨 產品設計文件 (PDD)</a>
 <a class="sidebar__link active" href="edd.html">🏗️ 工程設計文件 (EDD)</a>
-<a class="sidebar__link" href="arch.html">🧩 架構設計</a>
+<a class="sidebar__link" href="arch.html">🧩 架構設計 (ARCH)</a>
 <a class="sidebar__link" href="api.html">🔌 API 文件</a>
 <a class="sidebar__link" href="schema.html">🗄️ Schema 文件</a>
-<a class="sidebar__link" href="design.html">🎨 Design 設計文件</a>
-<a class="sidebar__link" href="align_report.html">📊 對齊報告</a>
-<a class="sidebar__link" href="brd.html">📄 Brd</a>
-<a class="sidebar__link" href="idea.html">📄 Idea</a>
-<a class="sidebar__link" href="migration_code_snapshot.html">📄 Migration Code Snapshot</a>
-<a class="sidebar__link" href="test_plan.html">📄 Test Plan</a>
+<a class="sidebar__link" href="design.html">🖥️ Client 設計文件</a>
+<a class="sidebar__link" href="test_plan.html">✅ 測試計畫 (Test Plan)</a>
+<a class="sidebar__link" href="align_report.html">📄 ALIGN_REPORT</a>
 <a class="sidebar__link" href="bdd.html">🧪 BDD Scenarios</a>
       </div>
     </aside>
@@ -245,7 +244,7 @@
         POD1 --> SEC
     end</pre></div>
 <p><strong>本機開發環境（Rancher Desktop）：</strong></p>
-<ul><li>使用 Rancher Desktop 作為本機 Kubernetes 環境（containerd runtime）</li><li><code>/etc/hosts</code> 設定 <code>127.0.0.1 ladder.local</code>，透過 Traefik Ingress 存取 <code>http://ladder.local</code></li><li>一鍵開發腳本：<code>./scripts/dev-k8s.sh [up|down|restart|logs]</code></li><li><code>up</code>：docker build + kubectl apply（server + client image）</li><li><code>down</code>：kubectl delete + image 清理</li><li><code>restart</code>：重新 build 並 rolling restart</li><li><code>logs</code>：串流所有 Pod 日誌</li><li>Docker image 策略：</li><li>Server：<code>Dockerfile</code>（Distroless Node.js 20，多階段建構，<code>imagePullPolicy: Never</code>）</li><li>Client：<code>Dockerfile.client</code>（Nginx 1.27-alpine，多階段建構，<code>imagePullPolicy: Never</code>）</li></ul>
+<ul><li>使用 Rancher Desktop 作為本機 Kubernetes 環境（containerd runtime）</li><li><code>/etc/hosts</code> 設定 <code>127.0.0.1 ladder.local</code>，透過 Traefik Ingress 存取 <code>http://ladder.local</code></li><li>一鍵開發腳本：<code>./scripts/dev-k8s.sh [up|down|restart|logs]</code></li><li style="margin-left:1.0rem"><code>up</code>：docker build + kubectl apply（server + client image）</li><li style="margin-left:1.0rem"><code>down</code>：kubectl delete + image 清理</li><li style="margin-left:1.0rem"><code>restart</code>：重新 build 並 rolling restart</li><li style="margin-left:1.0rem"><code>logs</code>：串流所有 Pod 日誌</li><li>Docker image 策略：</li><li style="margin-left:1.0rem">Server：<code>Dockerfile</code>（Distroless Node.js 20，多階段建構，<code>imagePullPolicy: Never</code>）</li><li style="margin-left:1.0rem">Client：<code>Dockerfile.client</code>（Nginx 1.27-alpine，多階段建構，<code>imagePullPolicy: Never</code>）</li></ul>
 <hr>
 <h2>§3 Technology Stack</h2>
 <table>
@@ -452,7 +451,7 @@ const winnerEndCols = new Set(shuffled.slice(0, winnerCount));</code></pre>
 <p><strong>函式：</strong> <code>packages/client/src/canvas/renderer.ts</code></p>
 <p><strong>繪製流程（drawLadder）：</strong></p>
 <ol><li><strong>Rails（垂直柱）</strong>：從頂到底繪製每條垂直線（N 條）</li><li><strong>Rungs（橫段）</strong>：依 <code>segments[]</code> 繪製所有橫槓（連接 col 與 col+1）</li><li><strong>Revealed paths（已揭曉路徑）</strong>：依 <code>PathStep[]</code> 逐格繪製走線動畫</li></ol>
-<ul><li>自己的路徑：高亮色（每人一色）</li><li>他人路徑：對應色，<code>globalAlpha=0.6</code>（半透明）</li><li>未揭曉路徑：灰色虛線</li></ul>
+<ul><li style="margin-left:1.5rem">自己的路徑：高亮色（每人一色）</li><li style="margin-left:1.5rem">他人路徑：對應色，<code>globalAlpha=0.6</code>（半透明）</li><li style="margin-left:1.5rem">未揭曉路徑：灰色虛線</li></ul>
 <ol><li><strong>Player names（玩家名稱）</strong>：頂部各列顯示玩家暱稱</li><li><strong>Winner stars（中獎標記）</strong>：中獎者 <code>shadowBlur=10</code> 金色光暈效果</li></ol>
 <p><strong>顏色系統（<code>packages/client/src/canvas/colors.ts</code>）：</strong></p>
 <ul><li><code>colorFromIndex(i)</code>：每位玩家一個不重複色（最多 50 色）</li><li><code>colorFromIndexDim(i)</code>：淡化版（他人路徑，<code>globalAlpha=0.6</code>）</li></ul>
@@ -923,6 +922,7 @@ curl http://ladder.local/health</code></pre>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>

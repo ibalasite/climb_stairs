@@ -15,12 +15,12 @@
         <input class="search-input" type="search" placeholder="搜尋文件...">
         <div class="search-results"></div>
       </div>
-      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">GitHub</a>
+      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">⌥ GitHub</a>
       <button class="sidebar-toggle" id="sidebarToggle" title="收合/展開側欄">☰</button>
     </div>
   </header>
   <div class="doc-page-banner">
-    <p class="banner-breadcrumb"><a href="index.html">climb_stairs</a> &rsaquo; 文件中心 <span style="margin-left:1rem"><a href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener" style="color:var(--banner-link)">GitHub &nearr;</a></span></p>
+    <p class="banner-breadcrumb"><a href="index.html">climb_stairs</a> › 文件中心 <span style="margin-left:1rem"><a href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener" style="color:var(--banner-link)">⌥ GitHub ↗</a></span></p>
     <h1 class="banner-title">climb_stairs 文件中心</h1>
   </div>
   <div class="page-wrapper">
@@ -28,18 +28,17 @@
       <div class="sidebar__section">
         <div class="sidebar__label">文件</div>
         <a class="sidebar__link active" href="index.html">🏠 首頁</a>
-<a class="sidebar__link" href="pdd.html">📋 產品設計文件 (PDD)</a>
+<a class="sidebar__link" href="idea.html">💡 構想文件 (IDEA)</a>
+<a class="sidebar__link" href="brd.html">📋 商業需求文件 (BRD)</a>
 <a class="sidebar__link" href="prd.html">📝 產品需求文件 (PRD)</a>
+<a class="sidebar__link" href="pdd.html">🎨 產品設計文件 (PDD)</a>
 <a class="sidebar__link" href="edd.html">🏗️ 工程設計文件 (EDD)</a>
-<a class="sidebar__link" href="arch.html">🧩 架構設計</a>
+<a class="sidebar__link" href="arch.html">🧩 架構設計 (ARCH)</a>
 <a class="sidebar__link" href="api.html">🔌 API 文件</a>
 <a class="sidebar__link" href="schema.html">🗄️ Schema 文件</a>
-<a class="sidebar__link" href="design.html">🎨 Design 設計文件</a>
-<a class="sidebar__link" href="align_report.html">📊 對齊報告</a>
-<a class="sidebar__link" href="brd.html">📄 Brd</a>
-<a class="sidebar__link" href="idea.html">📄 Idea</a>
-<a class="sidebar__link" href="migration_code_snapshot.html">📄 Migration Code Snapshot</a>
-<a class="sidebar__link" href="test_plan.html">📄 Test Plan</a>
+<a class="sidebar__link" href="design.html">🖥️ Client 設計文件</a>
+<a class="sidebar__link" href="test_plan.html">✅ 測試計畫 (Test Plan)</a>
+<a class="sidebar__link" href="align_report.html">📄 ALIGN_REPORT</a>
 <a class="sidebar__link" href="bdd.html">🧪 BDD Scenarios</a>
       </div>
     </aside>
@@ -49,22 +48,22 @@
 <p><a href="LICENSE" target="_blank" rel="noopener"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{className:\'badge-fallback\',textContent:this.alt}))"></a></p>
 <p><a href="https://nodejs.org" target="_blank" rel="noopener"><img src="https://img.shields.io/badge/Node.js-20+-green.svg" alt="Node.js" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{className:\'badge-fallback\',textContent:this.alt}))"></a></p>
 <p><a href="https://www.typescriptlang.org" target="_blank" rel="noopener"><img src="https://img.shields.io/badge/TypeScript-5.x-blue.svg" alt="TypeScript" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{className:\'badge-fallback\',textContent:this.alt}))"></a></p>
-<blockquote><p>基於 LINE 爬樓梯玩法的 HTML5 線上多人互動抽獎遊戲，支援最多 50 位玩家從不同地點透過瀏覽器加入同一場抽獎活動，主持人掌控揭曉節奏，結果公正可驗證。</p></blockquote>
+<blockquote><p>基於 LINE 爬樓梯玩法的 HTML5 線上多人互動抽獎遊戲，支援最多 50 位玩家從不同地點透過瀏覽器加入同一場抽獎活動，主持人掌控揭曉節奏，Mulberry32 PRNG 確保結果 100% 公正可驗證。</p></blockquote>
 <hr>
 <h2>📋 專案說明</h2>
 <p>Ladder Room Online 是一款基於 LINE 爬樓梯玩法的 <strong>HTML5 線上多人互動抽獎遊戲</strong>，支援最多 50 位玩家從不同地點透過瀏覽器加入同一場抽獎活動。</p>
 <p>相較於 LINE 原生爬樓梯，本系統解決了以下問題：</p>
 <table>
 <tr><th>問題</th><th>解決方案</th></tr>
-<tr><td>人數限制（≤25 人）</td><td>支援 2–50 位玩家，後端確保一致性</td></tr>
+<tr><td>人數限制（人多不顯示走線）</td><td>支援 2–50 位玩家，後端確保一致性</td></tr>
 <tr><td>視覺不完整</td><td>HTML5 Canvas 全量渲染，任何解析度都完整顯示</td></tr>
 <tr><td>無法控制揭曉節奏</td><td>主持人手動逐步揭曉，或設定自動揭曉間隔</td></tr>
 <tr><td>無法異地參與</td><td>WebSocket 實時同步，掃碼或連結即可加入</td></tr>
-<tr><td>結果無法驗證</td><td>確定性 seed（djb2 hash）+ bijection 映射，可重播驗證</td></tr>
+<tr><td>結果無法驗證</td><td>Mulberry32 PRNG + djb2 hash seed + bijection 映射，可重播驗證</td></tr>
 </table>
 <hr>
 <h2>✨ 核心功能</h2>
-<ul><li><strong>建立房間</strong> — 主持人建立唯一 6 碼房間碼，2 秒內回傳，Redis 去重</li><li><strong>設定中獎名額</strong> — 主持人動態設定得獎人數（W），即時廣播給所有玩家</li><li><strong>開始遊戲</strong> — 房間人數 ≥ 2 且 W 設定後啟動，seed 原子生成禁止提前洩漏</li><li><strong>手動逐步揭曉</strong> — 主持人逐步揭曉路徑，配合現場節奏製造懸念</li><li><strong>自動揭曉間隔</strong> — 設定 1–30 秒自動揭曉，支援中途切換手動模式</li><li><strong>玩家加入房間</strong> — 輸入房間碼 + 暱稱加入，斷線後 30 秒內可重連復原狀態</li><li><strong>觀看揭曉動畫</strong> — 路徑行走動畫（桌機 ≥ 30fps，手機 ≥ 24fps），同色標識各玩家</li><li><strong>再玩一局</strong> — 主持人觸發再玩，保留在線玩家，清除結果重置房間</li></ul>
+<ul><li><strong>建立房間</strong> — 主持人建立唯一 6 碼房間碼，2 秒內回傳，Redis 去重</li><li><strong>設定中獎名額</strong> — 主持人動態設定得獎人數（W），即時廣播給所有玩家</li><li><strong>開始遊戲</strong> — 房間人數 ≥ 2 且 W 設定後啟動，seed 原子生成禁止提前洩漏</li><li><strong>手動逐步揭曉</strong> — 主持人逐步揭曉路徑（US-H04），配合現場節奏製造懸念</li><li><strong>自動揭曉間隔</strong> — 設定 1–30 秒自動揭曉（US-H05），支援中途切換手動模式</li><li><strong>一鍵揭曉全部</strong> — 主持人一鍵揭曉所有路徑（US-H06）</li><li><strong>玩家加入房間</strong> — 輸入房間碼 + 暱稱加入，斷線後 30 秒內可重連復原狀態（US-P05）</li><li><strong>觀看揭曉動畫</strong> — 路徑行走動畫（桌機 ≥ 30fps，手機 ≥ 24fps），同色標識各玩家（US-P03）</li><li><strong>再玩一局</strong> — 主持人觸發再玩，保留在線玩家，清除結果重置房間</li></ul>
 <hr>
 <h2>🏗️ 系統架構</h2>
 <div class="diagram-container"><pre class="mermaid">graph TD
@@ -102,7 +101,7 @@
     NginxWS --> SVC
     NginxHTTP --> SVC
     NginxStatic --> ClientSVC</pre></div>
-<p>詳細設計：<a href="docs/EDD.md" target="_blank" rel="noopener">EDD — 工程設計文件</a> ｜ <a href="docs/ARCH.md" target="_blank" rel="noopener">ARCH — 架構文件</a></p>
+<p>詳細設計：<a href="https://ibalasite.github.io/climb_stairs/edd.html" target="_blank" rel="noopener">EDD — 工程設計文件</a> ｜ <a href="https://ibalasite.github.io/climb_stairs/arch.html" target="_blank" rel="noopener">ARCH — 架構文件</a></p>
 <hr>
 <h2>🛠️ 技術棧</h2>
 <p><strong><code>ts-fastify-ws-redis-vanillajs-vite</code></strong></p>
@@ -153,14 +152,20 @@ npm run dev</code></pre>
 <tr><td><code>METRICS_PORT</code></td><td>Prometheus metrics port</td><td>✅</td><td><code>8080</code></td></tr>
 <tr><td><code>REDIS_HOST</code></td><td>Redis 主機位址</td><td>✅</td><td><code>localhost</code></td></tr>
 <tr><td><code>REDIS_PORT</code></td><td>Redis port</td><td>✅</td><td><code>6379</code></td></tr>
-<tr><td><code>REDIS_PASSWORD</code></td><td>Redis 密碼</td><td>✅</td><td><code>REPLACE_WITH_STRONG_PASSWORD</code></td></tr>
-<tr><td><code>JWT_SECRET</code></td><td>JWT 簽名金鑰（64 bytes hex）</td><td>✅</td><td><code>REPLACE_WITH_64_BYTE_HEX_SECRET</code></td></tr>
+<tr><td><code>REDIS_DB</code></td><td>Redis 資料庫編號</td><td>✅</td><td><code>0</code></td></tr>
+<tr><td><code>REDIS_PASSWORD</code></td><td>Redis 密碼（生產環境必填強密碼）</td><td>✅</td><td><code>REPLACE_WITH_STRONG_PASSWORD</code></td></tr>
+<tr><td><code>JWT_SECRET</code></td><td>JWT 簽名金鑰（openssl rand -hex 64）</td><td>✅</td><td><code>REPLACE_WITH_64_BYTE_HEX_SECRET</code></td></tr>
+<tr><td><code>JWT_ALGORITHM</code></td><td>JWT 演算法</td><td>✅</td><td><code>HS256</code></td></tr>
 <tr><td><code>JWT_TTL_SECONDS</code></td><td>JWT 有效期（秒）</td><td>✅</td><td><code>21600</code></td></tr>
-<tr><td><code>ALLOWED_ORIGINS</code></td><td>允許的 CORS 來源（逗號分隔）</td><td>✅</td><td><code>https://your-frontend-domain.com</code></td></tr>
+<tr><td><code>JWT_CLOCK_SKEW_SECONDS</code></td><td>JWT 時鐘偏移容忍（秒）</td><td>✅</td><td><code>30</code></td></tr>
+<tr><td><code>ALLOWED_ORIGINS</code></td><td>允許的 CORS 來源（逗號分隔，production 用）</td><td>✅</td><td><code>https://your-frontend-domain.com</code></td></tr>
 <tr><td><code>ROOM_TTL_SECONDS</code></td><td>房間 TTL（秒）</td><td>✅</td><td><code>86400</code></td></tr>
+<tr><td><code>ROOM_IDLE_EXPIRE_SECONDS</code></td><td>閒置房間過期（秒）</td><td>✅</td><td><code>300</code></td></tr>
 <tr><td><code>MAX_PLAYERS_PER_ROOM</code></td><td>每房最大人數</td><td>✅</td><td><code>50</code></td></tr>
+<tr><td><code>WS_MAX_PAYLOAD_BYTES</code></td><td>WebSocket 最大訊息大小</td><td>✅</td><td><code>65536</code></td></tr>
 <tr><td><code>WS_RATE_LIMIT_PER_MIN</code></td><td>WS 訊息速率限制（/分鐘）</td><td>✅</td><td><code>60</code></td></tr>
 <tr><td><code>LOG_LEVEL</code></td><td>日誌等級（info/debug/warn/error）</td><td>✅</td><td><code>info</code></td></tr>
+<tr><td><code>LOG_PRETTY</code></td><td>日誌美化輸出</td><td>✅</td><td><code>true</code></td></tr>
 </table>
 <hr>
 <h2>📡 API 快速參考</h2>
@@ -172,10 +177,11 @@ npm run dev</code></pre>
 <tr><td><code>DELETE /api/rooms/:code/players/:playerId</code></td><td>離開房間</td></tr>
 <tr><td><code>POST /api/rooms/:code/game/start</code></td><td>開始遊戲</td></tr>
 <tr><td><code>POST /api/rooms/:code/game/reveal</code></td><td>揭曉下一條路徑</td></tr>
+<tr><td><code>POST /api/rooms/:code/game/reveal-all</code></td><td>一鍵揭曉全部路徑</td></tr>
 <tr><td><code>GET /health</code></td><td>健康檢查（含 Redis 連線狀態）</td></tr>
 <tr><td><code>WS /ws?roomCode=&amp;token=</code></td><td>WebSocket 實時連線入口</td></tr>
 </table>
-<p>📖 完整 API 文件：<a href="docs/API.md" target="_blank" rel="noopener">docs/API.md</a></p>
+<p>📖 完整 API 文件：<a href="https://ibalasite.github.io/climb_stairs/api.html" target="_blank" rel="noopener">docs/API.md</a></p>
 <hr>
 <h2>📁 目錄結構</h2>
 <pre><code class="">climb_stairs/
@@ -183,7 +189,6 @@ npm run dev</code></pre>
 ├── .github/           # GitHub Actions CI/CD
 ├── docs/              # 設計文件 + HTML 文件網站
 │   ├── pages/         # 生成的 HTML 文件頁面
-│   ├── diagrams/      # Mermaid 架構圖
 │   ├── BRD.md         # 商業需求文件
 │   ├── PRD.md         # 產品需求文件
 │   ├── EDD.md         # 工程設計文件
@@ -195,7 +200,7 @@ npm run dev</code></pre>
 │   ├── client/        # Vanilla TS + Vite 前端
 │   └── shared/        # 共用型別 + 業務邏輯
 ├── scripts/           # 啟動 / 部署腳本
-├── tests/             # 效能測試（k6 / autocannon）
+├── tests/             # 效能 + E2E 測試
 └── package.json       # npm workspace 根</code></pre>
 <hr>
 <h2>📚 文件</h2>
@@ -225,13 +230,27 @@ npm test --workspace=packages/shared
 # 測試覆蓋率
 npm run test:coverage
 
+# E2E 測試（需先啟動服務）
+npx playwright test
+
 # 效能測試（需先啟動服務）
 cd tests/performance &amp;&amp; ./autocannon-http.sh
 k6 run tests/performance/k6-room-api.js</code></pre>
 <p>測試覆蓋率目標：<strong>≥ 80%</strong>（shared: 100%，server: 82%，client: 100%）</p>
 <hr>
+<h2>🔧 疑難排解</h2>
+<table>
+<tr><th>問題</th><th>原因</th><th>解決方式</th></tr>
+<tr><td><code>REDIS_PASSWORD</code> 認證失敗</td><td>.env 密碼與 Redis 設定不符</td><td>確認 .env <code>REDIS_PASSWORD</code> 與 <code>redis.conf</code> 一致</td></tr>
+<tr><td>WebSocket 連線被拒</td><td>JWT 過期或 ALLOWED_ORIGINS 未設定</td><td>重新加入房間取得新 token；確認 ALLOWED_ORIGINS 含前端 origin</td></tr>
+<tr><td>Canvas 動畫卡頓</td><td>瀏覽器硬體加速被停用</td><td>啟用瀏覽器 GPU 加速；Chrome 設定 → 進階 → 系統</td></tr>
+<tr><td>房間碼無效（404）</td><td>房間 TTL 已過期</td><td>預設 24 小時 TTL；重新建立房間</td></tr>
+<tr><td>K8s Pod 無法拉取映像</td><td>GHCR 權限問題</td><td>repo Settings → Actions → Workflow permissions → Read and write</td></tr>
+<tr><td><code>npm run dev</code> 無法啟動</td><td>Redis 未啟動或端口被占用</td><td><code>redis-server</code> 或 <code>docker run -p 6379:6379 redis:7-alpine</code></td></tr>
+</table>
+<hr>
 <h2>⚠️ 已知限制</h2>
-<ul><li>單一伺服器實例，無水平擴展（Redis 為唯一持久層）</li><li>自動揭曉（US-H05）尚未完整實作</li><li>WebSocket 重連機制未完整 E2E 測試</li><li>效能測試腳本（k6）需手動執行，未納入 CI 自動觸發</li></ul>
+<ul><li>單一伺服器實例，無水平擴展（Redis 為唯一持久層）</li><li>自動揭曉（US-H05）尚未完整實作</li><li>WebSocket 重連機制未完整 E2E 測試</li><li>效能測試腳本（k6）需手動執行，未納入 CI 自動觸發</li><li>Docker image push 需 GHCR 套件寫入權限（repo Settings → Actions → Workflow permissions）</li></ul>
 <hr>
 <h2>📝 Changelog</h2>
 <p>完整版本歷程：<a href="https://github.com/ibalasite/climb_stairs/releases" target="_blank" rel="noopener">GitHub Releases</a></p>
@@ -264,12 +283,13 @@ k6 run tests/performance/k6-room-api.js</code></pre>
 <tr><td>前端框架</td><td>Vanilla TypeScript + Vite</td><td>無框架負擔，bundle &lt; 150KB</td></tr>
 <tr><td>認證機制</td><td>JWT（HS256，6 小時 TTL）</td><td>無狀態，WebSocket upgrade 攜帶</td></tr>
 <tr><td>WebSocket</td><td>ws（原生，無 Socket.IO）</td><td>最小依賴，原生 RFC 6455</td></tr>
+<tr><td>PRNG</td><td>Mulberry32 + djb2 hash</td><td>確定性、可重播、防預測</td></tr>
 </table>
 <p>完整架構文件：<a href="docs/ARCH.md" target="_blank" rel="noopener">docs/ARCH.md</a></p>
 <hr>
 <h2>Code of Conduct</h2>
 <p>本專案遵循 <a href="https://www.contributor-covenant.org/version/2/1/code_of_conduct/" target="_blank" rel="noopener">Contributor Covenant v2.1</a> 行為準則。</p>
-<p>參與本專案即表示您同意遵守此準則。如有違規行為請聯繫：<code>conduct@ladder-room.example.com</code></p><section style="margin-top:3rem;padding:1.5rem;background:#fff;border:1px solid var(--border);border-radius:8px;"><h2 style="margin-top:0;border-bottom:none">📊 專案健康狀態</h2><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-top:1rem"><div style="text-align:center;padding:1rem;background:var(--page-bg);border-radius:6px"><div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.25rem">已完成 STEP</div><div style="font-size:1.5rem;font-weight:700;color:var(--accent)">29/20</div></div></div></section></main>
+<p>參與本專案即表示您同意遵守此準則。如有違規行為請聯繫：<code>conduct@ladder-room.example.com</code></p><section style="margin-top:3rem;padding:1.5rem;background:#fff;border:1px solid var(--border);border-radius:8px;"><h2 style="margin-top:0">📊 專案健康狀態</h2><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-top:1rem"><div style="text-align:center;padding:1rem;background:var(--page-bg);border-radius:6px"><div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.25rem">已完成 STEP</div><div style="font-size:1.5rem;font-weight:700;color:var(--accent)">31/31</div></div><div style="text-align:center;padding:1rem;background:var(--page-bg);border-radius:6px"><div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.25rem">當前 STEP</div><div style="font-size:1.5rem;font-weight:700;color:var(--accent)">31</div></div></div></section></main>
   </div>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
@@ -285,6 +305,7 @@ k6 run tests/performance/k6-room-api.js</code></pre>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>

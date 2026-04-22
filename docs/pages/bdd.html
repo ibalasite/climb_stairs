@@ -15,12 +15,12 @@
         <input class="search-input" type="search" placeholder="搜尋文件...">
         <div class="search-results"></div>
       </div>
-      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">GitHub</a>
+      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">⌥ GitHub</a>
       <button class="sidebar-toggle" id="sidebarToggle" title="收合/展開側欄">☰</button>
     </div>
   </header>
   <div class="doc-page-banner">
-    <p class="banner-breadcrumb"><a href="index.html">climb_stairs</a> &rsaquo; BDD Scenarios</p>
+    <p class="banner-breadcrumb"><a href="index.html">climb_stairs</a> › BDD Scenarios</p>
     <h1 class="banner-title">BDD Scenarios</h1>
   </div>
   <div class="page-wrapper">
@@ -28,23 +28,580 @@
       <div class="sidebar__section">
         <div class="sidebar__label">文件</div>
         <a class="sidebar__link" href="index.html">🏠 首頁</a>
-<a class="sidebar__link" href="pdd.html">📋 產品設計文件 (PDD)</a>
+<a class="sidebar__link" href="idea.html">💡 構想文件 (IDEA)</a>
+<a class="sidebar__link" href="brd.html">📋 商業需求文件 (BRD)</a>
 <a class="sidebar__link" href="prd.html">📝 產品需求文件 (PRD)</a>
+<a class="sidebar__link" href="pdd.html">🎨 產品設計文件 (PDD)</a>
 <a class="sidebar__link" href="edd.html">🏗️ 工程設計文件 (EDD)</a>
-<a class="sidebar__link" href="arch.html">🧩 架構設計</a>
+<a class="sidebar__link" href="arch.html">🧩 架構設計 (ARCH)</a>
 <a class="sidebar__link" href="api.html">🔌 API 文件</a>
 <a class="sidebar__link" href="schema.html">🗄️ Schema 文件</a>
-<a class="sidebar__link" href="design.html">🎨 Design 設計文件</a>
-<a class="sidebar__link" href="align_report.html">📊 對齊報告</a>
-<a class="sidebar__link" href="brd.html">📄 Brd</a>
-<a class="sidebar__link" href="idea.html">📄 Idea</a>
-<a class="sidebar__link" href="migration_code_snapshot.html">📄 Migration Code Snapshot</a>
-<a class="sidebar__link" href="test_plan.html">📄 Test Plan</a>
+<a class="sidebar__link" href="design.html">🖥️ Client 設計文件</a>
+<a class="sidebar__link" href="test_plan.html">✅ 測試計畫 (Test Plan)</a>
+<a class="sidebar__link" href="align_report.html">📄 ALIGN_REPORT</a>
 <a class="sidebar__link active" href="bdd.html">🧪 BDD Scenarios</a>
       </div>
     </aside>
     <div class="sidebar-resizer" id="sidebarResizer"></div>
-    <main class="doc-content"><h2>client-canvas</h2>
+    <main class="doc-content"><h2>client/game-view.feature</h2>
+<pre><code class="language-gherkin">Feature: Game View UI (Canvas)
+  As a player or host, I want to see the ladder game rendered on canvas so I can watch the reveal animations
+
+  Background:
+    Given I am in the game view of an active room
+
+  # --- 遊戲開始時顯示梯子 ---
+
+  Scenario: Display ladder on game start with correct rail count
+    Given the game has started with 3 players
+    When I view the game canvas
+    Then I should see 3 vertical rails on the canvas
+    And each rail should use the dimmed color (colorFromIndexDim) for the player&#x27;s color index
+    And each rail should have RAIL_WIDTH of 3px
+
+  Scenario: Player names displayed at top of canvas
+    Given the game has started with players &quot;Alice&quot;, &quot;Bob&quot;, &quot;Carol&quot;
+    When I view the game canvas
+    Then I should see &quot;Alice&quot;, &quot;Bob&quot;, and &quot;Carol&quot; displayed above their respective rails
+    And names should be rendered at 13px system-ui font
+    And my own name should be in bold purple (#a78bfa)
+
+  Scenario: Canvas uses dark background
+    When I view the game canvas
+    Then the canvas background should be #0f0f1a
+    And the canvas should adapt to devicePixelRatio for Retina displays
+
+  Scenario: Canvas padding matches specification
+    When I view the game canvas
+    Then the top padding should be 60px for player names
+    And the side padding should be 24px on each side
+    And the bottom padding should be 32px for result slots
+
+  Scenario: Horizontal rungs rendered between rails
+    Given a ladder with rungs defined by the seed
+    When I view the game canvas
+    Then the rungs should be rendered at RUNG_WIDTH of 2px
+    And rungs should have color #3a3a60
+
+  # --- 揭曉路徑動畫 ---
+
+  Scenario: Reveal path animation plays when host clicks next
+    Given the game state is &quot;revealing&quot;
+    And it is player &quot;Bob&quot;&#x27;s turn to be revealed
+    When the host clicks &quot;下一位&quot;
+    Then I should see an animated ball moving along &quot;Bob&quot;&#x27;s path
+    And the ball should have BALL_RADIUS of 8px with white core and player color shadow
+
+  Scenario: Path uses player&#x27;s assigned color during animation
+    Given player &quot;Bob&quot; has colorIndex 1
+    When &quot;Bob&quot;&#x27;s path is being revealed
+    Then the animated path should use color hsl(7.2, 70%, 60%)
+    And the ball marker should glow with that color at shadowBlur 16
+
+  Scenario: Animating path is fully opaque
+    When a path is currently being animated
+    Then the path should render with globalAlpha of 1.0
+
+  Scenario: Reveal all paths via REVEAL_ALL broadcast
+    Given the game state is &quot;revealing&quot;
+    When the host clicks &quot;全部揭曉&quot;
+    Then all remaining paths should animate sequentially
+    And all animations should complete within 2 seconds
+    And if 2 seconds is exceeded the animation jumps to the final frame
+
+  Scenario: Host controls visible in revealing state
+    Given I am the host
+    And the game state is &quot;revealing&quot;
+    Then I should see the &quot;下一位&quot; button
+    And I should see the &quot;全部揭曉&quot; button with gold styling
+    And I should see the auto-reveal toggle switch
+
+  Scenario: Host begin reveal button visible in running state
+    Given I am the host
+    And the game state is &quot;running&quot;
+    Then I should see the &quot;開始揭曉&quot; button
+    And I should not see the &quot;下一位&quot; button
+
+  Scenario: Auto-reveal toggle controls interval input
+    Given I am the host and the auto-reveal toggle is off
+    Then the interval input should be disabled with opacity 0.4
+    When I enable the auto-reveal toggle
+    Then the interval input should become enabled
+    And the toggle should show aria-checked=&quot;true&quot;
+
+  Scenario: Auto-reveal interval validation
+    Given I am the host and auto-reveal is enabled
+    When I enter 0 in the interval input
+    And I start auto-reveal
+    Then I should see an error &quot;間隔須為 1～30 的整數&quot;
+
+  # --- 中獎者以金色光暈高亮 ---
+
+  Scenario: Winner highlighted with gold glow effect
+    Given all paths are revealed
+    And &quot;Alice&quot; is the winner
+    When the winner is determined
+    Then &quot;Alice&quot;&#x27;s path should have shadowColor #ffd700 and shadowBlur 10
+    And a star &quot;★&quot; should appear at &quot;Alice&quot;&#x27;s bottom position in gold (#ffd700) at 11px
+
+  Scenario: Winner endpoint has gold glow
+    Given &quot;Alice&quot; is the winner
+    When her path reaches the bottom
+    Then the endpoint circle (radius 6px) should have a gold glow
+
+  # --- 已完成路徑半透明顯示 ---
+
+  Scenario: Completed paths are semi-transparent
+    Given &quot;Bob&quot;&#x27;s path has been fully revealed
+    When I view the canvas
+    Then &quot;Bob&quot;&#x27;s path should render with globalAlpha of 0.6
+
+  Scenario: Currently animating path is fully opaque
+    Given &quot;Bob&quot;&#x27;s path has been revealed (opacity 0.6)
+    And &quot;Carol&quot;&#x27;s path is currently being animated
+    When I view the canvas
+    Then &quot;Carol&quot;&#x27;s path should render with globalAlpha of 1.0
+    And &quot;Bob&quot;&#x27;s path should still render with globalAlpha of 0.6
+
+  Scenario: Multiple revealed paths are semi-transparent
+    Given 3 paths have been revealed for &quot;Alice&quot;, &quot;Bob&quot;, &quot;Carol&quot;
+    When I view the canvas
+    Then all 3 paths should render with globalAlpha of 0.6
+    And winner paths should additionally show the gold glow
+
+  # --- Canvas 視覺層次 ---
+
+  Scenario: Canvas renders visual layers in correct order
+    Given a game is in revealing state
+    When I view the canvas
+    Then the visual layers from bottom to top should be:
+      | Layer              | Description                        |
+      | rails              | Vertical tracks with dim color     |
+      | rungs              | Horizontal bars in #3a3a60         |
+      | revealed-paths     | Player paths at opacity 0.6        |
+      | animating-path     | Current path at opacity 1.0        |
+      | winner-glow        | Gold shadow on winner path         |
+      | ball-marker        | Animated ball with glow            |
+      | endpoints          | Bottom circles                     |
+      | player-names       | Names at top of rails              |
+      | winner-star        | Gold ★ at bottom of winner         |
+
+  # --- 佈局與響應式 ---
+
+  Scenario: Desktop layout shows sidebar on the right
+    Given my viewport is 1024px or wider
+    When I view the game view
+    Then I should see the canvas on the left taking majority of width
+    And the sidebar should be on the right at 280px width
+
+  Scenario: Mobile layout stacks canvas and sidebar vertically
+    Given my viewport is narrower than 768px
+    When I view the game view
+    Then the canvas should take full width
+    And the sidebar results list should appear below the canvas
+    And the host controls should be fixed at the bottom
+
+  Scenario: Header shows room name, status badge, and connection dot
+    When I view the game view header
+    Then I should see the room name as the game title
+    And I should see a status badge matching the current game state
+    And I should see the connection status dot on the right
+
+  # --- 結果側欄（揭曉中即時更新）---
+
+  Scenario: Result list shows winner entry with crown
+    Given &quot;Alice&quot; has been revealed as a winner
+    When I view the sidebar result list
+    Then I should see &quot;Alice&quot; with a ♛ crown in gold
+    And the entry background should be #1c1600 with border #b8960a
+
+  Scenario: Result list shows non-winner entry
+    Given &quot;Bob&quot; has been revealed as a non-winner
+    When I view the sidebar result list
+    Then I should see &quot;Bob&quot; without a crown
+    And the entry background should be var(--bg) with dim text
+
+  Scenario: My own result entry is highlighted with purple border
+    Given my path has been revealed
+    When I view my entry in the result list
+    Then my entry should have a purple left border of 3px solid #6c63ff
+    And I should see &quot;(你)&quot; label next to my name
+
+  Scenario: Result items animate in sequentially
+    Given multiple players have been revealed
+    When I view the result list
+    Then each result item should fade in with translateY animation of 300ms
+    And each subsequent item should be delayed by 50ms
+</code></pre>
+<h2>client/lobby.feature</h2>
+<pre><code class="language-gherkin">Feature: Lobby UI
+  As a player or host, I want to create or join a game from the lobby
+
+  Background:
+    Given I am on the lobby page
+
+  # --- 建立房間 ---
+
+  Scenario: Create room from lobby as host
+    When I enter nickname &quot;Alice&quot; in the create-room form
+    And I click &quot;建立房間&quot;
+    Then I should see the waiting room
+    And my nickname &quot;Alice&quot; should be displayed in the player list
+    And I should see the host badge next to my name
+
+  Scenario: Create room with optional room title
+    When I enter nickname &quot;Alice&quot; in the create-room form
+    And I enter room title &quot;年終抽獎 2026&quot;
+    And I click &quot;建立房間&quot;
+    Then I should see the waiting room
+    And the room title &quot;年終抽獎 2026&quot; should be displayed
+
+  Scenario: Create room button shows loading state
+    When I enter nickname &quot;Alice&quot; in the create-room form
+    And I click &quot;建立房間&quot;
+    Then the button should display &quot;建立中…&quot; and be disabled during the request
+
+  Scenario: Create room failure shows error toast
+    Given the server returns a create-room error
+    When I enter nickname &quot;Alice&quot; in the create-room form
+    And I click &quot;建立房間&quot;
+    Then I should see an error toast &quot;建立失敗，請重試&quot;
+    And the nickname input should still contain &quot;Alice&quot;
+
+  # --- 加入房間 ---
+
+  Scenario: Join room from lobby
+    When I enter nickname &quot;Bob&quot; in the join-room form
+    And I enter room code &quot;ABC123&quot;
+    And I click &quot;加入房間&quot;
+    Then I should be in the waiting room with other players
+
+  Scenario: Join room with URL room parameter pre-filled
+    Given I navigate to the lobby with URL parameter &quot;?room=K7NP3Q&quot;
+    Then the room code input should be pre-filled with &quot;K7NP3Q&quot;
+
+  Scenario: Join button auto-enabled when both nickname and room code are filled
+    Given the room code input is pre-filled via URL parameter &quot;K7NP3Q&quot;
+    And the nickname input is pre-filled from localStorage &quot;ladder_last_nickname&quot; as &quot;Carol&quot;
+    Then the &quot;加入房間&quot; button should be enabled without further interaction
+
+  # --- 表單驗證 ---
+
+  Scenario: Empty nickname validation on create-room
+    When I click &quot;建立房間&quot; without entering a nickname
+    Then I should see an inline error message for the nickname field
+    And the &quot;建立房間&quot; button should be disabled
+
+  Scenario: Empty nickname validation on join-room
+    When I enter room code &quot;ABC123&quot;
+    And I click &quot;加入房間&quot; without entering a nickname
+    Then I should see an inline error message for the nickname field
+    And the &quot;加入房間&quot; button should be disabled
+
+  Scenario: Nickname exceeding 20 characters shows validation error
+    When I enter a nickname of 21 characters in the create-room form
+    Then I should see an inline error message &quot;暱稱須為 1–20 個字元&quot;
+    And the &quot;建立房間&quot; button should be disabled
+
+  Scenario: Room code field forces uppercase input
+    When I type &quot;abc123&quot; into the room code input
+    Then the room code input should display &quot;ABC123&quot;
+
+  Scenario: Duplicate nickname error from server
+    Given the server returns error &quot;NICKNAME_TAKEN&quot;
+    When I enter nickname &quot;Alice&quot; in the join-room form
+    And I enter room code &quot;ABC123&quot;
+    And I click &quot;加入房間&quot;
+    Then I should see an error toast &quot;此暱稱已被使用，請換一個&quot;
+
+  Scenario: Room not found error from server
+    Given the server returns error &quot;ROOM_NOT_FOUND&quot;
+    When I enter nickname &quot;Bob&quot; in the join-room form
+    And I enter room code &quot;XXXXXX&quot;
+    And I click &quot;加入房間&quot;
+    Then I should see an error toast &quot;找不到此房間，請確認房間碼&quot;
+
+  Scenario: Room full error from server
+    Given the server returns error &quot;ROOM_FULL&quot;
+    When I enter nickname &quot;Bob&quot; in the join-room form
+    And I enter room code &quot;ABC123&quot;
+    And I click &quot;加入房間&quot;
+    Then I should see an error toast &quot;房間已滿，無法加入&quot;
+
+  Scenario: Room not joinable when game already started
+    Given the server returns error &quot;ROOM_NOT_JOINABLE&quot;
+    When I enter nickname &quot;Bob&quot; in the join-room form
+    And I enter room code &quot;ABC123&quot;
+    And I click &quot;加入房間&quot;
+    Then I should see an error toast &quot;此房間遊戲已開始，無法加入&quot;
+
+  # --- 已有暱稱自動填入 ---
+
+  Scenario: Nickname auto-filled from localStorage
+    Given localStorage key &quot;ladder_last_nickname&quot; is set to &quot;Carol&quot;
+    When I visit the lobby page
+    Then the nickname input in the join-room form should be pre-filled with &quot;Carol&quot;
+
+  Scenario: Nickname is saved to localStorage after successful join
+    When I enter nickname &quot;Dave&quot; in the join-room form
+    And I enter room code &quot;ABC123&quot;
+    And I click &quot;加入房間&quot;
+    And the join is successful
+    Then localStorage key &quot;ladder_last_nickname&quot; should be set to &quot;Dave&quot;
+</code></pre>
+<h2>client/result-view.feature</h2>
+<pre><code class="language-gherkin">Feature: Result View UI
+  As a player or host, I want to see the final results clearly so I can confirm the winners and decide next steps
+
+  Background:
+    Given the game state is &quot;finished&quot;
+    And I am viewing the result view
+
+  # --- 全部路徑揭曉後顯示完整結果 ---
+
+  Scenario: Show all paths after reveal-all
+    Given all paths were revealed via REVEAL_ALL
+    When I view the canvas on the result page
+    Then all player paths should be visible on the canvas
+    And each path should render with globalAlpha of 0.6
+    And winner paths should have gold glow (shadowColor: #ffd700, shadowBlur: 10)
+
+  Scenario: Full-screen result layout shows canvas and winner list
+    When I view the result page
+    Then I should see the canvas on the left (or top on mobile)
+    And I should see the winner list sidebar on the right
+    And the header should show the room name with &quot;FINISHED&quot; status badge
+
+  Scenario: Winner list shows ranked results with crowns
+    Given the game finished with winners &quot;Alice&quot; and &quot;Bob&quot;, non-winner &quot;Carol&quot;
+    When I view the winner list
+    Then I should see &quot;Alice&quot; ranked 1st with ♛ crown in gold
+    And I should see &quot;Bob&quot; ranked 2nd with ♛ crown in gold
+    And I should see &quot;Carol&quot; ranked 3rd without a crown in dim text
+
+  Scenario: Winner entries have gold background styling
+    Given &quot;Alice&quot; is a winner
+    When I view &quot;Alice&quot;&#x27;s result entry
+    Then the entry background should be #1c1600
+    And the entry border should be #b8960a
+
+  Scenario: Non-winner entries have neutral styling
+    Given &quot;Carol&quot; is not a winner
+    When I view &quot;Carol&quot;&#x27;s result entry
+    Then the entry background should be var(--bg)
+    And the text should use var(--text-dim)
+
+  Scenario: My own result entry is highlighted
+    Given I am player &quot;Bob&quot; and I am a winner
+    When I view the result list
+    Then my entry should have border-left: 3px solid #6c63ff
+    And I should see &quot;(你)&quot; label next to my name in color #6c63ff
+
+  Scenario: Result list is scrollable for large player count
+    Given 20 players participated in the game
+    When I view the result list
+    Then the result list should be scrollable
+    And all players should be listed with correct rank order
+
+  Scenario: Gold glow continuously displayed on winner paths in canvas
+    Given the game is finished
+    When I view the canvas
+    Then winner paths should continuously show shadowColor #ffd700 and shadowBlur 10
+    And winner endpoints should show gold glow circles
+
+  Scenario: Winner star markers displayed at bottom of winner paths
+    Given &quot;Alice&quot; is a winner
+    When I view the canvas
+    Then a gold ★ should be displayed at the bottom of &quot;Alice&quot;&#x27;s rail
+    And the star should be rendered at 11px system-ui font
+
+  Scenario: Mobile result view stacks canvas above result list
+    Given my viewport is narrower than 768px
+    When I view the result page
+    Then the canvas should appear at the top with max-height of 50vh
+    And the result list should appear below the canvas with max-height of 200px and horizontal scroll
+
+  # --- 再玩一局 ---
+
+  Scenario: Host sees replay button in finished state
+    Given I am the host
+    When I view the result page
+    Then I should see the &quot;再玩一局&quot; button with ghost styling
+
+  Scenario: Replay game resets to waiting room
+    Given I am the host
+    When I click &quot;再玩一局&quot;
+    Then the room should reset to &quot;waiting&quot; state
+    And I should be redirected to the waiting room
+    And offline players should be removed from the player list
+
+  Scenario: Replay game clears kicked player list
+    Given player &quot;Dave&quot; was kicked in the previous round
+    When I click &quot;再玩一局&quot; as the host
+    Then &quot;Dave&quot; should no longer be in the kicked players list
+    And &quot;Dave&quot; can rejoin the room with a fresh nickname
+
+  Scenario: Replay with insufficient online players shows error
+    Given only 1 player is currently online
+    When I click &quot;再玩一局&quot; as the host
+    Then I should see an error toast &quot;在線玩家不足（至少需要 2 位），無法開始新局&quot;
+    And the room state should remain &quot;finished&quot;
+
+  Scenario: Non-host does not see replay button
+    Given I am not the host
+    When I view the result page
+    Then I should not see the &quot;再玩一局&quot; button
+
+  Scenario: Winners count resets if it exceeds new player count after replay
+    Given winners count was 3 and only 2 players are online after replay
+    When the host initiates replay
+    Then the winners count should be reset to null
+    And I should see a toast &quot;中獎名額已重設，請重新設定&quot;
+
+  # --- 回大廳 ---
+
+  Scenario: Return to lobby navigates to home page
+    When I click &quot;回首頁&quot; or navigate to the lobby
+    Then I should be on the lobby page
+    And the lobby page should show the create-room and join-room forms
+
+  Scenario: Kicked player sees return-to-lobby button
+    Given I have been kicked by the host
+    When I receive the kick notification
+    Then I should see the message &quot;你已被主持人移出房間&quot;
+    And I should see a &quot;回首頁&quot; button
+    And clicking &quot;回首頁&quot; should navigate me to the lobby
+
+  # --- 結果項目動畫 ---
+
+  Scenario: Result items animate in with fadeSlideIn
+    When the result list renders for the first time
+    Then each result item should animate with opacity 0 to 1 and translateY 8px to 0
+    And animation duration should be 300ms ease
+    And each item should be delayed by an additional 50ms per rank position
+</code></pre>
+<h2>client/waiting-room.feature</h2>
+<pre><code class="language-gherkin">Feature: Waiting Room UI
+  As a player or host, I want to see the waiting room so I can track who has joined and start the game
+
+  Background:
+    Given I am in the waiting room of room &quot;K7NP3Q&quot;
+
+  # --- 顯示房間碼供分享 ---
+
+  Scenario: Display room code for sharing
+    Then I should see the room code &quot;K7NP3Q&quot; displayed prominently with accent color
+    And the room code should have letter-spacing of 0.25em
+
+  Scenario: Copy invite link via clipboard API
+    When I click the room code box or &quot;複製邀請連結&quot; button
+    Then the invite URL &quot;{origin}/?room=K7NP3Q&quot; should be copied to clipboard
+    And I should see a toast &quot;已複製！&quot;
+    And the button should revert to its original text after 1.5 seconds
+
+  Scenario: Fallback input shown when clipboard API is unavailable
+    Given the Clipboard API is not available
+    When I click &quot;複製邀請連結&quot;
+    Then I should see a text input pre-filled with &quot;{origin}/?room=K7NP3Q&quot;
+    And the input text should be fully selected for manual copy
+
+  # --- 顯示已加入的所有玩家 ---
+
+  Scenario: Show all joined players
+    Given players &quot;Alice&quot;, &quot;Bob&quot;, and &quot;Carol&quot; have joined the room
+    Then I should see 3 player entries in the player list
+    And each player should show their colored player dot
+    And &quot;Alice&quot; the host should have a host badge
+
+  Scenario: Offline player shows offline label
+    Given player &quot;Carol&quot; is disconnected
+    Then I should see &quot;Carol&quot; in the player list with an &quot;離線&quot; label
+    And the player dot for &quot;Carol&quot; should have opacity 0.35
+
+  Scenario: Host sees kick button on hover for other players
+    Given I am the host
+    And player &quot;Bob&quot; is in the player list
+    When I hover over &quot;Bob&quot;&#x27;s player entry
+    Then I should see a red kick button for &quot;Bob&quot;
+
+  Scenario: Host cannot see kick button for themselves
+    Given I am the host
+    When I view my own player entry
+    Then I should not see a kick button next to my name
+
+  Scenario: Non-host does not see kick buttons
+    Given I am not the host
+    When I view the player list
+    Then I should not see any kick buttons
+
+  # --- 主持人開始遊戲（2+ 玩家就緒）---
+
+  Scenario: Host can start game when 2 or more players are present
+    Given I am the host
+    And 2 players are in the room
+    And the winners count is set to 1
+    When I click &quot;開始遊戲&quot;
+    Then the game should start and transition to the game view
+
+  Scenario: Start game button disabled when fewer than 2 players
+    Given I am the host
+    And only 1 player is in the room
+    Then the &quot;開始遊戲&quot; button should be disabled
+
+  Scenario: Start game button disabled when winners count is not set
+    Given I am the host
+    And 3 players are in the room
+    And the winners count input is empty
+    Then the &quot;開始遊戲&quot; button should be disabled
+
+  Scenario: Host sets winners count
+    Given I am the host
+    And 3 players are in the room
+    When I enter 1 in the winners count input
+    Then the &quot;開始遊戲&quot; button should become enabled
+
+  Scenario: Winners count validation rejects out-of-range values
+    Given I am the host
+    And 3 players are in the room
+    When I enter 3 in the winners count input
+    And I click &quot;開始遊戲&quot;
+    Then I should see an error &quot;中獎名額須介於 1 到玩家數減 1 之間&quot;
+
+  # --- 非主持人無法開始遊戲 ---
+
+  Scenario: Non-host cannot start game - button not visible
+    Given I am not the host
+    Then I should not see the &quot;開始遊戲&quot; button
+    And I should see the message &quot;等待主持人開始…&quot;
+
+  Scenario: Non-host does not see game settings panel
+    Given I am not the host
+    Then I should not see the winners count input
+    And I should not see the game settings card
+
+  # --- 玩家人數即時更新 ---
+
+  Scenario: Player count updates in real-time when new player joins
+    Given I am in the waiting room with 2 players
+    When a new player &quot;Dave&quot; joins the room
+    Then the player list should update within 2 seconds to show 3 players
+    And &quot;Dave&quot; should appear in the player list
+
+  Scenario: Player count updates in real-time when player disconnects
+    Given I am in the waiting room with 3 players
+    When player &quot;Carol&quot; disconnects
+    Then &quot;Carol&quot; should show the &quot;離線&quot; label within 2 seconds
+    And the player count should reflect the updated online status
+
+  Scenario: Connection status dot reflects WebSocket state
+    Given my WebSocket connection is active
+    Then the connection dot should be green
+    When my WebSocket connection drops
+    Then the connection dot should be red
+    When the WebSocket is reconnecting
+    Then the connection dot should be gold with a pulse animation
+</code></pre>
+<h2>client-canvas.feature</h2>
 <pre><code class="language-gherkin"># features/client-canvas.feature
 Feature: 梯子 Canvas 渲染行為
   As a 玩家
@@ -145,7 +702,7 @@ Feature: 梯子 Canvas 渲染行為
     When 畫面渲染完成
     Then 我的路徑終點標籤比其他玩家更加突出（粗框或額外標記）
 </code></pre>
-<h2>client-error</h2>
+<h2>client-error.feature</h2>
 <pre><code class="language-gherkin"># features/client-error.feature
 Feature: 錯誤狀態的 UI 回饋行為
   As a 玩家或主持人
@@ -288,7 +845,7 @@ Feature: 錯誤狀態的 UI 回饋行為
     Then 第一條 Toast 立即被第二條取代
     And 畫面上同時只顯示一條 Toast
 </code></pre>
-<h2>client-navigation</h2>
+<h2>client-navigation.feature</h2>
 <pre><code class="language-gherkin"># features/client-navigation.feature
 Feature: 頁面流程與視圖切換
   As a 玩家或主持人
@@ -403,7 +960,7 @@ Feature: 頁面流程與視圖切換
     Then 直接顯示首頁視圖
     And 不顯示任何載入中或錯誤訊息
 </code></pre>
-<h2>client-reconnect</h2>
+<h2>client-reconnect.feature</h2>
 <pre><code class="language-gherkin"># features/client-reconnect.feature
 Feature: 前端斷線重連 UI 行為
   As a 玩家
@@ -522,7 +1079,7 @@ Feature: 前端斷線重連 UI 行為
     Then 主持人離線提示自動消失
     And 揭曉操作按鈕恢復啟用狀態
 </code></pre>
-<h2>game-flow</h2>
+<h2>game-flow.feature</h2>
 <pre><code class="language-gherkin"># features/game-flow.feature
 Feature: 遊戲流程控制
   As a 主持人
@@ -614,7 +1171,7 @@ Feature: 遊戲流程控制
       | 21 | 60                | clamp(63, 20, 60)=60     |
       | 50 | 60                | clamp(150, 20, 60)=60    |
 </code></pre>
-<h2>game-lifecycle</h2>
+<h2>game-lifecycle.feature</h2>
 <pre><code class="language-gherkin">Feature: Game Lifecycle
   As a host
   I want to manage the full game lifecycle from start to finish
@@ -774,7 +1331,7 @@ Feature: 遊戲流程控制
     And room status remains &quot;running&quot;
     And seed and ladderMap are not regenerated
 </code></pre>
-<h2>host-actions</h2>
+<h2>host-actions.feature</h2>
 <pre><code class="language-gherkin"># features/host-actions.feature
 Feature: 主持人管理操作
   As a 主持人
@@ -998,7 +1555,7 @@ Feature: 主持人管理操作
     Then HTTP 回應狀態碼為 401
     And 回應錯誤碼為 &quot;AUTH_TOKEN_EXPIRED&quot;
 </code></pre>
-<h2>ladder-generation</h2>
+<h2>ladder-generation.feature</h2>
 <pre><code class="language-gherkin">Feature: Ladder Generation
   As a system
   I want to generate deterministic and valid ladder structures using Mulberry32 PRNG
@@ -1129,7 +1686,7 @@ Feature: 主持人管理操作
     Then the payload contains the seed field
     And the payload contains the complete results array
 </code></pre>
-<h2>player-management</h2>
+<h2>player-management.feature</h2>
 <pre><code class="language-gherkin"># features/player-management.feature
 Feature: 玩家加入與管理
   As a 玩家
@@ -1229,7 +1786,7 @@ Feature: 玩家加入與管理
       | revealing   |
       | finished    |
 </code></pre>
-<h2>prng</h2>
+<h2>prng.feature</h2>
 <pre><code class="language-gherkin"># features/prng.feature
 Feature: PRNG 確定性與正確性
   As a 系統
@@ -1321,7 +1878,7 @@ Feature: PRNG 確定性與正確性
       | 10 | 3  |
       | 50 | 10 |
 </code></pre>
-<h2>reconnect</h2>
+<h2>reconnect.feature</h2>
 <pre><code class="language-gherkin"># features/reconnect.feature
 Feature: 斷線與重連行為
   As a 玩家
@@ -1445,7 +2002,7 @@ Feature: 斷線與重連行為
     And &quot;Henry&quot; 的 colorIndex 仍為 3
     And &quot;Henry&quot; 的 playerId 仍為 &quot;player-henry-uuid&quot;
 </code></pre>
-<h2>reveal-flow</h2>
+<h2>reveal-flow.feature</h2>
 <pre><code class="language-gherkin"># features/reveal-flow.feature
 Feature: 路徑揭曉流程
   As a 主持人
@@ -1622,7 +2179,7 @@ Feature: 路徑揭曉流程
     And 伺服器隨後廣播 ROOM_STATE，status 為 &quot;finished&quot;
     And 所有客戶端顯示完整得獎名單，無需主持人再送出 END_GAME
 </code></pre>
-<h2>room-lifecycle</h2>
+<h2>room-lifecycle.feature</h2>
 <pre><code class="language-gherkin"># features/room-lifecycle.feature
 Feature: 房間生命週期
   As a 主持人
@@ -1729,7 +2286,7 @@ Feature: 房間生命週期
     Then 伺服器回傳錯誤碼 &quot;UPDATE_WINNER_COUNT_NOT_ALLOWED_IN_STATE&quot;
     And 房間狀態維持 &quot;running&quot;
 </code></pre>
-<h2>room-management</h2>
+<h2>room-management.feature</h2>
 <pre><code class="language-gherkin">Feature: Room Management
   As a player
   I want to create and join rooms
@@ -1836,7 +2393,7 @@ Feature: 房間生命週期
     And response error code is &quot;ROOM_NOT_ACCEPTING&quot;
     And the message indicates the game has already started
 </code></pre>
-<h2>websocket-protocol</h2>
+<h2>websocket-protocol.feature</h2>
 <pre><code class="language-gherkin">Feature: WebSocket Protocol
   As a player or host
   I want reliable WebSocket communication with the server
@@ -2024,6 +2581,7 @@ Feature: 房間生命週期
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>

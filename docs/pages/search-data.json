@@ -2,17 +2,27 @@
   "index.html": {
     "url": "index.html",
     "title": "首頁",
-    "excerpt": "Ladder Room Online\n\n\n\n\n基於 LINE 爬樓梯玩法的 HTML5 線上多人互動抽獎遊戲，支援最多 50 位玩家從不同地點透過瀏覽器加入同一場抽獎活動，主持人掌控揭曉節奏，結果公正可驗證。\n\n📋 專案說明\nLadder Room Online 是一款基於 LINE 爬樓梯玩法的 "
+    "excerpt": "Ladder Room Online\n\n\n\n\n基於 LINE 爬樓梯玩法的 HTML5 線上多人互動抽獎遊戲，支援最多 50 位玩家從不同地點透過瀏覽器加入同一場抽獎活動，主持人掌控揭曉節奏，Mulberry32 PRNG 確保結果 100% 公正可驗證。\n\n📋 專案說明\nLadder Room O"
   },
-  "pdd.html": {
-    "url": "pdd.html",
-    "title": "產品設計文件 (PDD)",
-    "excerpt": "PDD — Client Design Document\nLadder Room Online UI/UX 設計規範\nDocument Control\n\n欄位內容\nVersion1.1\nStatusDraft\nDate2026-04-21\nAuthorAI Design Agent（devsop-a"
+  "idea.html": {
+    "url": "idea.html",
+    "title": "構想文件 (IDEA)",
+    "excerpt": "IDEA.md — Ladder Room Online\n供 devsop-autodev STEP 01 BRD Review 使用\n生成來源：從 legacy-PRD.md、legacy-PDD.md、legacy-EDD.md、legacy-ARCH.md、legacy-API.md、lega"
+  },
+  "brd.html": {
+    "url": "brd.html",
+    "title": "商業需求文件 (BRD)",
+    "excerpt": "BRD — Ladder Room Online\n版本：v1.0\n日期：2026-04-21\n狀態：Draft\n基於：IDEA.md + legacy-PRD v1.4 + legacy-PDD v2.2 + legacy-EDD + legacy-ARCH v1.2 + legacy-API v1"
   },
   "prd.html": {
     "url": "prd.html",
     "title": "產品需求文件 (PRD)",
     "excerpt": "PRD — Ladder Room Online\nDocument Control\n\n欄位內容\nVersion1.0\nStatusDraft\nDate2026-04-21\nAuthorAI PM Agent（devsop-autodev STEP-03）\nBased OnBRD v1.0 + leg"
+  },
+  "pdd.html": {
+    "url": "pdd.html",
+    "title": "產品設計文件 (PDD)",
+    "excerpt": "PDD — Client Design Document\nLadder Room Online UI/UX 設計規範\nDocument Control\n\n欄位內容\nVersion1.1\nStatusDraft\nDate2026-04-21\nAuthorAI Design Agent（devsop-a"
   },
   "edd.html": {
     "url": "edd.html",
@@ -21,7 +31,7 @@
   },
   "arch.html": {
     "url": "arch.html",
-    "title": "架構設計",
+    "title": "架構設計 (ARCH)",
     "excerpt": "ARCH — Ladder Room Online Architecture Design Document\nVersion: v2.0\nDate: 2026-04-21\nBased on: EDD v2.0, PRD v1.4, legacy-ARCH v1.3\n\n§1 System Overvi"
   },
   "api.html": {
@@ -36,33 +46,18 @@
   },
   "design.html": {
     "url": "design.html",
-    "title": "Design 設計文件",
+    "title": "Client 設計文件",
     "excerpt": "DESIGN — Ladder Room Online Client UI Spec\nVersion: v1.1\nDate: 2026-04-19\nBased on: PRD v1.3 · ARCH v1.2 · EDD v1.3 · API v1.1\nTech: Vanilla TypeScrip"
-  },
-  "align_report.html": {
-    "url": "align_report.html",
-    "title": "對齊報告",
-    "excerpt": "Alignment Report\nGenerated: 2026-04-21 (STEP-22 re-scan)\nSummary\nTotal checks: 21Pass: 14Warn: 4Fail: 3\n\nLevel 1: Document Consistency\n\nCheckStatusNot"
-  },
-  "brd.html": {
-    "url": "brd.html",
-    "title": "Brd",
-    "excerpt": "BRD — Ladder Room Online\n版本：v1.0\n日期：2026-04-21\n狀態：Draft\n基於：IDEA.md + legacy-PRD v1.4 + legacy-PDD v2.2 + legacy-EDD + legacy-ARCH v1.2 + legacy-API v1"
-  },
-  "idea.html": {
-    "url": "idea.html",
-    "title": "Idea",
-    "excerpt": "IDEA.md — Ladder Room Online\n供 devsop-autodev STEP 01 BRD Review 使用\n生成來源：從 legacy-PRD.md、legacy-PDD.md、legacy-EDD.md、legacy-ARCH.md、legacy-API.md、lega"
-  },
-  "migration_code_snapshot.html": {
-    "url": "migration_code_snapshot.html",
-    "title": "Migration Code Snapshot",
-    "excerpt": "遷移前程式碼狀態快照\n生成時間：Tue Apr 21 12:38:04 CST 2026\n遷移前測試結果\n@ladder-room/shared@0.1.0 test\nvitest run\nRUN  v1.6.1 /Users/tobala/projects/climb_stairs/package"
   },
   "test_plan.html": {
     "url": "test_plan.html",
-    "title": "Test Plan",
+    "title": "測試計畫 (Test Plan)",
     "excerpt": "Test Plan — Ladder Room Online\nVersion: v1.0\nDate: 2026-04-21\nBased on: PRD v1.0, EDD v2.0, API v2.1\nAuthor: AI QA Agent（devsop-autodev STEP-14）\n\n§1 T"
+  },
+  "align_report.html": {
+    "url": "align_report.html",
+    "title": "ALIGN_REPORT",
+    "excerpt": "Alignment Report\nGenerated: 2026-04-21 (STEP-22 re-scan)\nSummary\nTotal checks: 21Pass: 14Warn: 4Fail: 3\n\nLevel 1: Document Consistency\n\nCheckStatusNot"
   },
   "bdd.html": {
     "url": "bdd.html",

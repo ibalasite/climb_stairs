@@ -15,12 +15,12 @@
         <input class="search-input" type="search" placeholder="搜尋文件...">
         <div class="search-results"></div>
       </div>
-      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">GitHub</a>
+      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">⌥ GitHub</a>
       <button class="sidebar-toggle" id="sidebarToggle" title="收合/展開側欄">☰</button>
     </div>
   </header>
   <div class="doc-page-banner">
-    <p class="banner-breadcrumb"><a href="index.html">climb_stairs</a> &rsaquo; 產品設計文件 (PDD)</p>
+    <p class="banner-breadcrumb"><a href="index.html">climb_stairs</a> › 產品設計文件 (PDD)</p>
     <h1 class="banner-title">產品設計文件 (PDD)</h1>
   </div>
   <div class="page-wrapper">
@@ -28,18 +28,17 @@
       <div class="sidebar__section">
         <div class="sidebar__label">文件</div>
         <a class="sidebar__link" href="index.html">🏠 首頁</a>
-<a class="sidebar__link active" href="pdd.html">📋 產品設計文件 (PDD)</a>
+<a class="sidebar__link" href="idea.html">💡 構想文件 (IDEA)</a>
+<a class="sidebar__link" href="brd.html">📋 商業需求文件 (BRD)</a>
 <a class="sidebar__link" href="prd.html">📝 產品需求文件 (PRD)</a>
+<a class="sidebar__link active" href="pdd.html">🎨 產品設計文件 (PDD)</a>
 <a class="sidebar__link" href="edd.html">🏗️ 工程設計文件 (EDD)</a>
-<a class="sidebar__link" href="arch.html">🧩 架構設計</a>
+<a class="sidebar__link" href="arch.html">🧩 架構設計 (ARCH)</a>
 <a class="sidebar__link" href="api.html">🔌 API 文件</a>
 <a class="sidebar__link" href="schema.html">🗄️ Schema 文件</a>
-<a class="sidebar__link" href="design.html">🎨 Design 設計文件</a>
-<a class="sidebar__link" href="align_report.html">📊 對齊報告</a>
-<a class="sidebar__link" href="brd.html">📄 Brd</a>
-<a class="sidebar__link" href="idea.html">📄 Idea</a>
-<a class="sidebar__link" href="migration_code_snapshot.html">📄 Migration Code Snapshot</a>
-<a class="sidebar__link" href="test_plan.html">📄 Test Plan</a>
+<a class="sidebar__link" href="design.html">🖥️ Client 設計文件</a>
+<a class="sidebar__link" href="test_plan.html">✅ 測試計畫 (Test Plan)</a>
+<a class="sidebar__link" href="align_report.html">📄 ALIGN_REPORT</a>
 <a class="sidebar__link" href="bdd.html">🧪 BDD Scenarios</a>
       </div>
     </aside>
@@ -280,7 +279,7 @@ display: inline-block; vertical-align: middle
 │  主持人控制欄（底部固定）                       │
 └──────────────────────────────────────────────┘</code></pre>
 <p><strong>Canvas 區域</strong>：</p>
-<ul><li><code>background: var(--bg)</code>（#0f0f1a 深底）</li><li>100% 寬高自適應父容器</li><li><code>devicePixelRatio</code> 縮放，確保 Retina 清晰度</li><li>Canvas 內邊距常數（來自 <code>renderer.ts</code>）：</li><li><code>PADDING_TOP = 60</code>（px，玩家名稱區域）</li><li><code>PADDING_SIDE = 24</code>（px，左右各留白）</li><li><code>PADDING_BOT = 32</code>（px，底部結果槽空間）</li></ul>
+<ul><li><code>background: var(--bg)</code>（#0f0f1a 深底）</li><li>100% 寬高自適應父容器</li><li><code>devicePixelRatio</code> 縮放，確保 Retina 清晰度</li><li>Canvas 內邊距常數（來自 <code>renderer.ts</code>）：</li><li style="margin-left:1.0rem"><code>PADDING_TOP = 60</code>（px，玩家名稱區域）</li><li style="margin-left:1.0rem"><code>PADDING_SIDE = 24</code>（px，左右各留白）</li><li style="margin-left:1.0rem"><code>PADDING_BOT = 32</code>（px，底部結果槽空間）</li></ul>
 <p><strong>Canvas 視覺層次</strong>（由底到頂）：</p>
 <ol><li>垂直軌道（rail）：<code>RAIL_WIDTH = 3px</code>，顏色 <code>colorFromIndexDim</code></li><li>橫槓（rung）：<code>RUNG_WIDTH = 2px</code>，顏色 <code>#3a3a60</code></li><li>已揭曉路徑：<code>PATH_WIDTH = 5px</code>，玩家色 <code>opacity: 0.6</code></li><li>動畫中路徑：同上，<code>opacity: 1.0</code>（當前焦點）</li><li>中獎光暈：<code>shadowColor: #ffd700</code>, <code>shadowBlur: 10</code></li><li>動畫球（ball marker）：<code>BALL_RADIUS = 8px</code>，白芯 + 玩家色 + <code>shadowBlur: 16</code></li><li>底部端點：<code>radius: 6px</code>，中獎時金色光暈</li><li>玩家名稱（頂）：<code>13px system-ui</code>，自己粗體紫色（<code>#a78bfa</code>），他人玩家色</li><li>中獎星號（底）：<code>11px</code>, <code>★</code> 金色</li></ol>
 <p><strong>Header 元素</strong>：</p>
@@ -288,7 +287,7 @@ display: inline-block; vertical-align: middle
 <p><strong>Sidebar（桌機右欄 280px / 手機底部）</strong>：</p>
 <ul><li>上方：主持人控制區（<code>.sidebar-section</code>）</li><li>下方：結果列表（<code>.result-list</code>，可捲動）</li></ul>
 <p><strong>主持人控制面板（<code>.sidebar-section</code>）</strong>：</p>
-<ul><li><code>running</code> 狀態：「開始揭曉」按鈕（<code>.btn-primary</code>）</li><li><code>revealing</code> 狀態：</li><li>「下一位」按鈕（<code>.btn-primary</code>）</li><li>「全部揭曉」按鈕（<code>.btn-gold</code>）</li><li>自動揭曉間隔設定：</li><li>Toggle 開關（<code>.auto-reveal-toggle</code>）：預設關閉；Hover 時背景 <code>rgba(108,99,255,0.15)</code>；checked 時滑塊色 <code>var(--accent)</code>；<code>aria-label=&quot;自動揭曉&quot;</code>；<code>role=&quot;switch&quot;</code>；<code>aria-checked=&quot;true/false&quot;</code></li><li>間隔秒數輸入（<code>type=&quot;number&quot;</code>, <code>min=&quot;1&quot;</code>, <code>max=&quot;30&quot;</code>）：開關關閉時 <code>disabled; opacity: 0.4</code>；有效值才啟用自動揭曉計時器</li><li><code>finished</code> 狀態：「再玩一局」按鈕（<code>.btn-ghost</code>）</li></ul>
+<ul><li><code>running</code> 狀態：「開始揭曉」按鈕（<code>.btn-primary</code>）</li><li><code>revealing</code> 狀態：</li><li style="margin-left:1.0rem">「下一位」按鈕（<code>.btn-primary</code>）</li><li style="margin-left:1.0rem">「全部揭曉」按鈕（<code>.btn-gold</code>）</li><li style="margin-left:1.0rem">自動揭曉間隔設定：</li><li style="margin-left:2.0rem">Toggle 開關（<code>.auto-reveal-toggle</code>）：預設關閉；Hover 時背景 <code>rgba(108,99,255,0.15)</code>；checked 時滑塊色 <code>var(--accent)</code>；<code>aria-label=&quot;自動揭曉&quot;</code>；<code>role=&quot;switch&quot;</code>；<code>aria-checked=&quot;true/false&quot;</code></li><li style="margin-left:2.0rem">間隔秒數輸入（<code>type=&quot;number&quot;</code>, <code>min=&quot;1&quot;</code>, <code>max=&quot;30&quot;</code>）：開關關閉時 <code>disabled; opacity: 0.4</code>；有效值才啟用自動揭曉計時器</li><li><code>finished</code> 狀態：「再玩一局」按鈕（<code>.btn-ghost</code>）</li></ul>
 <h3>§5.4 Result View（結果顯示）</h3>
 <p>結果在 Game View 的 Sidebar 中即時顯示，並在 <code>finished</code> 狀態後以全螢幕呈現得獎名單。</p>
 <p><strong>Sidebar 結果列表（行內版）</strong>：</p>
@@ -558,6 +557,7 @@ colorFromIndexDim(index: number): string {
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>

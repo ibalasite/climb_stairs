@@ -15,12 +15,12 @@
         <input class="search-input" type="search" placeholder="搜尋文件...">
         <div class="search-results"></div>
       </div>
-      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">GitHub</a>
+      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">⌥ GitHub</a>
       <button class="sidebar-toggle" id="sidebarToggle" title="收合/展開側欄">☰</button>
     </div>
   </header>
   <div class="doc-page-banner">
-    <p class="banner-breadcrumb"><a href="index.html">climb_stairs</a> &rsaquo; 產品需求文件 (PRD)</p>
+    <p class="banner-breadcrumb"><a href="index.html">climb_stairs</a> › 產品需求文件 (PRD)</p>
     <h1 class="banner-title">產品需求文件 (PRD)</h1>
   </div>
   <div class="page-wrapper">
@@ -28,18 +28,17 @@
       <div class="sidebar__section">
         <div class="sidebar__label">文件</div>
         <a class="sidebar__link" href="index.html">🏠 首頁</a>
-<a class="sidebar__link" href="pdd.html">📋 產品設計文件 (PDD)</a>
+<a class="sidebar__link" href="idea.html">💡 構想文件 (IDEA)</a>
+<a class="sidebar__link" href="brd.html">📋 商業需求文件 (BRD)</a>
 <a class="sidebar__link active" href="prd.html">📝 產品需求文件 (PRD)</a>
+<a class="sidebar__link" href="pdd.html">🎨 產品設計文件 (PDD)</a>
 <a class="sidebar__link" href="edd.html">🏗️ 工程設計文件 (EDD)</a>
-<a class="sidebar__link" href="arch.html">🧩 架構設計</a>
+<a class="sidebar__link" href="arch.html">🧩 架構設計 (ARCH)</a>
 <a class="sidebar__link" href="api.html">🔌 API 文件</a>
 <a class="sidebar__link" href="schema.html">🗄️ Schema 文件</a>
-<a class="sidebar__link" href="design.html">🎨 Design 設計文件</a>
-<a class="sidebar__link" href="align_report.html">📊 對齊報告</a>
-<a class="sidebar__link" href="brd.html">📄 Brd</a>
-<a class="sidebar__link" href="idea.html">📄 Idea</a>
-<a class="sidebar__link" href="migration_code_snapshot.html">📄 Migration Code Snapshot</a>
-<a class="sidebar__link" href="test_plan.html">📄 Test Plan</a>
+<a class="sidebar__link" href="design.html">🖥️ Client 設計文件</a>
+<a class="sidebar__link" href="test_plan.html">✅ 測試計畫 (Test Plan)</a>
+<a class="sidebar__link" href="align_report.html">📄 ALIGN_REPORT</a>
 <a class="sidebar__link" href="bdd.html">🧪 BDD Scenarios</a>
       </div>
     </aside>
@@ -94,9 +93,9 @@
 </table>
 <h3>§2.2 Go/No-Go 條件</h3>
 <p><strong>Go 條件（全部必須滿足）</strong>：</p>
-<ul><li>[ ] 所有 P0 User Story Happy Path E2E 通過</li><li>[ ] 後端單元測試覆蓋率 ≥ 80%</li><li>[ ] 1,000 次 seed 自動化驗證 100% bijection 通過</li><li>[ ] k6 壓測：100 房間 × 50 人 WebSocket 並發成功率達標</li><li>[ ] Lighthouse CI：FCP &lt; 1.5s，LCP &lt; 2.5s，CLS &lt; 0.1</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> 所有 P0 User Story Happy Path E2E 通過</li><li style="list-style:none"><input type="checkbox" disabled> 後端單元測試覆蓋率 ≥ 80%</li><li style="list-style:none"><input type="checkbox" disabled> 1,000 次 seed 自動化驗證 100% bijection 通過</li><li style="list-style:none"><input type="checkbox" disabled> k6 壓測：100 房間 × 50 人 WebSocket 並發成功率達標</li><li style="list-style:none"><input type="checkbox" disabled> Lighthouse CI：FCP &lt; 1.5s，LCP &lt; 2.5s，CLS &lt; 0.1</li></ul>
 <p><strong>No-Go 條件（任一觸發即阻止）</strong>：</p>
-<ul><li>[ ] 任何 P0 User Story E2E 測試失敗</li><li>[ ] 結果一致性測試出現任何差異</li><li>[ ] seed 在 <code>finished</code> 前洩漏</li><li>[ ] 前端 JS bundle 超出限制</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> 任何 P0 User Story E2E 測試失敗</li><li style="list-style:none"><input type="checkbox" disabled> 結果一致性測試出現任何差異</li><li style="list-style:none"><input type="checkbox" disabled> seed 在 <code>finished</code> 前洩漏</li><li style="list-style:none"><input type="checkbox" disabled> 前端 JS bundle 超出限制</li></ul>
 <hr>
 <h2>§3 User Stories</h2>
 <h3>主持人（Host）User Stories</h3>
@@ -105,55 +104,55 @@
 <p><strong>As a</strong> 主持人，<strong>I want to</strong> 建立一個帶有唯一 6 碼房間碼的房間，<strong>so that</strong> 玩家能快速找到並加入我的抽獎活動。</p>
 <p><strong>Priority</strong>: P0</p>
 <p><strong>Acceptance Criteria</strong>:</p>
-<ul><li>[ ] AC-H01-1: Given 主持人點擊「建立房間」，When 系統接受請求，Then 於 2 秒內回傳 6 碼 Room Code（字元集：<code>ABCDEFGHJKLMNPQRSTUVWXYZ23456789</code>，排除視覺混淆字元 O、I、0、1）且在 Redis 中不重複。</li><li>[ ] AC-H01-2: Given 房間建立成功，When 主持人進入房間，Then 頁面顯示 Room Code、目前玩家列表（空）、設定中獎名額的輸入框，以及可選填的房間名稱 title（0～50 字）輸入框，狀態為 <code>waiting</code>。</li><li>[ ] AC-H01-3: Given 建立房間請求因網路異常失敗，When 系統偵測到錯誤，Then 顯示「建立失敗，請重試」提示並保留輸入內容，不產生孤立房間。</li><li>[ ] AC-H01-4: Given Room Code 生成碰撞次數超過 10 次，When 系統無法在上限次數內找到唯一碼，Then 回傳 <code>ROOM_CODE_GENERATION_FAILED</code> 錯誤，前端顯示「建立失敗，請重試」。</li><li>[ ] AC-H01-5: Given 房間狀態為 <code>waiting</code>，When 主持人修改房間名稱（0～50 Unicode 字元）並送出，Then 伺服器接受並廣播更新後的 <code>ROOM_STATE</code>（含新 title）；若狀態非 <code>waiting</code>，則回傳 <code>TITLE_UPDATE_NOT_ALLOWED_IN_STATE</code> 錯誤。</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> AC-H01-1: Given 主持人點擊「建立房間」，When 系統接受請求，Then 於 2 秒內回傳 6 碼 Room Code（字元集：<code>ABCDEFGHJKLMNPQRSTUVWXYZ23456789</code>，排除視覺混淆字元 O、I、0、1）且在 Redis 中不重複。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H01-2: Given 房間建立成功，When 主持人進入房間，Then 頁面顯示 Room Code、目前玩家列表（空）、設定中獎名額的輸入框，以及可選填的房間名稱 title（0～50 字）輸入框，狀態為 <code>waiting</code>。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H01-3: Given 建立房間請求因網路異常失敗，When 系統偵測到錯誤，Then 顯示「建立失敗，請重試」提示並保留輸入內容，不產生孤立房間。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H01-4: Given Room Code 生成碰撞次數超過 10 次，When 系統無法在上限次數內找到唯一碼，Then 回傳 <code>ROOM_CODE_GENERATION_FAILED</code> 錯誤，前端顯示「建立失敗，請重試」。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H01-5: Given 房間狀態為 <code>waiting</code>，When 主持人修改房間名稱（0～50 Unicode 字元）並送出，Then 伺服器接受並廣播更新後的 <code>ROOM_STATE</code>（含新 title）；若狀態非 <code>waiting</code>，則回傳 <code>TITLE_UPDATE_NOT_ALLOWED_IN_STATE</code> 錯誤。</li></ul>
 <hr>
 <h3>US-H02: 設定中獎名額</h3>
 <p><strong>As a</strong> 主持人，<strong>I want to</strong> 設定中獎名額（W），<strong>so that</strong> 我可以控制本局有多少玩家會獲獎。</p>
 <p><strong>Priority</strong>: P0</p>
 <p><strong>Acceptance Criteria</strong>:</p>
-<ul><li>[ ] AC-H02-1: Given 房間狀態為 <code>waiting</code>，When 主持人在輸入框填入 W（1 ≤ W ≤ N-1，N 含 isOnline=false 的斷線玩家），Then 系統接受並廣播更新後的 <code>ROOM_STATE</code> 給所有在線玩家。</li><li>[ ] AC-H02-2: Given 主持人輸入 W ≤ 0 或 W ≥ N，When 主持人送出，Then 系統顯示「中獎名額須介於 1 到玩家數減 1 之間」錯誤，不更新狀態。</li><li>[ ] AC-H02-3: Given 再玩一局後剔除離線玩家且 W ≥ 新 N，When 系統偵測越界，Then 自動將 W 重設為 null 並通知主持人「中獎名額已重設，請重新設定」。</li><li>[ ] AC-H02-4: Given 房間狀態為非 <code>waiting</code>（如 <code>running</code>/<code>revealing</code>/<code>finished</code>），When 主持人嘗試更新 W，Then 伺服器拒絕並回傳 <code>INVALID_STATE</code> 錯誤，W 值不變。</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> AC-H02-1: Given 房間狀態為 <code>waiting</code>，When 主持人在輸入框填入 W（1 ≤ W ≤ N-1，N 含 isOnline=false 的斷線玩家），Then 系統接受並廣播更新後的 <code>ROOM_STATE</code> 給所有在線玩家。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H02-2: Given 主持人輸入 W ≤ 0 或 W ≥ N，When 主持人送出，Then 系統顯示「中獎名額須介於 1 到玩家數減 1 之間」錯誤，不更新狀態。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H02-3: Given 再玩一局後剔除離線玩家且 W ≥ 新 N，When 系統偵測越界，Then 自動將 W 重設為 null 並通知主持人「中獎名額已重設，請重新設定」。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H02-4: Given 房間狀態為非 <code>waiting</code>（如 <code>running</code>/<code>revealing</code>/<code>finished</code>），When 主持人嘗試更新 W，Then 伺服器拒絕並回傳 <code>INVALID_STATE</code> 錯誤，W 值不變。</li></ul>
 <hr>
 <h3>US-H03: 開始遊戲</h3>
 <p><strong>As a</strong> 主持人，<strong>I want to</strong> 在所有玩家就緒後開始遊戲，<strong>so that</strong> 可以正式進入揭曉流程。</p>
 <p><strong>Priority</strong>: P0</p>
 <p><strong>Acceptance Criteria</strong>:</p>
-<ul><li>[ ] AC-H03-1: Given 房間狀態為 <code>waiting</code> 且 N ≥ 2 且 W 已設定，When 主持人點擊「開始遊戲」，Then 狀態轉為 <code>running</code>，後端以原子操作同步完成 seed 生成（UUID hex，djb2 hash 轉 uint32）、ladderMap 計算與 resultSlots 指派，並廣播 <code>ROOM_STATE</code>（status=<code>running</code>，含 rowCount）；seed 及完整樓梯資料在 status=<code>finished</code> 前禁止傳送給任何客戶端。</li><li>[ ] AC-H03-2: Given 主持人點擊「開始遊戲」但 W 尚未設定，When 系統收到請求，Then 拒絕並回傳錯誤「請先設定中獎名額」，狀態維持 <code>waiting</code>。</li><li>[ ] AC-H03-3: Given 遊戲開始後，When 任何玩家收到 <code>ROOM_STATE</code>，Then 所有客戶端渲染的樓梯結構與橫槓位置完全一致，Canvas 動畫 FPS 桌機 ≥ 30、手機 ≥ 24。</li><li>[ ] AC-H03-4: Given 房間只有 Host 一人（N &lt; 2），When 主持人點擊「開始遊戲」，Then 系統拒絕並回傳 <code>INSUFFICIENT_PLAYERS</code> 錯誤，前端顯示「人數不足（至少需要 2 位玩家）」，狀態維持 <code>waiting</code>。</li><li>[ ] AC-H03-5: <code>rowCount</code> 公式為 <code>clamp(N×3, 20, 60)</code>。Given N=3 時 rowCount=20；N=10 時 rowCount=30；N=21 時 rowCount=60，When 遊戲開始後，Then 伺服器廣播的 <code>rowCount</code> 與公式計算值完全一致（E2E 自動化驗證三個邊界值）。</li><li>[ ] AC-H03-6: Given 房間狀態已為 <code>running</code>（已有另一請求正在處理或已完成開局），When 主持人重複點擊「開始遊戲」，Then 伺服器回傳 <code>INVALID_STATE</code> 錯誤，狀態不重置，不重新生成 seed 或 ladderMap。</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> AC-H03-1: Given 房間狀態為 <code>waiting</code> 且 N ≥ 2 且 W 已設定，When 主持人點擊「開始遊戲」，Then 狀態轉為 <code>running</code>，後端以原子操作同步完成 seed 生成（UUID hex，djb2 hash 轉 uint32）、ladderMap 計算與 resultSlots 指派，並廣播 <code>ROOM_STATE</code>（status=<code>running</code>，含 rowCount）；seed 及完整樓梯資料在 status=<code>finished</code> 前禁止傳送給任何客戶端。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H03-2: Given 主持人點擊「開始遊戲」但 W 尚未設定，When 系統收到請求，Then 拒絕並回傳錯誤「請先設定中獎名額」，狀態維持 <code>waiting</code>。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H03-3: Given 遊戲開始後，When 任何玩家收到 <code>ROOM_STATE</code>，Then 所有客戶端渲染的樓梯結構與橫槓位置完全一致，Canvas 動畫 FPS 桌機 ≥ 30、手機 ≥ 24。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H03-4: Given 房間只有 Host 一人（N &lt; 2），When 主持人點擊「開始遊戲」，Then 系統拒絕並回傳 <code>INSUFFICIENT_PLAYERS</code> 錯誤，前端顯示「人數不足（至少需要 2 位玩家）」，狀態維持 <code>waiting</code>。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H03-5: <code>rowCount</code> 公式為 <code>clamp(N×3, 20, 60)</code>。Given N=3 時 rowCount=20；N=10 時 rowCount=30；N=21 時 rowCount=60，When 遊戲開始後，Then 伺服器廣播的 <code>rowCount</code> 與公式計算值完全一致（E2E 自動化驗證三個邊界值）。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H03-6: Given 房間狀態已為 <code>running</code>（已有另一請求正在處理或已完成開局），When 主持人重複點擊「開始遊戲」，Then 伺服器回傳 <code>INVALID_STATE</code> 錯誤，狀態不重置，不重新生成 seed 或 ladderMap。</li></ul>
 <hr>
 <h3>US-H04: 手動逐步揭曉路徑</h3>
 <p><strong>As a</strong> 主持人，<strong>I want to</strong> 以手動逐步揭曉每條路徑，<strong>so that</strong> 我可以配合現場節奏製造懸念。</p>
 <p><strong>Priority</strong>: P0</p>
 <p><strong>Acceptance Criteria</strong>:</p>
-<ul><li>[ ] AC-H04-1: Given 房間狀態為 <code>running</code>，When 主持人點擊「開始揭曉」（觸發 <code>BEGIN_REVEAL</code>），Then 伺服器執行狀態轉換（<code>running → revealing</code>）並廣播 <code>ROOM_STATE</code>（status=<code>revealing</code>），所有客戶端顯示揭曉控制介面；操作須在 1 秒內完成。</li><li>[ ] AC-H04-2: Given 狀態為 <code>revealing</code>，When 主持人點擊「下一位」，Then 伺服器廣播 <code>REVEAL_INDEX</code>（含對應玩家 index），所有客戶端同步播放該玩家的行走動畫。</li><li>[ ] AC-H04-3: Given 所有路徑已逐步揭曉，When 主持人點擊「下一位」，Then 系統不回應（按鈕 disabled），頁面顯示「結束本局」按鈕。</li><li>[ ] AC-H04-4: Given 所有路徑已揭曉且主持人點擊「結束本局」（觸發 <code>END_GAME</code>），When 伺服器收到 <code>END_GAME</code>，Then 狀態轉為 <code>finished</code>，廣播 <code>ROOM_STATE</code>（status=<code>finished</code>，含完整得獎名單及 seed），所有客戶端顯示最終結果頁面；操作須在 1 秒內完成。</li><li>[ ] AC-H04-4b: Given 尚有未揭曉路徑（revealedCount &lt; totalCount）且主持人觸發 <code>END_GAME</code>，When 伺服器驗證，Then 拒絕並回傳 <code>INVALID_STATE</code> 錯誤（含說明 <code>END_GAME_REQUIRES_ALL_REVEALED</code>），狀態維持 <code>revealing</code>。</li><li>[ ] AC-H04-5: Given 狀態為非 <code>running</code>，When 主持人嘗試觸發 <code>BEGIN_REVEAL</code>，Then 伺服器拒絕並回傳 <code>INVALID_STATE</code> 錯誤，狀態不變。</li><li>[ ] AC-H04-6: Given 狀態為非 <code>revealing</code>，When 主持人嘗試觸發 <code>REVEAL_NEXT</code>，Then 伺服器拒絕並回傳 <code>INVALID_STATE</code> 錯誤，revealIndex 不遞增。</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> AC-H04-1: Given 房間狀態為 <code>running</code>，When 主持人點擊「開始揭曉」（觸發 <code>BEGIN_REVEAL</code>），Then 伺服器執行狀態轉換（<code>running → revealing</code>）並廣播 <code>ROOM_STATE</code>（status=<code>revealing</code>），所有客戶端顯示揭曉控制介面；操作須在 1 秒內完成。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H04-2: Given 狀態為 <code>revealing</code>，When 主持人點擊「下一位」，Then 伺服器廣播 <code>REVEAL_INDEX</code>（含對應玩家 index），所有客戶端同步播放該玩家的行走動畫。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H04-3: Given 所有路徑已逐步揭曉，When 主持人點擊「下一位」，Then 系統不回應（按鈕 disabled），頁面顯示「結束本局」按鈕。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H04-4: Given 所有路徑已揭曉且主持人點擊「結束本局」（觸發 <code>END_GAME</code>），When 伺服器收到 <code>END_GAME</code>，Then 狀態轉為 <code>finished</code>，廣播 <code>ROOM_STATE</code>（status=<code>finished</code>，含完整得獎名單及 seed），所有客戶端顯示最終結果頁面；操作須在 1 秒內完成。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H04-4b: Given 尚有未揭曉路徑（revealedCount &lt; totalCount）且主持人觸發 <code>END_GAME</code>，When 伺服器驗證，Then 拒絕並回傳 <code>INVALID_STATE</code> 錯誤（含說明 <code>END_GAME_REQUIRES_ALL_REVEALED</code>），狀態維持 <code>revealing</code>。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H04-5: Given 狀態為非 <code>running</code>，When 主持人嘗試觸發 <code>BEGIN_REVEAL</code>，Then 伺服器拒絕並回傳 <code>INVALID_STATE</code> 錯誤，狀態不變。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H04-6: Given 狀態為非 <code>revealing</code>，When 主持人嘗試觸發 <code>REVEAL_NEXT</code>，Then 伺服器拒絕並回傳 <code>INVALID_STATE</code> 錯誤，revealIndex 不遞增。</li></ul>
 <hr>
 <h3>US-H05: 設定自動揭曉間隔</h3>
 <p><strong>As a</strong> 主持人，<strong>I want to</strong> 設定自動揭曉間隔（1～30 秒/格），<strong>so that</strong> 遊戲可以在無人操作時自動進行。</p>
 <p><strong>Priority</strong>: P1</p>
 <p><strong>Acceptance Criteria</strong>:</p>
-<ul><li>[ ] AC-H05-1: Given 主持人選擇自動模式並設定間隔 T（1 ≤ T ≤ 30，T 須為正整數），When 遊戲進入 <code>revealing</code>，Then 每隔 T 秒伺服器自動廣播下一個 <code>REVEAL_INDEX</code>，直到全部揭曉完畢。</li><li>[ ] AC-H05-2: Given 自動揭曉進行中，When 主持人切換回手動模式，Then 自動計時停止，改由主持人手動觸發後續揭曉，已揭曉項目不受影響。</li><li>[ ] AC-H05-3: Given 主持人輸入 T ≤ 0、T &gt; 30、T 非整數或 T 為非數字，When 系統驗證，Then 回傳 <code>INVALID_AUTO_REVEAL_INTERVAL</code> 錯誤並顯示「間隔須為 1～30 的整數」，不啟動自動揭曉。</li><li>[ ] AC-H05-4: Given 自動揭曉計時器觸發時所有路徑已由手動操作揭曉完畢，When 計時器嘗試廣播下一個 <code>REVEAL_INDEX</code>，Then 伺服器不廣播多餘事件，計時器自動停止，系統維持正常 <code>finished</code> 狀態流轉。</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> AC-H05-1: Given 主持人選擇自動模式並設定間隔 T（1 ≤ T ≤ 30，T 須為正整數），When 遊戲進入 <code>revealing</code>，Then 每隔 T 秒伺服器自動廣播下一個 <code>REVEAL_INDEX</code>，直到全部揭曉完畢。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H05-2: Given 自動揭曉進行中，When 主持人切換回手動模式，Then 自動計時停止，改由主持人手動觸發後續揭曉，已揭曉項目不受影響。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H05-3: Given 主持人輸入 T ≤ 0、T &gt; 30、T 非整數或 T 為非數字，When 系統驗證，Then 回傳 <code>INVALID_AUTO_REVEAL_INTERVAL</code> 錯誤並顯示「間隔須為 1～30 的整數」，不啟動自動揭曉。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H05-4: Given 自動揭曉計時器觸發時所有路徑已由手動操作揭曉完畢，When 計時器嘗試廣播下一個 <code>REVEAL_INDEX</code>，Then 伺服器不廣播多餘事件，計時器自動停止，系統維持正常 <code>finished</code> 狀態流轉。</li></ul>
 <hr>
 <h3>US-H06: 一鍵揭曉全部路徑</h3>
 <p><strong>As a</strong> 主持人，<strong>I want to</strong> 一鍵揭曉全部路徑，<strong>so that</strong> 在時間緊迫時可以快速完成抽獎。</p>
 <p><strong>Priority</strong>: P0</p>
 <p><strong>Acceptance Criteria</strong>:</p>
-<ul><li>[ ] AC-H06-1: Given 狀態為 <code>revealing</code> 且尚有未揭曉路徑，When 主持人點擊「全部揭曉」，Then 伺服器廣播 <code>REVEAL_ALL</code>，所有客戶端同步播放剩餘所有路徑動畫，2 秒內完成渲染；若超過 2 秒，動畫立即跳至終止幀。</li><li>[ ] AC-H06-2: Given <code>REVEAL_ALL</code> 廣播後，When 伺服器完成全部揭曉，Then 伺服器自動將 <code>revealedCount</code> 設為 <code>totalCount</code>，並立即觸發 <code>finished</code> 狀態轉換，廣播 <code>GAME_ENDED</code>（含 status: finished, seed, results[]）；無需主持人再次確認。</li><li>[ ] AC-H06-3: Given 狀態為 <code>revealing</code> 且所有路徑已揭曉，When 主持人點擊「全部揭曉」，Then 系統不回應（按鈕 disabled）。</li><li>[ ] AC-H06-4: Given 狀態為非 <code>revealing</code>，When 主持人嘗試觸發「全部揭曉」，Then 伺服器拒絕並回傳 <code>INVALID_STATE</code> 錯誤，狀態不變。</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> AC-H06-1: Given 狀態為 <code>revealing</code> 且尚有未揭曉路徑，When 主持人點擊「全部揭曉」，Then 伺服器廣播 <code>REVEAL_ALL</code>，所有客戶端同步播放剩餘所有路徑動畫，2 秒內完成渲染；若超過 2 秒，動畫立即跳至終止幀。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H06-2: Given <code>REVEAL_ALL</code> 廣播後，When 伺服器完成全部揭曉，Then 伺服器自動將 <code>revealedCount</code> 設為 <code>totalCount</code>，並立即觸發 <code>finished</code> 狀態轉換，廣播 <code>GAME_ENDED</code>（含 status: finished, seed, results[]）；無需主持人再次確認。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H06-3: Given 狀態為 <code>revealing</code> 且所有路徑已揭曉，When 主持人點擊「全部揭曉」，Then 系統不回應（按鈕 disabled）。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H06-4: Given 狀態為非 <code>revealing</code>，When 主持人嘗試觸發「全部揭曉」，Then 伺服器拒絕並回傳 <code>INVALID_STATE</code> 錯誤，狀態不變。</li></ul>
 <hr>
 <h3>US-H07: 踢除玩家</h3>
 <p><strong>As a</strong> 主持人，<strong>I want to</strong> 踢除指定玩家，<strong>so that</strong> 我可以移除測試帳號或不當參與者。</p>
 <p><strong>Priority</strong>: P1</p>
 <p><strong>Acceptance Criteria</strong>:</p>
-<ul><li>[ ] AC-H07-1: Given 房間狀態為 <code>waiting</code>，When 主持人對某玩家點擊「踢除」，Then 伺服器廣播 <code>PLAYER_KICKED</code>（含 playerId），被踢玩家跳轉至「你已被移出房間」頁面，玩家列表即時更新。</li><li>[ ] AC-H07-2: Given 玩家被踢後，When 該玩家嘗試以相同 playerId 重連，Then 伺服器拒絕並回傳 <code>PLAYER_KICKED</code> 錯誤，不允許重新加入同一局。</li><li>[ ] AC-H07-3: Given 房間狀態為 <code>running</code> 或之後，When 主持人嘗試踢除玩家，Then 系統拒絕並回傳 <code>INVALID_STATE</code> 錯誤（含 <code>KICK_NOT_ALLOWED_IN_STATE</code> 說明）。</li><li>[ ] AC-H07-3b: Given 主持人嘗試踢除自己，When 系統驗證，Then 拒絕並回傳 <code>CANNOT_KICK_HOST</code> 錯誤。</li><li>[ ] AC-H07-4: Given 玩家被踢除，When 踢除操作完成，Then 被踢玩家的 playerId 必須存在於 <code>kickedPlayerIds</code> 清單（Redis 持久化），同局內任何帶該 playerId 的重連嘗試均被拒絕並回傳 <code>PLAYER_KICKED</code>。</li><li>[ ] AC-H07-5: Given 主持人點擊「再玩一局」，When 新局初始化完成，Then <code>kickedPlayerIds</code> 清空，前一局被踢者可使用任意暱稱以無 playerId 方式加入新局。</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> AC-H07-1: Given 房間狀態為 <code>waiting</code>，When 主持人對某玩家點擊「踢除」，Then 伺服器廣播 <code>PLAYER_KICKED</code>（含 playerId），被踢玩家跳轉至「你已被移出房間」頁面，玩家列表即時更新。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H07-2: Given 玩家被踢後，When 該玩家嘗試以相同 playerId 重連，Then 伺服器拒絕並回傳 <code>PLAYER_KICKED</code> 錯誤，不允許重新加入同一局。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H07-3: Given 房間狀態為 <code>running</code> 或之後，When 主持人嘗試踢除玩家，Then 系統拒絕並回傳 <code>INVALID_STATE</code> 錯誤（含 <code>KICK_NOT_ALLOWED_IN_STATE</code> 說明）。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H07-3b: Given 主持人嘗試踢除自己，When 系統驗證，Then 拒絕並回傳 <code>CANNOT_KICK_HOST</code> 錯誤。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H07-4: Given 玩家被踢除，When 踢除操作完成，Then 被踢玩家的 playerId 必須存在於 <code>kickedPlayerIds</code> 清單（Redis 持久化），同局內任何帶該 playerId 的重連嘗試均被拒絕並回傳 <code>PLAYER_KICKED</code>。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H07-5: Given 主持人點擊「再玩一局」，When 新局初始化完成，Then <code>kickedPlayerIds</code> 清空，前一局被踢者可使用任意暱稱以無 playerId 方式加入新局。</li></ul>
 <hr>
 <h3>US-H08: 再玩一局</h3>
 <p><strong>As a</strong> 主持人，<strong>I want to</strong> 在一局結束後發起「再玩一局」，<strong>so that</strong> 我可以用同一房間繼續下一輪抽獎。</p>
 <p><strong>Priority</strong>: P1</p>
 <p><strong>Acceptance Criteria</strong>:</p>
-<ul><li>[ ] AC-H08-1: Given 狀態為 <code>finished</code>，When 主持人點擊「再玩一局」，Then 系統剔除 <code>isOnline=false</code> 的玩家後，以剩餘在線玩家重置房間狀態為 <code>waiting</code>，並廣播新的 <code>ROOM_STATE</code>。</li><li>[ ] AC-H08-2: Given 再玩一局後 W 越界，When 系統重置，Then W 被設為 null，主持人看到「請重新設定中獎名額」提示。</li><li>[ ] AC-H08-3: Given 再玩一局後剩餘在線玩家數 &lt; 2，When 主持人點擊「再玩一局」，Then 系統拒絕並回傳 <code>INSUFFICIENT_PLAYERS</code> 錯誤，前端提示「在線玩家不足（至少需要 2 位），無法開始新局」。</li><li>[ ] AC-H08-4: Given 主持人的 JWT token 在 <code>waiting</code>/<code>running</code>/<code>revealing</code> 狀態中過期，When 主持人嘗試執行任何 Host 操作，Then 伺服器回傳 HTTP 401（含錯誤 <code>TOKEN_EXPIRED</code>），前端顯示「您的主持人身份已過期，請重新整理頁面重新獲取主持權」；其他玩家連線不受影響。</li><li>[ ] AC-H08-5: Given 房間狀態為非 <code>finished</code>，When 主持人嘗試觸發 <code>PLAY_AGAIN</code>，Then 伺服器拒絕並回傳 <code>INVALID_STATE</code> 錯誤，狀態不變。</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> AC-H08-1: Given 狀態為 <code>finished</code>，When 主持人點擊「再玩一局」，Then 系統剔除 <code>isOnline=false</code> 的玩家後，以剩餘在線玩家重置房間狀態為 <code>waiting</code>，並廣播新的 <code>ROOM_STATE</code>。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H08-2: Given 再玩一局後 W 越界，When 系統重置，Then W 被設為 null，主持人看到「請重新設定中獎名額」提示。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H08-3: Given 再玩一局後剩餘在線玩家數 &lt; 2，When 主持人點擊「再玩一局」，Then 系統拒絕並回傳 <code>INSUFFICIENT_PLAYERS</code> 錯誤，前端提示「在線玩家不足（至少需要 2 位），無法開始新局」。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H08-4: Given 主持人的 JWT token 在 <code>waiting</code>/<code>running</code>/<code>revealing</code> 狀態中過期，When 主持人嘗試執行任何 Host 操作，Then 伺服器回傳 HTTP 401（含錯誤 <code>TOKEN_EXPIRED</code>），前端顯示「您的主持人身份已過期，請重新整理頁面重新獲取主持權」；其他玩家連線不受影響。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H08-5: Given 房間狀態為非 <code>finished</code>，When 主持人嘗試觸發 <code>PLAY_AGAIN</code>，Then 伺服器拒絕並回傳 <code>INVALID_STATE</code> 錯誤，狀態不變。</li></ul>
 <hr>
 <h3>US-H09: 複製邀請連結</h3>
 <p><strong>As a</strong> 主持人，<strong>I want to</strong> 在等待大廳複製邀請連結，<strong>so that</strong> 參加者能快速加入房間。</p>
 <p><strong>Priority</strong>: P1</p>
 <p><strong>Acceptance Criteria</strong>:</p>
-<ul><li>[ ] AC-H09-1: Given 房間狀態為 <code>waiting</code>，When 主持人在等待大廳頁面，Then 頁面顯示「複製邀請連結」按鈕，按鈕旁顯示完整邀請 URL（格式：<code>{origin}/?room={roomCode}</code>）。</li><li>[ ] AC-H09-2: Given 主持人點擊「複製邀請連結」，When Clipboard API 執行成功，Then 按鈕短暫顯示「已複製！」（1.5 秒後恢復原文字），邀請 URL 複製至剪貼簿。</li><li>[ ] AC-H09-3: Given Clipboard API 不可用（HTTP 環境或瀏覽器拒絕權限），When 主持人點擊複製，Then 顯示包含邀請 URL 的 <code>&lt;input&gt;</code> 文字框（已全選），供主持人手動複製。</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> AC-H09-1: Given 房間狀態為 <code>waiting</code>，When 主持人在等待大廳頁面，Then 頁面顯示「複製邀請連結」按鈕，按鈕旁顯示完整邀請 URL（格式：<code>{origin}/?room={roomCode}</code>）。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H09-2: Given 主持人點擊「複製邀請連結」，When Clipboard API 執行成功，Then 按鈕短暫顯示「已複製！」（1.5 秒後恢復原文字），邀請 URL 複製至剪貼簿。</li><li style="list-style:none"><input type="checkbox" disabled> AC-H09-3: Given Clipboard API 不可用（HTTP 環境或瀏覽器拒絕權限），When 主持人點擊複製，Then 顯示包含邀請 URL 的 <code>&lt;input&gt;</code> 文字框（已全選），供主持人手動複製。</li></ul>
 <hr>
 <h3>玩家（Player）User Stories</h3>
 <hr>
@@ -161,37 +160,37 @@
 <p><strong>As a</strong> 玩家，<strong>I want to</strong> 輸入暱稱並透過 6 碼房間碼加入房間，<strong>so that</strong> 我可以參與抽獎活動。</p>
 <p><strong>Priority</strong>: P0</p>
 <p><strong>Acceptance Criteria</strong>:</p>
-<ul><li>[ ] AC-P01-1: Given 玩家輸入有效暱稱（1～20 個 Unicode 字元）及正確 Room Code，When 送出後 WebSocket 握手成功，Then 從送出按鈕點擊起計 1.5 秒內進入等待畫面，玩家列表顯示自己的暱稱。</li><li>[ ] AC-P01-2: Given 玩家輸入的暱稱與同房間已有玩家重複（暱稱比對區分大小寫），When 伺服器驗證，Then 回傳 <code>NICKNAME_TAKEN</code> 錯誤，提示「此暱稱已被使用，請換一個」。</li><li>[ ] AC-P01-3: Given 玩家輸入空白暱稱或超過 20 字元，When 前端驗證，Then 即時顯示欄位錯誤訊息，送出按鈕保持 disabled；若前端驗證被繞過，伺服器端亦拒絕並回傳 <code>INVALID_NICKNAME</code> 錯誤。</li><li>[ ] AC-P01-4: Given 房間人數已達 50 人上限，When 玩家嘗試加入，Then 伺服器回傳 <code>ROOM_FULL</code> 錯誤，玩家看到「房間已滿，無法加入」提示。</li><li>[ ] AC-P01-5: Given 玩家透過邀請連結（含 <code>?room={roomCode}</code> URL 參數）進入頁面，When 頁面載入完成，Then Room Code 輸入框自動預填 URL 參數中的房間碼，玩家僅需輸入暱稱即可加入。</li><li>[ ] AC-P01-6: Given 玩家曾經成功加入過任何房間，When 玩家再次進入加入頁面，Then 暱稱輸入框自動預填 localStorage 中儲存的上次暱稱（key: <code>ladder_last_nickname</code>）；Room Code 與暱稱均已預填時，「加入」按鈕呈現啟用狀態，玩家一鍵即可加入。</li><li>[ ] AC-P01-7: Given 玩家輸入不存在或已過期的 Room Code，When 伺服器驗證，Then 回傳 <code>ROOM_NOT_FOUND</code> 錯誤，前端顯示「找不到此房間，請確認房間碼」提示。</li><li>[ ] AC-P01-8: Given 房間狀態已為 <code>running</code> 或 <code>revealing</code>（遊戲已開始），When 新玩家嘗試加入，Then 伺服器回傳 <code>ROOM_NOT_JOINABLE</code> 錯誤，前端顯示「此房間遊戲已開始，無法加入」提示。</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> AC-P01-1: Given 玩家輸入有效暱稱（1～20 個 Unicode 字元）及正確 Room Code，When 送出後 WebSocket 握手成功，Then 從送出按鈕點擊起計 1.5 秒內進入等待畫面，玩家列表顯示自己的暱稱。</li><li style="list-style:none"><input type="checkbox" disabled> AC-P01-2: Given 玩家輸入的暱稱與同房間已有玩家重複（暱稱比對區分大小寫），When 伺服器驗證，Then 回傳 <code>NICKNAME_TAKEN</code> 錯誤，提示「此暱稱已被使用，請換一個」。</li><li style="list-style:none"><input type="checkbox" disabled> AC-P01-3: Given 玩家輸入空白暱稱或超過 20 字元，When 前端驗證，Then 即時顯示欄位錯誤訊息，送出按鈕保持 disabled；若前端驗證被繞過，伺服器端亦拒絕並回傳 <code>INVALID_NICKNAME</code> 錯誤。</li><li style="list-style:none"><input type="checkbox" disabled> AC-P01-4: Given 房間人數已達 50 人上限，When 玩家嘗試加入，Then 伺服器回傳 <code>ROOM_FULL</code> 錯誤，玩家看到「房間已滿，無法加入」提示。</li><li style="list-style:none"><input type="checkbox" disabled> AC-P01-5: Given 玩家透過邀請連結（含 <code>?room={roomCode}</code> URL 參數）進入頁面，When 頁面載入完成，Then Room Code 輸入框自動預填 URL 參數中的房間碼，玩家僅需輸入暱稱即可加入。</li><li style="list-style:none"><input type="checkbox" disabled> AC-P01-6: Given 玩家曾經成功加入過任何房間，When 玩家再次進入加入頁面，Then 暱稱輸入框自動預填 localStorage 中儲存的上次暱稱（key: <code>ladder_last_nickname</code>）；Room Code 與暱稱均已預填時，「加入」按鈕呈現啟用狀態，玩家一鍵即可加入。</li><li style="list-style:none"><input type="checkbox" disabled> AC-P01-7: Given 玩家輸入不存在或已過期的 Room Code，When 伺服器驗證，Then 回傳 <code>ROOM_NOT_FOUND</code> 錯誤，前端顯示「找不到此房間，請確認房間碼」提示。</li><li style="list-style:none"><input type="checkbox" disabled> AC-P01-8: Given 房間狀態已為 <code>running</code> 或 <code>revealing</code>（遊戲已開始），When 新玩家嘗試加入，Then 伺服器回傳 <code>ROOM_NOT_JOINABLE</code> 錯誤，前端顯示「此房間遊戲已開始，無法加入」提示。</li></ul>
 <hr>
 <h3>US-P02: 觀看即時玩家列表更新</h3>
 <p><strong>As a</strong> 玩家，<strong>I want to</strong> 在遊戲開始前看到即時更新的玩家列表，<strong>so that</strong> 我可以知道還有誰加入了房間。</p>
 <p><strong>Priority</strong>: P0</p>
 <p><strong>Acceptance Criteria</strong>:</p>
-<ul><li>[ ] AC-P02-1: Given 有新玩家加入房間，When 伺服器廣播 <code>ROOM_STATE</code>，Then 所有在線玩家的等待頁面在 2 秒內更新玩家列表（量測：從伺服器廣播 <code>ROOM_STATE</code> 時間戳起計，至其他客戶端玩家列表 DOM 更新完成）。</li><li>[ ] AC-P02-2: Given 有玩家離線，When 伺服器偵測 WebSocket 斷線（TCP close 或 ping timeout ≤ 30 秒），Then 伺服器標記該玩家 <code>isOnline=false</code> 並廣播 <code>ROOM_STATE</code>，其他玩家列表中該玩家在 2 秒內顯示「離線」標記，不立即移除。</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> AC-P02-1: Given 有新玩家加入房間，When 伺服器廣播 <code>ROOM_STATE</code>，Then 所有在線玩家的等待頁面在 2 秒內更新玩家列表（量測：從伺服器廣播 <code>ROOM_STATE</code> 時間戳起計，至其他客戶端玩家列表 DOM 更新完成）。</li><li style="list-style:none"><input type="checkbox" disabled> AC-P02-2: Given 有玩家離線，When 伺服器偵測 WebSocket 斷線（TCP close 或 ping timeout ≤ 30 秒），Then 伺服器標記該玩家 <code>isOnline=false</code> 並廣播 <code>ROOM_STATE</code>，其他玩家列表中該玩家在 2 秒內顯示「離線」標記，不立即移除。</li></ul>
 <hr>
 <h3>US-P03: 觀看路徑揭曉動畫</h3>
 <p><strong>As a</strong> 玩家，<strong>I want to</strong> 觀看自己路徑的揭曉動畫，<strong>so that</strong> 我可以體驗抽獎的緊張感。</p>
 <p><strong>Priority</strong>: P0</p>
 <p><strong>Acceptance Criteria</strong>:</p>
-<ul><li>[ ] AC-P03-1: Given 輪到自己的路徑揭曉（<code>REVEAL_INDEX</code> 指向自己），When 動畫播放，Then Canvas 高亮自己的路徑，動畫 FPS 桌機（1080p Chrome 最新穩定版）≥ 30、手機（Chrome DevTools Moto G4 throttling profile，10 秒錄製平均值）≥ 24。</li><li>[ ] AC-P03-2: Given 其他玩家的路徑揭曉，When 動畫播放，Then 自己的路徑以灰色或淡色呈現，已揭曉玩家的結果在動畫結束後持久顯示於底部結果槽。</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> AC-P03-1: Given 輪到自己的路徑揭曉（<code>REVEAL_INDEX</code> 指向自己），When 動畫播放，Then Canvas 高亮自己的路徑，動畫 FPS 桌機（1080p Chrome 最新穩定版）≥ 30、手機（Chrome DevTools Moto G4 throttling profile，10 秒錄製平均值）≥ 24。</li><li style="list-style:none"><input type="checkbox" disabled> AC-P03-2: Given 其他玩家的路徑揭曉，When 動畫播放，Then 自己的路徑以灰色或淡色呈現，已揭曉玩家的結果在動畫結束後持久顯示於底部結果槽。</li></ul>
 <hr>
 <h3>US-P04: 確認中獎結果</h3>
 <p><strong>As a</strong> 玩家，<strong>I want to</strong> 在結果揭曉後立即知道自己是否中獎，<strong>so that</strong> 我可以確認抽獎結果。</p>
 <p><strong>Priority</strong>: P0</p>
 <p><strong>Acceptance Criteria</strong>:</p>
-<ul><li>[ ] AC-P04-1: Given 自己的路徑揭曉完畢，When 玩家路徑抵達底部結果槽，Then 畫面顯示「恭喜中獎！」或「未中獎」明確文字，且結果與伺服器端 <code>REVEAL_INDEX</code> payload 中 <code>result</code> 欄位一致。</li><li>[ ] AC-P04-2: Given <code>REVEAL_ALL</code> 廣播後，When 所有動畫播放完畢，Then 每位玩家的螢幕均正確顯示自己的結果，無任何玩家的結果遺漏或錯誤。</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> AC-P04-1: Given 自己的路徑揭曉完畢，When 玩家路徑抵達底部結果槽，Then 畫面顯示「恭喜中獎！」或「未中獎」明確文字，且結果與伺服器端 <code>REVEAL_INDEX</code> payload 中 <code>result</code> 欄位一致。</li><li style="list-style:none"><input type="checkbox" disabled> AC-P04-2: Given <code>REVEAL_ALL</code> 廣播後，When 所有動畫播放完畢，Then 每位玩家的螢幕均正確顯示自己的結果，無任何玩家的結果遺漏或錯誤。</li></ul>
 <hr>
 <h3>US-P05: 斷線後重連恢復狀態</h3>
 <p><strong>As a</strong> 玩家，<strong>I want to</strong> 在斷線後能重新連上房間並恢復狀態，<strong>so that</strong> 我不會因網路波動而遺失參與資格。</p>
 <p><strong>Priority</strong>: P1</p>
 <p><strong>Acceptance Criteria</strong>:</p>
-<ul><li>[ ] AC-P05-1: Given 玩家斷線後重新開啟頁面且 localStorage 中存有 <code>playerId</code>，When 玩家訪問房間連結，Then 系統以 <code>playerId</code> 自動重連，伺服器回傳完整房間狀態；重連時間 &lt; 3 秒（量測：從頁面 DOMContentLoaded 事件起計，至收到伺服器回傳房間狀態快照並渲染完成）。</li><li>[ ] AC-P05-2: Given 玩家重連時房間狀態已為 <code>revealing</code> 且部分路徑已揭曉，When 收到狀態快照，Then 客戶端直接呈現已揭曉的靜態結果，不重播已完成動畫。</li><li>[ ] AC-P05-3: Given 玩家 localStorage 中 <code>playerId</code> 遺失（Ghost Player），When 玩家嘗試以原房間碼加入且房間狀態為 <code>waiting</code>，Then 系統視為新玩家處理，若暱稱已存在則提示「暱稱已被使用」。</li><li>[ ] AC-P05-4: Given 玩家 localStorage 中 <code>playerId</code> 遺失（Ghost Player），When 玩家嘗試以原房間碼加入且房間狀態為 <code>running</code> 或 <code>revealing</code>，Then 伺服器回傳 <code>ROOM_NOT_JOINABLE</code> 錯誤，前端顯示「此房間遊戲已開始，無法加入」提示。</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> AC-P05-1: Given 玩家斷線後重新開啟頁面且 localStorage 中存有 <code>playerId</code>，When 玩家訪問房間連結，Then 系統以 <code>playerId</code> 自動重連，伺服器回傳完整房間狀態；重連時間 &lt; 3 秒（量測：從頁面 DOMContentLoaded 事件起計，至收到伺服器回傳房間狀態快照並渲染完成）。</li><li style="list-style:none"><input type="checkbox" disabled> AC-P05-2: Given 玩家重連時房間狀態已為 <code>revealing</code> 且部分路徑已揭曉，When 收到狀態快照，Then 客戶端直接呈現已揭曉的靜態結果，不重播已完成動畫。</li><li style="list-style:none"><input type="checkbox" disabled> AC-P05-3: Given 玩家 localStorage 中 <code>playerId</code> 遺失（Ghost Player），When 玩家嘗試以原房間碼加入且房間狀態為 <code>waiting</code>，Then 系統視為新玩家處理，若暱稱已存在則提示「暱稱已被使用」。</li><li style="list-style:none"><input type="checkbox" disabled> AC-P05-4: Given 玩家 localStorage 中 <code>playerId</code> 遺失（Ghost Player），When 玩家嘗試以原房間碼加入且房間狀態為 <code>running</code> 或 <code>revealing</code>，Then 伺服器回傳 <code>ROOM_NOT_JOINABLE</code> 錯誤，前端顯示「此房間遊戲已開始，無法加入」提示。</li></ul>
 <hr>
 <h3>US-P06: 被踢除後收到明確通知</h3>
 <p><strong>As a</strong> 玩家，<strong>I want to</strong> 在被踢除後收到明確通知，<strong>so that</strong> 我可以了解自己已無法繼續參與。</p>
 <p><strong>Priority</strong>: P1</p>
 <p><strong>Acceptance Criteria</strong>:</p>
-<ul><li>[ ] AC-P06-1: Given 伺服器廣播 <code>PLAYER_KICKED</code> 且 playerId 符合自己，When 客戶端收到訊息，Then 立即顯示「你已被主持人移出房間」提示，WebSocket 連線關閉，頁面提供「回首頁」按鈕。</li><li>[ ] AC-P06-2: Given 玩家已被踢除，When 嘗試以相同 playerId 重連，Then 系統回傳 <code>PLAYER_KICKED</code> 錯誤，前端顯示「你已被移出此房間，無法重新加入」。</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> AC-P06-1: Given 伺服器廣播 <code>PLAYER_KICKED</code> 且 playerId 符合自己，When 客戶端收到訊息，Then 立即顯示「你已被主持人移出房間」提示，WebSocket 連線關閉，頁面提供「回首頁」按鈕。</li><li style="list-style:none"><input type="checkbox" disabled> AC-P06-2: Given 玩家已被踢除，When 嘗試以相同 playerId 重連，Then 系統回傳 <code>PLAYER_KICKED</code> 錯誤，前端顯示「你已被移出此房間，無法重新加入」。</li></ul>
 <hr>
 <h2>§4 Functional Requirements</h2>
 <h3>FR-01: 房間管理 [P0]</h3>
@@ -220,7 +219,7 @@
 <ul><li><strong>FR-08-1</strong>: 玩家加入成功後（WebSocket 握手成功），系統須將暱稱寫入 <code>localStorage.setItem(&#x27;ladder_last_nickname&#x27;, nickname)</code>。</li><li><strong>FR-08-2</strong>: 玩家加入頁面載入時讀取 <code>localStorage.getItem(&#x27;ladder_last_nickname&#x27;)</code>，若有值則自動預填暱稱欄位。</li><li><strong>FR-08-3</strong>: <code>playerId</code>（UUID v4）存於客戶端 localStorage，用於斷線重連身份驗證。</li><li><strong>FR-08-4</strong>: 玩家被踢除時，客戶端立即清除 localStorage 中的 playerId（live 路徑與重連路徑均需清除）。</li></ul>
 <h3>FR-09: 房間狀態機 [P0]</h3>
 <p>對應 User Stories: 全部</p>
-<ul><li><strong>FR-09-1</strong>: 房間狀態流轉：<code>waiting</code> → <code>running</code> → <code>revealing</code> → <code>finished</code> → <code>waiting</code>（再玩一局）。</li><li><strong>FR-09-2</strong>: 狀態轉換規則：</li><li><code>waiting → running</code>：Host 點擊「開始遊戲」，Server 驗證 N ≥ 2 且 1 ≤ W ≤ N-1，以原子操作完成 seed 生成、ladderMap 計算、resultSlots 指派及 status 寫入。</li><li><code>running → revealing</code>：Host 送出 <code>BEGIN_REVEAL</code>，Server 執行狀態轉換並廣播 <code>ROOM_STATE_FULL</code>。</li><li><code>revealing → finished</code>：revealIndex 達到 N 後自動觸發（含一鍵全揭）。</li><li><code>finished → waiting</code>：Host 送出 <code>PLAY_AGAIN</code>，剔除離線玩家後重置。</li><li><strong>FR-09-3</strong>: 非法狀態轉換由伺服器拒絕並回傳 <code>INVALID_STATE</code> 錯誤，不觸發任何廣播。</li><li><strong>FR-09-4</strong>: 每次狀態轉換須廣播對應事件給所有連線客戶端。</li></ul>
+<ul><li><strong>FR-09-1</strong>: 房間狀態流轉：<code>waiting</code> → <code>running</code> → <code>revealing</code> → <code>finished</code> → <code>waiting</code>（再玩一局）。</li><li><strong>FR-09-2</strong>: 狀態轉換規則：</li><li style="margin-left:1.0rem"><code>waiting → running</code>：Host 點擊「開始遊戲」，Server 驗證 N ≥ 2 且 1 ≤ W ≤ N-1，以原子操作完成 seed 生成、ladderMap 計算、resultSlots 指派及 status 寫入。</li><li style="margin-left:1.0rem"><code>running → revealing</code>：Host 送出 <code>BEGIN_REVEAL</code>，Server 執行狀態轉換並廣播 <code>ROOM_STATE_FULL</code>。</li><li style="margin-left:1.0rem"><code>revealing → finished</code>：revealIndex 達到 N 後自動觸發（含一鍵全揭）。</li><li style="margin-left:1.0rem"><code>finished → waiting</code>：Host 送出 <code>PLAY_AGAIN</code>，剔除離線玩家後重置。</li><li><strong>FR-09-3</strong>: 非法狀態轉換由伺服器拒絕並回傳 <code>INVALID_STATE</code> 錯誤，不觸發任何廣播。</li><li><strong>FR-09-4</strong>: 每次狀態轉換須廣播對應事件給所有連線客戶端。</li></ul>
 <h3>FR-10: 斷線重連 [P1]</h3>
 <p>對應 User Stories: US-P05</p>
 <ul><li><strong>FR-10-1</strong>: 玩家重連時帶上 <code>playerId</code>，伺服器驗證後回傳對應房間狀態快照（依當前 status 決定欄位集合）。</li><li><strong>FR-10-2</strong>: Ghost Player 情境（localStorage 遺失）：玩家以無 <code>playerId</code> 方式加入，<code>waiting</code> 狀態視為新玩家，暱稱若重複則提示衝突；<code>running</code>/<code>revealing</code>/<code>finished</code> 狀態回傳 <code>ROOM_NOT_JOINABLE</code>，不允許加入。</li><li><strong>FR-10-3</strong>: 同一 <code>playerId</code> 重複連線時，後來的連線更新 <code>isOnline=true</code>，舊 session 收到 <code>SESSION_REPLACED</code> 後斷線。</li><li><strong>FR-10-4</strong>: 重連時若房間狀態已為 <code>revealing</code> 且部分路徑已揭曉，客戶端直接呈現已揭曉的靜態結果，不重播已完成動畫。</li></ul>
@@ -453,6 +452,7 @@
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Idea — climb_stairs</title>
+  <title>構想文件 (IDEA) — climb_stairs</title>
   <link rel="stylesheet" href="assets/style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
 </head>
@@ -15,31 +15,30 @@
         <input class="search-input" type="search" placeholder="搜尋文件...">
         <div class="search-results"></div>
       </div>
-      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">GitHub</a>
+      <a class="nav-gh-link" href="https://github.com/ibalasite/climb_stairs" target="_blank" rel="noopener">⌥ GitHub</a>
       <button class="sidebar-toggle" id="sidebarToggle" title="收合/展開側欄">☰</button>
     </div>
   </header>
   <div class="doc-page-banner">
-    <p class="banner-breadcrumb"><a href="index.html">climb_stairs</a> &rsaquo; Idea</p>
-    <h1 class="banner-title">Idea</h1>
+    <p class="banner-breadcrumb"><a href="index.html">climb_stairs</a> › 構想文件 (IDEA)</p>
+    <h1 class="banner-title">構想文件 (IDEA)</h1>
   </div>
   <div class="page-wrapper">
     <aside class="sidebar" aria-label="文件導覽">
       <div class="sidebar__section">
         <div class="sidebar__label">文件</div>
         <a class="sidebar__link" href="index.html">🏠 首頁</a>
-<a class="sidebar__link" href="pdd.html">📋 產品設計文件 (PDD)</a>
+<a class="sidebar__link active" href="idea.html">💡 構想文件 (IDEA)</a>
+<a class="sidebar__link" href="brd.html">📋 商業需求文件 (BRD)</a>
 <a class="sidebar__link" href="prd.html">📝 產品需求文件 (PRD)</a>
+<a class="sidebar__link" href="pdd.html">🎨 產品設計文件 (PDD)</a>
 <a class="sidebar__link" href="edd.html">🏗️ 工程設計文件 (EDD)</a>
-<a class="sidebar__link" href="arch.html">🧩 架構設計</a>
+<a class="sidebar__link" href="arch.html">🧩 架構設計 (ARCH)</a>
 <a class="sidebar__link" href="api.html">🔌 API 文件</a>
 <a class="sidebar__link" href="schema.html">🗄️ Schema 文件</a>
-<a class="sidebar__link" href="design.html">🎨 Design 設計文件</a>
-<a class="sidebar__link" href="align_report.html">📊 對齊報告</a>
-<a class="sidebar__link" href="brd.html">📄 Brd</a>
-<a class="sidebar__link active" href="idea.html">📄 Idea</a>
-<a class="sidebar__link" href="migration_code_snapshot.html">📄 Migration Code Snapshot</a>
-<a class="sidebar__link" href="test_plan.html">📄 Test Plan</a>
+<a class="sidebar__link" href="design.html">🖥️ Client 設計文件</a>
+<a class="sidebar__link" href="test_plan.html">✅ 測試計畫 (Test Plan)</a>
+<a class="sidebar__link" href="align_report.html">📄 ALIGN_REPORT</a>
 <a class="sidebar__link" href="bdd.html">🧪 BDD Scenarios</a>
       </div>
     </aside>
@@ -130,7 +129,7 @@
 <tr><td>docs/req/legacy-ARCH.md</td><td>舊版文件</td><td>ARCH v1.2，詳述 Clean Architecture 各層職責（Domain/Use Cases/Application/Infrastructure/Presentation）、套件依賴關係（shared ← server/client，無直接 cross-import）、packages/shared 輸出清單（entities、value-objects、use-cases、prng、types）及 packages/server 各模組單句職責說明（container.ts、RoomService、GameService、WsMessageHandler、RoomRepository 等）</td><td>EDD §2 / ARCH</td></tr>
 <tr><td>docs/req/legacy-API.md</td><td>舊版文件</td><td>API v1.1，定義 Base URL 策略、認證方式（JWT Bearer）、回應格式（直接 JSON，無 envelope）、10 個 HTTP REST 端點（POST /api/rooms、GET /api/rooms/:code、加入/踢出/開始/揭示/結束/再玩/健康檢查）及完整 WebSocket 事件規格（ROOM_STATE、REVEAL_INDEX、REVEAL_ALL、PLAYER_KICKED、SESSION_REPLACED 等伺服器廣播；JOIN_ROOM、START_GAME、BEGIN_REVEAL、REVEAL_NEXT、REVEAL_ALL 等客戶端訊息）</td><td>API.md</td></tr>
 <tr><td>docs/req/legacy-SCHEMA.md</td><td>舊版文件</td><td>SCHEMA v1.1，描述 Redis 作為唯一持久層的設計決策、5 種 Redis Key 結構（room:{code} JSON、ladder JSON、revealedCount 計數器、kicked Set、sessions Hash）、TTL 策略（waiting/running/revealing 24h、finished 1h、全員離線 5min）及四個生命週期階段（waiting/running/revealing/finished）的完整 Room 物件 JSON 結構範例</td><td>SCHEMA.md</td></tr>
-</table></main>
+</table><section style="margin-top:2rem;padding:1.5rem;background:#fff;border:1px solid var(--border);border-radius:8px;"><h2 style="margin-top:0">📎 附件與素材 (req/)</h2><p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:0.75rem">共 6 個附件，點擊下載</p><ul style="list-style:none;padding:0;margin:0"><li style="padding:0.5rem 0;border-bottom:1px solid var(--border)">📎 <a href="../../docs/req/legacy-API.md" download="legacy-API.md" target="_blank" style="color:var(--accent)">legacy-API.md</a> <span style="color:var(--text-muted);font-size:0.8125rem">(39 KB)</span></li><li style="padding:0.5rem 0;border-bottom:1px solid var(--border)">📎 <a href="../../docs/req/legacy-ARCH.md" download="legacy-ARCH.md" target="_blank" style="color:var(--accent)">legacy-ARCH.md</a> <span style="color:var(--text-muted);font-size:0.8125rem">(30 KB)</span></li><li style="padding:0.5rem 0;border-bottom:1px solid var(--border)">📎 <a href="../../docs/req/legacy-EDD.md" download="legacy-EDD.md" target="_blank" style="color:var(--accent)">legacy-EDD.md</a> <span style="color:var(--text-muted);font-size:0.8125rem">(55 KB)</span></li><li style="padding:0.5rem 0;border-bottom:1px solid var(--border)">📎 <a href="../../docs/req/legacy-PDD.md" download="legacy-PDD.md" target="_blank" style="color:var(--accent)">legacy-PDD.md</a> <span style="color:var(--text-muted);font-size:0.8125rem">(164 KB)</span></li><li style="padding:0.5rem 0;border-bottom:1px solid var(--border)">📎 <a href="../../docs/req/legacy-PRD.md" download="legacy-PRD.md" target="_blank" style="color:var(--accent)">legacy-PRD.md</a> <span style="color:var(--text-muted);font-size:0.8125rem">(29 KB)</span></li><li style="padding:0.5rem 0;border-bottom:1px solid var(--border)">📎 <a href="../../docs/req/legacy-SCHEMA.md" download="legacy-SCHEMA.md" target="_blank" style="color:var(--accent)">legacy-SCHEMA.md</a> <span style="color:var(--text-muted);font-size:0.8125rem">(43 KB)</span></li></ul></section></main>
   </div>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
@@ -146,6 +145,7 @@
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>
