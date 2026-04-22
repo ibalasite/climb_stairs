@@ -2,7 +2,7 @@
   "version": "2.0",
   "project_dir": "/Users/tobala/projects/climb_stairs",
   "pdd_path": "/Users/tobala/projects/climb_stairs/docs/PDD.md",
-  "current_step": "15d",
+  "current_step": "15e",
   "lang_stack": "ts-fastify-ws-redis-vanillajs-vite",
   "client_type": "web",
   "auto_mode": "full",
@@ -45,7 +45,7 @@
     "31",
     "23"
   ],
-  "last_updated": "2026-04-22T09:30:00Z",
+  "last_updated": "2026-04-22T17:33:30Z",
   "change_desc": "再玩下一場（play-again）功能",
   "change_branch": "change/20260422-play-again-after-game-ends",
   "todo_id": "ECR-20260422-001",
