@@ -1,135 +1,69 @@
-# EDD — Ladder Room Online
+# EDD — Engineering Design Document
+# Ladder Room Online 工程設計文件
 
-## 0. 技術棧（Tech Stack）
+## Document Control
+
+| 欄位 | 內容 |
+|------|------|
+| Version | v2.0 |
+| Status | Active |
+| Date | 2026-04-21 |
+| Author | AI EDD Agent（devsop-autodev STEP-07） |
+| Based On | BRD v1.0 + PRD v1.0 + legacy-EDD v1.4 + legacy-ARCH v1.2 |
+| Stakeholders | 前端工程師、後端工程師、QA、DevOps |
+
+---
+
+## §1 Executive Summary
+
+### §1.1 系統目的
+
+Ladder Room Online 是一款基於 HTML5 Canvas 的多人線上爬樓梯抽獎系統，採用 WebSocket 長連接驅動即時遊戲狀態同步，支援最多 50 名玩家共享同一房間。系統設計目標為取代 LINE 原生爬樓梯的功能限制，支援異地多人同房、主持人掌控揭曉節奏、結果公正可驗證。
+
+### §1.2 技術選型總覽
 
 | 層級 | 技術 | 版本 / 備註 |
 |------|------|-------------|
 | Runtime | Node.js | 20 LTS |
 | 語言 | TypeScript | strict mode，前後端共用 |
-| HTTP Server | Fastify | REST API (`/api/*`) |
+| HTTP Server | Fastify | REST API (`/api/rooms/*`, `/health`, `/ready`) |
 | WebSocket | ws（原生） | `ws` npm package，`maxPayload: 65536` |
 | 快取 / 狀態 | Redis | 原子操作、Pub/Sub、房間持久化 |
 | 前端框架 | 無（Vanilla TypeScript + Vite） | 無 UI 框架，零依賴，HTML5 Canvas 渲染 |
 | Monorepo 結構 | npm workspaces | `packages/shared`、`packages/server`、`packages/client` |
-| 測試 | Vitest | Unit（70%）＋Integration（20%，testcontainers）＋E2E（10%，Playwright） |
+| 測試 | Vitest + Playwright | Unit/Integration（Vitest）＋E2E（Playwright） |
 | CI/CD | GitHub Actions | lint → audit → test → build → e2e → deploy |
 | 容器 | Docker（Distroless Node.js 20 / Nginx 1.27-alpine） | 多階段建構；server + client 各自獨立 image |
-| 編排 | Kubernetes（HPA）+ Traefik Ingress | sticky session，Post-MVP 多 Pod |
+| 編排 | Kubernetes（Traefik Ingress） | Rancher Desktop 本機開發；HPA 為 Post-MVP |
 | 前端部署（本機） | Nginx Pod（ladder-client:local） | `Dockerfile.client` 建構，`imagePullPolicy: Never` |
 | 前端部署（生產） | GitHub Pages CDN | Vite 建構產物，bundle < 150KB gzip |
-| 本機開發 | `./scripts/dev-k8s.sh [up\|down\|restart\|logs]` | 一鍵啟動完整 k8s 環境，http://ladder.local |
+| 本機開發腳本 | `./scripts/dev-k8s.sh [up\|down\|restart\|logs]` | 一鍵啟動完整 k8s 環境，http://ladder.local |
 
 **client_type**: `web`（瀏覽器端，HTML5 Canvas + Vanilla TypeScript）
 
----
+### §1.3 關鍵設計決策摘要
 
-## 1. 系統概覽
-
-Ladder Room Online 是一款基於 HTML5 Canvas 的多人線上爬樓梯抽獎系統，採用 WebSocket 長連接驅動即時遊戲狀態同步，支援最多 50 名玩家共享同一房間。後端以 Fastify 處理 HTTP REST 操作，ws 原生 WebSocket 處理即時通訊，Redis 同時承擔分散式狀態鎖（原子操作）、房間資料持久化與跨 Pod Pub/Sub 廣播的角色；前端以 Vanilla TypeScript + Vite 建構，透過 HTML5 Canvas 逐段繪製梯子揭示動畫，全程無任何 UI 框架依賴，確保最小 JS bundle。
-
-整體系統遵循 Clean Architecture 分層原則，核心遊戲邏輯（PRNG、狀態機、梯子生成）封裝於 `packages/shared` 並在前後端共用，保證演算法一致性可驗證；部署層透過 Kubernetes HPA 依 WebSocket 連線數自動水平擴展後端 Pod，Nginx Ingress 做 sticky session 確保同一房間玩家路由至同一 Pod，Redis 作為唯一共享狀態層解耦 Pod 間狀態依賴。
-
----
-
-## 2. 架構設計
-
-### 2.1 Clean Architecture（SOLID + 分層 + DI）
-
-```
-ladder-room-online/                       # monorepo root
-├── packages/
-│   ├── shared/                           # 前後端共用純邏輯（零 I/O）
-│   │   ├── src/
-│   │   │   ├── domain/
-│   │   │   │   ├── entities/
-│   │   │   │   │   ├── Room.ts           # Room aggregate root
-│   │   │   │   │   ├── Player.ts         # Player value object
-│   │   │   │   │   └── Ladder.ts         # Ladder + Segment entities
-│   │   │   │   ├── value-objects/
-│   │   │   │   │   ├── RoomCode.ts       # 6-char code validation
-│   │   │   │   │   └── RoomStatus.ts     # enum: waiting/running/revealing/finished
-│   │   │   │   └── errors/
-│   │   │   │       └── DomainError.ts    # base typed error
-│   │   │   ├── use-cases/
-│   │   │   │   ├── GenerateLadder.ts     # 梯子生成 use case（pure）
-│   │   │   │   ├── ValidateGameStart.ts  # N>=2, 1<=W<=N-1 驗證
-│   │   │   │   └── ComputeResults.ts     # 路徑追蹤 -> ResultSlot[]
-│   │   │   ├── prng/
-│   │   │   │   ├── mulberry32.ts         # PRNG 實作
-│   │   │   │   ├── djb2.ts               # seed hash
-│   │   │   │   └── fisherYates.ts        # 洗牌
-│   │   │   └── types/
-│   │   │       └── index.ts              # 共用 TypeScript interface
-│   │   └── package.json
-│   │
-│   ├── server/                           # Fastify 後端
-│   │   ├── src/
-│   │   │   ├── infrastructure/
-│   │   │   │   ├── redis/
-│   │   │   │   │   ├── RedisClient.ts    # ioredis singleton
-│   │   │   │   │   ├── RoomRepository.ts # Redis CRUD
-│   │   │   │   │   └── PubSubBroker.ts   # Redis Pub/Sub
-│   │   │   │   └── websocket/
-│   │   │   │       ├── WsServer.ts       # ws Server 封裝
-│   │   │   │       └── WsSession.ts      # 單一連線 session 管理
-│   │   │   ├── application/
-│   │   │   │   ├── services/
-│   │   │   │   │   ├── RoomService.ts    # 業務邏輯協調
-│   │   │   │   │   └── GameService.ts    # 開局/揭示/結束流程
-│   │   │   │   └── handlers/
-│   │   │   │       ├── WsMessageHandler.ts
-│   │   │   │       └── PubSubHandler.ts
-│   │   │   ├── presentation/
-│   │   │   │   ├── routes/
-│   │   │   │   │   ├── rooms.ts
-│   │   │   │   │   └── players.ts
-│   │   │   │   ├── schemas/
-│   │   │   │   └── plugins/
-│   │   │   │       ├── auth.ts
-│   │   │   │       └── cors.ts
-│   │   │   ├── container.ts              # DI 容器
-│   │   │   └── main.ts
-│   │   ├── Dockerfile
-│   │   └── package.json
-│   │
-│   └── client/                           # Vanilla TS + Vite
-│       ├── src/
-│       │   ├── canvas/
-│       │   │   ├── LadderRenderer.ts
-│       │   │   └── AnimationController.ts
-│       │   ├── ws/
-│       │   │   ├── WsClient.ts
-│       │   │   └── EventBus.ts
-│       │   ├── state/
-│       │   │   └── RoomStore.ts
-│       │   ├── ui/
-│       │   │   └── components/
-│       │   └── main.ts
-│       ├── index.html
-│       └── package.json
-│
-├── k8s/
-├── .github/workflows/
-│   ├── ci.yaml
-│   └── pages.yaml
-└── package.json                          # workspace root
-```
-
-**分層職責：**
-
-| 層級 | 職責 | 依賴方向 |
-|------|------|----------|
-| Domain (shared) | Entity、Value Object、純業務規則、DomainError | 無外部依賴 |
-| Use Cases (shared) | 協調 Domain 物件完成業務流程，返回純資料結構 | 僅依賴 Domain |
-| Application (server) | 呼叫 Use Cases、協調 Repository、發布 WS 事件 | 依賴 Use Cases + Interfaces |
-| Infrastructure (server) | Redis 實作、WebSocket 封裝、外部 SDK | 實作 Application 定義的 Interface |
-| Presentation (server) | HTTP Route、Schema 驗證、WS 訊息分派 | 依賴 Application Service |
-
-**DI 策略：** constructor injection，`container.ts` 以工廠函式組裝所有依賴。測試時直接傳入 mock 實作，不需要 DI 框架即可達成可測試性。
+1. **Vanilla TypeScript + Vite**（無 UI 框架）— 確保最小 JS bundle，無框架冗餘依賴
+2. **WebSocket（ws 原生）**（非 Socket.IO）— 雙向通訊，標準協定，無 polling fallback 需求
+3. **Redis 作為唯一持久層**（非 in-memory）— Pod 重啟後狀態存活，跨 Pod Pub/Sub 廣播
+4. **Clean Architecture + packages/shared**（核心邏輯前後端共用）— 算法一致性可驗證，結果可事後審計
+5. **Mulberry32 PRNG + djb2 seed + Fisher-Yates**（確定性 PRNG）— 100% 客戶端結果一致，無舞弊空間
+6. **Kubernetes 兩 Pod 架構**（server pod + client nginx pod）— 本機與生產環境統一，前後端分離部署
 
 ---
 
-### 2.2 系統架構圖
+## §2 System Architecture
+
+### §2.1 High-Level Architecture
+
+系統採用四層架構：Client → Ingress → Fastify/WS Server → Redis。
+
+- **Client**（Vanilla TypeScript + Vite + HTML5 Canvas）：瀏覽器端，透過 HTTPS 呼叫 REST API，透過 WSS 長連接接收即時事件。Canvas 2D 渲染梯子動畫。
+- **Nginx Ingress（Traefik）**：TLS 終止、HTTPS/WSS 路由分派、sticky session（/ws 與 /api 路徑）、catch-all 路由至 Client Nginx Pod（/）。
+- **Fastify + ws（Server Pod）**：HTTP REST（`/api/*`）及 WebSocket（`/ws`）共用進程。Fastify 處理 REST；ws 原生 WebSocket 處理即時通訊。
+- **Redis（StatefulSet）**：房間狀態持久化（CRUD）、原子操作（WATCH/MULTI/EXEC）、Pub/Sub 跨 Pod 廣播。
+
+### §2.2 Component Diagram
 
 ```mermaid
 graph TD
@@ -141,554 +75,467 @@ graph TD
         TS --> WSClient
     end
 
-    subgraph Ingress["Traefik Ingress"]
-        NginxHTTP["HTTP /api/*"]
-        NginxWS["WebSocket /ws"]
-        NginxStatic["Static / (catch-all)"]
+    subgraph Ingress["Traefik Ingress (ladder.local)"]
+        NginxHTTP["HTTP /api/*\nFastify REST"]
+        NginxWS["WebSocket /ws\nWS Upgrade"]
+        NginxStatic["Static / (catch-all)\nClient Pod"]
     end
 
-    subgraph K8sCluster["Kubernetes Cluster (ladder-room)"]
-        SVC["Service: ladder-server-service"]
-        ClientSVC["Service: ladder-client-service"]
+    subgraph K8sCluster["Kubernetes Cluster (namespace: ladder-room)"]
+        SVC["Service: ladder-server-service\nClusterIP port:80→3000"]
+        ClientSVC["Service: ladder-client-service\nClusterIP port:80"]
 
         subgraph ClientPod["Client Pod"]
             NginxPod["Nginx 1.27-alpine\nladder-client:local\nSPA static files"]
         end
 
-        subgraph Pods["Fastify Pods (HPA: 2-10)"]
-            Pod1["Pod-1 Fastify+ws"]
-            Pod2["Pod-2 Fastify+ws"]
+        subgraph Pods["Fastify Pods (MVP: replicas=1)"]
+            Pod1["Pod-1 Fastify+ws\nport:3000"]
         end
 
         SVC --> Pod1
-        SVC --> Pod2
         ClientSVC --> NginxPod
 
         subgraph Redis["Redis StatefulSet"]
-            RedisMaster["Redis Master"]
-            RedisReplica["Redis Replica"]
+            RedisMaster["Redis Master\nredis-0"]
+            RedisReplica["Redis Replica\nredis-1 (Post-MVP)"]
             RedisMaster --> RedisReplica
         end
 
         Pod1 --> RedisMaster
-        Pod2 --> RedisMaster
-        Pod1 --> |"SUBSCRIBE"| RedisMaster
-        Pod2 --> |"SUBSCRIBE"| RedisMaster
-
-        HPA["HPA ws_connections metric"]
-        HPA --> Pods
+        Pod1 --> |"PSUBSCRIBE room:*:events"| RedisMaster
     end
 
-    WSClient --> |"WSS /ws"| NginxWS
-    TS --> |"HTTPS /api"| NginxHTTP
+    WSClient --> |"WSS /ws?room=...&token=..."| NginxWS
+    TS --> |"HTTPS /api/*"| NginxHTTP
     NginxHTTP --> |"sticky session"| SVC
     NginxWS --> |"sticky session"| SVC
     NginxStatic --> ClientSVC
 ```
 
----
-
-### 2.3 資料流圖（加入房間流程）
+### §2.3 Data Flow Diagram
 
 ```mermaid
 sequenceDiagram
     participant C as Client Browser
-    participant N as Nginx Ingress
+    participant N as Traefik Ingress
     participant F as Fastify Pod
     participant R as Redis
 
-    C->>N: POST /api/v1/rooms/join
-    N->>F: HTTP forward sticky session
-    F->>R: SETNX room:{code} atomic
+    Note over C,R: 建立房間 + 加入流程
+
+    C->>N: POST /api/rooms { hostNickname, winnerCount }
+    N->>F: HTTP forward
+    F->>R: SETNX room:{code} (原子建立)
     R-->>F: OK / room data
+    F-->>C: 201 { roomCode, playerId, sessionToken(JWT) }
+
+    C->>N: POST /api/rooms/:code/players { nickname }
+    N->>F: HTTP forward
+    F->>R: HGET room:{code} → 驗證狀態、暱稱唯一
     F->>R: SADD room:{code}:players {playerId}
     R-->>F: OK
-    F-->>C: 201 { roomCode, playerId, sessionToken }
+    F-->>C: 201 { playerId, sessionToken, colorIndex }
 
-    C->>N: GET WSS /ws?room={code}&token={token}
-    N->>F: WebSocket Upgrade sticky session
-    F->>F: Verify sessionToken HMAC-SHA256
+    C->>N: WSS /ws?room={code}&token={token}
+    N->>F: WebSocket Upgrade（sticky session）
+    F->>F: 驗證 JWT HS256 + kickedPlayerIds 攔截
     F->>R: HGET room:{code} load state
     R-->>F: Room JSON
     F-->>C: WS Connected
-    F->>C: ROOM_STATE_FULL { room, players, ladder:null }
+    F->>C: ROOM_STATE_FULL { room, players, ladder:null, selfPlayerId }
 
-    Note over C,F: Host triggers START_GAME
+    Note over C,F: Host 開始遊戲
 
     C->>F: WS MSG: START_GAME
-    F->>R: WATCH room:{code} MULTI SET status=running seedSource=uuid EXEC
-    R-->>F: EXEC OK
-    Note over F: seed generated (djb2 hash) + ladderMap + resultSlots computed atomically<br/>Full ladder stored in Redis at status=running<br/>seed and ladder data NOT sent to clients until status=finished
-    F->>R: PUBLISH room:{code}:events ROOM_STATE
-    R-->>F: Deliver to all Pod subscribers
-    F-->>C: Broadcast ROOM_STATE { status: running, rowCount } (no ladder, no seed)
+    F->>R: WATCH room:{code}
+    F->>R: MULTI / SET status=running, seedSource=UUID, rowCount / EXEC
+    R-->>F: EXEC OK (原子操作)
+    F->>R: PUBLISH room:{code}:events ROOM_STATE(running, rowCount)
+    R-->>F: 廣播至所有訂閱 Pod
+    F-->>C: Broadcast ROOM_STATE { status: running, rowCount } (不含 seed/ladder)
 
-    Note over C,F: Host triggers BEGIN_REVEAL
+    Note over C,F: Host 開始揭曉
 
     C->>F: WS MSG: BEGIN_REVEAL
-    F->>R: SET status=revealing (ladder already exists, no recomputation)
+    F->>F: 應用層計算 generateLadder + computeResults
+    F->>R: Lua Script 原子寫入 ladder/results/status=revealing
     R-->>F: OK
-    F->>R: PUBLISH room:{code}:events ROOM_STATE
+    F->>R: PUBLISH room:{code}:events ROOM_STATE(revealing)
     F-->>C: Broadcast ROOM_STATE { status: revealing }
 
-    Note over C,F: Host triggers REVEAL_NEXT (manual mode)
+    Note over C,F: 逐步揭曉
 
-    C->>F: WS MSG: REVEAL_NEXT {}
-    F->>R: INCR room:{code}:revealedCount atomic
+    C->>F: WS MSG: REVEAL_NEXT
+    F->>R: INCR room:{code}:revealedCount (原子)
     R-->>F: newCount
-    F->>R: PUBLISH room:{code}:events REVEAL_INDEX
-    F-->>C: Broadcast REVEAL_INDEX { playerIndex, path, result, revealedCount, totalCount }
+    F->>R: WATCH+MULTI/EXEC SET Room JSON (revealedCount=newCount)
+    F->>R: PUBLISH REVEAL_INDEX { playerIndex, path, result }
+    F-->>C: Broadcast REVEAL_INDEX
 
-    Note over C,F: All paths revealed; Host triggers END_GAME
+    Note over C,F: 結束本局
 
-    C->>F: WS MSG: END_GAME
-    F->>R: SET room:{code}:status finished (broadcast seed now allowed)
-    F->>R: PUBLISH room:{code}:events ROOM_STATE
-    F-->>C: Broadcast ROOM_STATE { status: finished, seed, results[] }
+    C->>F: WS MSG: END_GAME (revealedCount === totalCount)
+    F->>R: WATCH+MULTI/EXEC SET status=finished / TTL 延長 1h
+    F->>R: PUBLISH ROOM_STATE { status: finished, seed, results[] }
+    F-->>C: Broadcast ROOM_STATE (seed 首次公開)
 ```
 
----
+### §2.4 Deployment Architecture
 
-### 2.4 部署架構圖
+**Kubernetes 部署（namespace: ladder-room）：**
 
 ```mermaid
 graph TD
     subgraph NS["Namespace: ladder-room"]
         subgraph IngressLayer["Ingress Layer"]
-            ING["Ingress nginx\naffinity: cookie\nwebsocket-services: server-svc"]
+            ING["Traefik Ingress\ningressClassName: traefik\naffinity: cookie (sticky session)\nwebsocket-services: ladder-server-service"]
         end
 
         subgraph ClientLayer["Client Layer"]
             CDEP["Deployment: ladder-client\nreplicas: 1\nimage: ladder-client:local\nimagePullPolicy: Never"]
-            CPOD["Nginx Pod port:80\nSPA static files"]
+            CPOD["Nginx 1.27-alpine Pod\nport:80\nSPA static files"]
             CSVC["Service: ladder-client-service\nClusterIP port:80"]
             CDEP --> CPOD
             CSVC --> CPOD
         end
 
         subgraph AppLayer["Application Layer"]
-            DEP["Deployment: ladder-server\nreplicas: 2 min\nimage: distroless/nodejs20\nimagePullPolicy: Never"]
+            DEP["Deployment: ladder-server\nreplicas: 1 (MVP)\nimage: distroless/nodejs20\nimagePullPolicy: Never"]
             POD1["Pod-1 Fastify+ws port:3000"]
-            POD2["Pod-2 Fastify+ws port:3000"]
             DEP --> POD1
-            DEP --> POD2
-            HPA["HPA minReplicas:2 maxReplicas:10\nmetric: ws_connections target:200"]
+            HPA["HPA (Post-MVP)\nminReplicas:2 maxReplicas:10\nmetric: ws_connections target:200"]
             HPA --> DEP
         end
 
         subgraph ServiceLayer["Service Layer"]
-            SVC["Service: ladder-server-service\nClusterIP port:80->3000"]
+            SVC["Service: ladder-server-service\nClusterIP port:80→3000"]
         end
 
         subgraph StatefulLayer["Redis"]
-            RSTS["StatefulSet: redis replicas:2"]
+            RSTS["StatefulSet: redis\nMVP replicas:1"]
             RPOD0["redis-0 master port:6379"]
-            RPOD1["redis-1 replica port:6379"]
             RSVC["Service: redis-svc ClusterIP"]
             RSTS --> RPOD0
-            RSTS --> RPOD1
-            RPOD0 --> |"replication"| RPOD1
         end
 
         subgraph ConfigLayer["Config"]
-            CM["ConfigMap REDIS_HOST PORT LOG_LEVEL"]
-            SEC["Secret JWT_SECRET REDIS_PASSWORD"]
+            CM["ConfigMap\nREDIS_HOST PORT LOG_LEVEL CORS_ORIGIN"]
+            SEC["Secret\nJWT_SECRET REDIS_PASSWORD"]
         end
 
         ING --> |"/api /ws /health /ready"| SVC
-        ING --> |"/ catch-all"| CSVC
+        ING --> |"/ (catch-all)"| CSVC
         SVC --> POD1
-        SVC --> POD2
         POD1 --> RSVC
-        POD2 --> RSVC
         RSVC --> RPOD0
         POD1 --> CM
         POD1 --> SEC
-        POD2 --> CM
-        POD2 --> SEC
     end
 ```
 
----
+**本機開發環境（Rancher Desktop）：**
 
-### 2.5 房間狀態機圖
-
-```mermaid
-stateDiagram-v2
-    [*] --> waiting : POST /api/rooms 建立
-
-    waiting --> waiting : player_joined N<50\nplayer_left\nhost updates prizes
-    waiting --> running : host START_GAME\nN>=2 AND 1<=W<=N-1\natomic: seed+ladderMap+resultSlots generated\nbcast rowCount（no ladder or seed sent to clients）
-
-    running --> revealing : host BEGIN_REVEAL\nstate transition only（ladder already exists）\nbcast ROOM_STATE status:revealing
-
-    revealing --> revealing : REVEAL_NEXT（manual）\nor auto-timer fires（auto mode）\nrevealedCount < N\nbcast REVEAL_INDEX path result
-    revealing --> revealing : SET_REVEAL_MODE\nmode manual↔auto\ntimer start/stop
-
-    revealing --> revealing : REVEAL_ALL_TRIGGER（一鍵全揭）\nbcast REVEAL_ALL（剩餘路徑）\n等待 host END_GAME
-
-    revealing --> finished : host END_GAME\n（所有路徑已揭曉後才允許）\nbcast ROOM_STATE status:finished 含 seed\nTTL extend 1h
-
-    finished --> waiting : host PLAY_AGAIN\nprune isOnline=false players\nclear kickedPlayerIds\nbcast ROOM_STATE waiting
-
-    waiting --> [*] : room TTL expired 4h（PRD FR-01-2）\nall disconnected 5 min
-    running --> [*] : all disconnected 5 min\nroom TTL expired 4h
-    finished --> [*] : room TTL expired 1h（揭示後延長）
-```
+- 使用 Rancher Desktop 作為本機 Kubernetes 環境（containerd runtime）
+- `/etc/hosts` 設定 `127.0.0.1 ladder.local`，透過 Traefik Ingress 存取 `http://ladder.local`
+- 一鍵開發腳本：`./scripts/dev-k8s.sh [up|down|restart|logs]`
+  - `up`：docker build + kubectl apply（server + client image）
+  - `down`：kubectl delete + image 清理
+  - `restart`：重新 build 並 rolling restart
+  - `logs`：串流所有 Pod 日誌
+- Docker image 策略：
+  - Server：`Dockerfile`（Distroless Node.js 20，多階段建構，`imagePullPolicy: Never`）
+  - Client：`Dockerfile.client`（Nginx 1.27-alpine，多階段建構，`imagePullPolicy: Never`）
 
 ---
 
-## 3. 資料模型設計
+## §3 Technology Stack
 
-```typescript
-// packages/shared/src/types/index.ts
-
-export type RoomStatus = "waiting" | "running" | "revealing" | "finished";
-
-export type WsEventType =
-  | "ROOM_STATE" | "ROOM_STATE_FULL" | "REVEAL_INDEX" | "REVEAL_ALL"
-  | "PLAYER_KICKED" | "SESSION_REPLACED"
-  | "HOST_TRANSFERRED" // future consideration, not MVP
-  | "PONG"  // response to client PING; payload: { ts: number }
-  | "ERROR";
-
-export type WsMsgType =
-  | "START_GAME" | "BEGIN_REVEAL" | "REVEAL_NEXT" | "REVEAL_ALL_TRIGGER"
-  | "END_GAME"           // host only, revealing state only; all paths must be revealed; transitions revealing→finished
-  | "PLAY_AGAIN"         // host only, finished state only; re-initializes room to waiting (replaces RESET_ROOM)
-  | "SET_REVEAL_MODE" | "KICK_PLAYER" | "PING"
-  | "UPDATE_TITLE"        // host only, waiting state only; updates room.title (0-50 chars)
-  | "UPDATE_WINNER_COUNT"; // host only, waiting state only; validates 1 ≤ N ≤ playerCount-1
-
-export interface Player {
-  readonly id: string;           // UUID v4
-  readonly nickname: string;     // 1-20 chars, sanitized
-  readonly colorIndex: number;   // 0-49
-  // isHost is derived at read time by comparing id === room.hostId; not stored redundantly
-  readonly isHost: boolean;
-  isOnline: boolean;
-  readonly joinedAt: number;     // Unix ms
-  result: 'win' | 'lose' | null; // null until revealed; 'win'/'lose' after reveal (no named prizes per PRD Out-of-Scope #5)
-}
-
-export interface LadderSegment {
-  readonly row: number;    // 0-indexed
-  readonly col: number;    // col <-> col+1 has a rung
-}
-
-export interface LadderData {
-  readonly seed: number;          // Mulberry32 seed = djb2(seedSource) >>> 0
-  readonly seedSource: string;    // UUID v4 hex generated at START_GAME, stored for auditability
-  readonly rowCount: number;      // clamp(N*3, 20, 60)
-  readonly colCount: number;      // = N (all players incl. offline)
-  readonly segments: readonly LadderSegment[];
-}
-
-export interface PathStep {
-  readonly row: number;
-  readonly col: number;
-  readonly direction: "down" | "left" | "right";
-}
-
-export interface ResultSlot {
-  readonly playerIndex: number;   // positional index for Canvas column rendering
-  readonly playerId: string;      // stable identity reference (UUID v4)
-  readonly startCol: number;
-  readonly endCol: number;
-  readonly isWinner: boolean;     // PRD Out-of-Scope #5: only win/lose, no named prizes
-  readonly path: readonly PathStep[];
-}
-
-export interface Room {
-  readonly code: string;           // 6-char room code
-  title: string | null;            // optional room name (0-50 chars); null if not set
-  status: RoomStatus;
-  hostId: string;                  // mutable: host transfer on 60s disconnect grace
-  players: readonly Player[];      // max 50, incl. offline
-  winnerCount: number | null;      // W (1 <= W <= N-1); null until host sets it; reset to null on play-again if W >= new N
-  ladder: LadderData | null;
-  results: readonly ResultSlot[] | null;
-  revealedCount: number;
-  revealMode: "manual" | "auto";
-  autoRevealIntervalSec: number | null;  // 1-30s; null in manual mode
-  kickedPlayerIds: readonly string[];    // persisted in Redis; cleared on PLAY_AGAIN (PRD AC-H07-5)
-  readonly createdAt: number;
-  updatedAt: number;
-}
-
-// WS Envelopes (separate types prevent cross-direction type confusion)
-export interface ServerEnvelope<T = unknown> {
-  readonly type: WsEventType;
-  readonly ts: number;
-  readonly payload: T;
-}
-export interface ClientEnvelope<T = unknown> {
-  readonly type: WsMsgType;
-  readonly ts: number;
-  readonly payload: T;
-}
-
-export interface RoomSummaryPayload {
-  // Public GET /rooms/:code — unauthenticated, minimal exposure
-  readonly code: string;
-  readonly status: RoomStatus;
-  readonly playerCount: number;
-  readonly onlineCount: number;
-  readonly maxPlayers: 50;
-}
-
-export interface RoomStatePayload {
-  // Broadcast to all WS clients on state changes (excludes ladder/results for brevity)
-  readonly room: Omit<Room, "ladder" | "results" | "kickedPlayerIds">;
-  readonly onlineCount: number;
-}
-
-/**
- * LadderDataPublic — sent to clients during "revealing" state (seed omitted for security).
- * Full LadderData (with seed) is only sent when status === "finished" (PRD AC-H03-1, NFR-05).
- */
-export interface LadderDataPublic {
-  readonly rowCount: number;
-  readonly colCount: number;
-  readonly segments: readonly LadderSegment[];
-  // seed and seedSource intentionally omitted — only sent at status=finished
-}
-
-export interface RoomStateFullPayload extends RoomStatePayload {
-  // Unicast to newly connected client only
-  // When status is waiting/running: ladder = null
-  // When status is revealing: ladder = LadderDataPublic (no seed, PRD AC-H03-1, NFR-05)
-  // When status is finished: ladder = LadderData (seed + seedSource included for auditability)
-  readonly ladder: LadderDataPublic | LadderData | null;
-  readonly results: readonly ResultSlot[] | null;
-  readonly selfPlayerId: string;
-}
-
-export interface RevealIndexPayload {
-  readonly playerIndex: number;
-  readonly result: ResultSlot;  // includes path (single player, safe within 64KB)
-  readonly revealedCount: number;
-  readonly totalCount: number;
-}
-
-/** ResultSlotPublic — used in REVEAL_ALL payload; path omitted to stay within 64KB maxPayload (PRD NFR-05) */
-export type ResultSlotPublic = Omit<ResultSlot, "path">;
-
-export interface RevealAllPayload {
-  // Contains all remaining (unrevealed) paths; path omitted — frontend computes animation from LadderDataPublic
-  readonly results: readonly ResultSlotPublic[];
-}
-
-export interface HostTransferredPayload {
-  readonly newHostId: string;
-  readonly reason: "disconnect_timeout";
-}
-
-export interface ErrorPayload {
-  readonly code: string;
-  readonly message: string;
-  readonly requestId?: string;
-}
-
-// HTTP DTOs
-export interface CreateRoomRequest {
-  readonly hostNickname: string;
-  readonly winnerCount: number;    // W (1 <= W; upper bound validated after players join)
-}
-
-export interface CreateRoomResponse {
-  readonly roomCode: string;
-  readonly playerId: string;
-  readonly sessionToken: string;
-}
-
-export interface JoinRoomRequest {
-  readonly nickname: string;
-}
-
-export interface JoinRoomResponse {
-  readonly playerId: string;
-  readonly sessionToken: string;
-  readonly colorIndex: number;
-}
-```
+| 類別 | 技術 | 版本 | 說明 |
+|------|------|------|------|
+| Runtime | Node.js | 20 LTS | 後端執行環境 |
+| 語言 | TypeScript | strict mode | 前後端共用，`.js` 副檔名 ESM 輸出 |
+| HTTP Framework | Fastify | 4.x | REST API，AJV Schema 驗證 |
+| WebSocket | ws | 8.x | 原生 WS，maxPayload: 65536（64KB） |
+| 快取 / 狀態 | Redis | 6+ | WATCH/MULTI/EXEC 原子操作、Pub/Sub、TTL |
+| Redis Client | ioredis | 5.x | singleton + duplicate（Pub/Sub 專用） |
+| JWT | jose | 5.x | HS256 簽章，Web Crypto API 相容 |
+| 前端框架 | Vanilla TypeScript | — | 無 UI 框架，零依賴 |
+| Build Tool | Vite | 5.x | 前端建構，HMR 開發伺服器 |
+| Canvas | HTML5 Canvas 2D | — | 梯子渲染，requestAnimationFrame 驅動 |
+| Monorepo | npm workspaces | — | packages/shared、packages/server、packages/client |
+| Unit Test | Vitest | 1.x | 前後端共用測試框架 |
+| Integration Test | testcontainers | — | 真實 Redis 容器整合測試 |
+| E2E Test | Playwright | 1.x | 全流程 E2E 測試 |
+| Container | Docker | — | Distroless Node.js 20（server）、Nginx 1.27-alpine（client） |
+| Orchestration | Kubernetes | 1.28+ | Rancher Desktop 本機；Traefik Ingress |
+| CI/CD | GitHub Actions | — | lint → audit → test → build → e2e → deploy |
+| Log | pino | 9.x | Structured JSON 日誌 |
+| Metrics | prom-client | — | Prometheus 指標（ws_active_connections 等） |
 
 ---
 
-## 4. API 設計（HTTP）
+## §4 Module Design
 
-所有端點掛載於 `/api/`，回應格式為**直接 JSON 物件，無 success/data/error 包裝**：
-- 成功：直接回傳 DTO（如 `{ roomCode, playerId, token, room }`）
-- 失敗：`{ "error": string, "message": string }`
+### §4.1 Server Modules
 
-JWT TTL：**6 小時**（`exp = iat + 21600`）。
+**整體目錄結構（Clean Architecture 分層）：**
 
-| Method | Path | 描述 | 成功 | 錯誤 |
-|--------|------|------|------|------|
-| `POST` | `/api/rooms` | 建立房間（含 hostNickname, winnerCount） | `201 CreateRoomResponse` | `400 INVALID_PRIZES_COUNT`, `429 RATE_LIMIT` |
-| `GET` | `/api/rooms/:code` | 查詢房間公開摘要（unauthenticated） | `200 RoomSummaryPayload` | `404 ROOM_NOT_FOUND` |
-| `POST` | `/api/rooms/:code/players` | 加入房間 | `201 JoinRoomResponse` | `404 ROOM_NOT_FOUND / 409 ROOM_FULL,NICKNAME_TAKEN,ROOM_NOT_ACCEPTING` |
-| `DELETE` | `/api/rooms/:code/players/:id` | 踢出玩家（需 token；waiting 狀態限定） | `204` | `401 AUTH_INVALID_TOKEN,AUTH_TOKEN_EXPIRED / 403 PLAYER_NOT_HOST / 404 / 409 INVALID_STATE,CANNOT_KICK_HOST` |
-| `POST` | `/api/rooms/:code/game/start` | 開始遊戲（需 token） | `200 Room` | `400 INSUFFICIENT_PLAYERS,PRIZES_NOT_SET,INVALID_PRIZES_COUNT / 409 INVALID_STATE` |
-| `POST` | `/api/rooms/:code/game/end` | 結束本局（需 token；revealing 狀態、所有路徑已揭曉） | `200 Room` | `403 PLAYER_NOT_HOST / 409 INVALID_STATE` |
-| `POST` | `/api/rooms/:code/game/play-again` | 再玩一局（需 token；finished 狀態限定） | `200 Room` | `403 / 409 INVALID_STATE / 400 INSUFFICIENT_ONLINE_PLAYERS` |
-| `GET` | `/health` | 健康檢查（liveness） | `200 { status, redis, wsCount, uptime }` | — |
-| `GET` | `/ready` | 就緒檢查（readiness）；redis="error" 時回傳 503 | `200 { status, redis, wsCount, uptime }` | `503` |
+```
+packages/server/src/
+├── infrastructure/
+│   └── redis/
+│       ├── IRoomRepository.ts    # 倉儲介面（IRoomRepository）
+│       ├── RedisClient.ts        # ioredis singleton
+│       └── RoomRepository.ts    # Redis CRUD + TTL + 原子操作；IRoomRepository 實作
+├── application/
+│   ├── services/
+│   │   ├── RoomService.ts        # 業務邏輯協調（建立/加入/踢除/再玩一局）
+│   │   └── GameService.ts        # 遊戲流程（START_GAME/BEGIN_REVEAL/REVEAL/END_GAME）
+│   └── handlers/                 # （預留目錄，WS 路由邏輯內嵌於 main.ts）
+├── domain/
+│   └── errors/
+│       └── DomainError.ts        # base typed error
+├── container.ts                  # DI 工廠，組裝所有依賴
+└── main.ts                       # 啟動入口：Fastify + ws.Server（含 JWT 驗證、速率限制、廣播邏輯）+ Pub/Sub 訂閱
+```
 
-**Rate Limiting：**
-- POST /rooms：10 req/min/IP
-- POST /rooms/:code/players：20 req/min/IP
-- 其他：100 req/min/IP
+> **實作說明（MVP）：** WebSocket 升級/驗證、HTTP 路由、Pub/Sub 廣播等邏輯目前集中於 `main.ts`（< 800 行）；`container.ts` 組裝 DI；`RoomService`/`GameService` 封裝業務邏輯；Post-MVP 可按下列分拆方向重構：`WsServer.ts`（ws.Server 封裝）、`PubSubBroker.ts`（Pub/Sub）、presentation routes/schemas/plugins。
+
+**各模組單句職責：**
+
+| 模組 | 職責 |
+|------|------|
+| `IRoomRepository.ts` | 定義倉儲介面：Room CRUD 方法簽名，供 Service 層依賴注入 |
+| `RedisClient.ts` | 建立並匯出 ioredis 單例（含連線重試設定） |
+| `RoomRepository.ts` | 實作 IRoomRepository：對 Redis 進行 Room 的 CRUD、TTL 管理；WATCH/MULTI/EXEC 原子操作；BEGIN_REVEAL 使用 Lua Script |
+| `RoomService.ts` | 協調房間建立、加入、踢出等業務流程，呼叫 RoomRepository 並觸發廣播 |
+| `GameService.ts` | 協調遊戲開局（START_GAME）、開始揭曉（BEGIN_REVEAL）、逐一揭曉（REVEAL_NEXT）、全揭（REVEAL_ALL_TRIGGER）、結束（END_GAME）、再玩一局（PLAY_AGAIN）、重置房間（RESET_ROOM）流程 |
+| `container.ts` | 以工廠函式組裝所有依賴（DI 根），回傳完整注入樹，不含業務邏輯 |
+| `main.ts` | 啟動 Fastify（REST 路由 + AJV Schema + CORS + Rate Limit）、ws.Server（JWT 驗證、kickedPlayerIds 攔截 close 4003、Origin 驗證、心跳 ping/pong 30s、速率限制 60 msg/min），以及 Redis Pub/Sub 訂閱；含 graceful shutdown |
+
+### §4.2 Client Modules
+
+```
+packages/client/src/
+├── ui/
+│   ├── lobby.ts              # 大廳頁面：建立/加入房間 UI 邏輯（含 localStorage 暱稱預填 + URL 房號解析）
+│   ├── waitingRoom.ts        # 等待大廳：玩家列表、複製邀請連結、主持人控制
+│   ├── game.ts               # 遊戲視圖：Canvas 容器、揭曉控制按鈕、結果展示
+│   └── toast.ts              # Toast 通知元件（短暫提示訊息）
+├── canvas/
+│   ├── renderer.ts           # Canvas 2D 梯子繪製（rails、rungs、paths、winner stars）；requestAnimationFrame 動畫驅動
+│   └── colors.ts             # 玩家色彩系統：colorFromIndex / colorFromIndexDim（最多 50 色）
+├── state/
+│   ├── store.ts              # 客戶端房間狀態（基於 ROOM_STATE_FULL / ROOM_STATE 更新）
+│   └── LocalStorageService.ts # localStorage 讀寫（playerId、ladder_last_nickname）
+├── ws/
+│   └── client.ts             # WebSocket 連線管理、指數退避重連（1/2/4/8/30s）；事件分派至 UI
+└── main.ts                   # 入口：初始化 WS client、store、UI 模組
+```
+
+**localStorage Keys：**
+
+| Key | 型別 | 用途 | 生命週期 |
+|-----|------|------|---------|
+| `playerId` | `string` (UUID v4) | 玩家身份識別，用於斷線重連 | 永久（被踢除後 clearPlayerId） |
+| `ladder_last_nickname` | `string` (1-20 chars) | 記憶上次使用的暱稱，下次加入時自動預填 | 永久（每次成功加入時更新） |
+
+**邀請連結規格：**
+- 格式：`{window.location.origin}/?room={roomCode}`
+- 複製機制：優先 `navigator.clipboard.writeText()`；Fallback：`<input>` 全選手動複製
+
+### §4.3 Shared Package（packages/shared）
+
+```
+packages/shared/src/
+├── use-cases/
+│   ├── GenerateLadder.ts     # 梯子生成 use case（pure function）
+│   ├── ValidateGameStart.ts  # N>=2, 1<=W<=N-1 驗證
+│   └── ComputeResults.ts     # 路徑追蹤 → ResultSlot[]
+├── prng/
+│   ├── mulberry32.ts         # Mulberry32 PRNG 實作
+│   ├── djb2.ts               # seed hash（string → uint32）
+│   └── fisherYates.ts        # Fisher-Yates 洗牌
+├── types/
+│   └── index.ts              # 所有共用 TypeScript interface/type（Room、Player、LadderData 等）
+└── index.ts                  # 公開匯出入口
+```
+
+**主要匯出類型：**
+
+| 類型 | 說明 |
+|------|------|
+| `RoomStatus` | `"waiting" \| "running" \| "revealing" \| "finished"` |
+| `Player` | `{ id, nickname, colorIndex, isHost, isOnline, joinedAt, result }` |
+| `LadderData` | `{ seed, seedSource, rowCount, colCount, segments }` |
+| `LadderDataPublic` | `{ rowCount, colCount, segments }`（省略 seed，revealing 狀態使用） |
+| `PathStep` | `{ row, col, direction: "down" \| "left" \| "right" }` |
+| `ResultSlot` | `{ playerIndex, playerId, startCol, endCol, isWinner, path }` |
+| `ResultSlotPublic` | `Omit<ResultSlot, "path">`（REVEAL_ALL payload 使用，符合 64KB 限制） |
+| `Room` | 完整房間物件（含 players, ladder, results, kickedPlayerIds 等） |
+| `ServerEnvelope<T>` | `{ type: WsEventType, ts, payload: T }` |
+| `ClientEnvelope<T>` | `{ type: WsMsgType, ts, payload: T }` |
+
+**Import 規則：**
+- `packages/client` 可 import shared 的全部匯出
+- `packages/server` 可 import shared 的全部匯出
+- `packages/shared` 不得 import client 或 server；不得 import Node.js 內建 I/O 模組（fs、net、http 等）
+- client 與 server 之間無直接 import（透過 WS/HTTP 通訊）
 
 ---
 
-## 5. WebSocket 事件設計
+## §5 Key Algorithms
 
-**連線端點：** `WSS /ws?room={code}&token={sessionToken}`
+### §5.1 Ladder Generation Algorithm
 
-Server Upgrade 階段驗證 JWT token，失敗直接 403。
+**函式：** `packages/shared/src/use-cases/GenerateLadder.ts`
 
-**踢除玩家重連特殊處理：** 若 playerId 在 `kickedPlayerIds` 清單中，WS Upgrade 在 HTTP 101 握手之前關閉，使用 WS close code `4003`（Application-level: Player Kicked），並在關閉前發送 JSON frame `{ type: "PLAYER_KICKED", ts, payload: { code: "PLAYER_KICKED", message: "你已被移出此房間" } }`，讓前端可區分一般認證失敗（403）與被踢（4003）。
-
-### Server → Client
+**核心邏輯：**
 
 ```typescript
-// ROOM_STATE — 房間狀態摘要（玩家加入/離線/踢出/中獎名額變更）
-{ type: "ROOM_STATE", ts, payload: RoomStatePayload }
+export function generateLadder(seedSource: string, N: number): LadderData {
+  const seed = djb2(seedSource);
+  const rng = createMulberry32(seed);
 
-// ROOM_STATE_FULL — WS 連線成功後 unicast 給連線玩家（含 ladder + results + selfPlayerId）；新連線與重連均觸發
-{ type: "ROOM_STATE_FULL", ts, payload: RoomStateFullPayload }
+  const rowCount = Math.min(Math.max(N * 3, 20), 60);
+  const colCount = N;
+  const maxBarsPerRow = Math.max(1, Math.round(N / 4));
 
-// REVEAL_INDEX — 單一玩家路徑揭示
-{ type: "REVEAL_INDEX", ts, payload: RevealIndexPayload }
+  // Bar density — fewer possible positions → lower density to preserve randomness
+  // N=2 has only 1 position; without skipping, every row would be identical
+  const possiblePositions = N - 1;
+  const barDensity = possiblePositions <= 1 ? 0.50
+    : possiblePositions <= 2 ? 0.65
+    : possiblePositions <= 3 ? 0.75
+    : 0.90;
 
-// REVEAL_ALL — 全部（或剩餘全部）揭示完畢
-// NOTE: ResultSlot 含完整 path（N×rowCount PathStep）；N=50, rowCount=60 時
-//   原始 JSON ≈ 50×60×50B ≈ 150KB，超過 maxPayload 64KB。
-//   伺服器須以 REVEAL_ALL 分批廣播或壓縮路徑：
-//   Option A（MVP）：REVEAL_ALL payload 省略 path 欄位（前端以 startCol/endCol/segments 自行重算路徑）
-//   Option B（Post-MVP）：ws.perMessageDeflate: true（ws 內建壓縮，通常 5-10x 壓縮比）
-//   MVP 採 Option A：REVEAL_ALL 只含 results（不含 path），前端以已收到的 ladderData 計算動畫路徑
-{ type: "REVEAL_ALL", ts, payload: RevealAllPayload }
-// REVEAL_INDEX 仍含完整 ResultSlot（含 path，單一玩家，資料量小）；REVEAL_ALL 省略 path 以符合 64KB 限制
+  const segments: LadderSegment[] = [];
 
-// PLAYER_KICKED — unicast 給被踢玩家（若仍在線）；其他玩家透過後續 ROOM_STATE 廣播得知名單變更
-{ type: "PLAYER_KICKED", ts, payload: { kickedPlayerId: string, reason: string } }
+  for (let row = 0; row < rowCount; row++) {
+    if (rng() > barDensity) continue;           // skip row if rng > barDensity
 
-// SESSION_REPLACED — 同一 playerId 從新裝置登入，發給被替換的舊連線
-{ type: "SESSION_REPLACED", ts, payload: { message: string } }
+    const usedCols = new Set<number>();
+    let barsPlaced = 0;
 
-// HOST_TRANSFERRED — 房主 60s 斷線後自動移交給下一位在線玩家
-{ type: "HOST_TRANSFERRED", ts, payload: HostTransferredPayload }
+    for (let attempt = 0; attempt < maxBarsPerRow; attempt++) {
+      let col = Math.floor(rng() * (N - 1));
 
-// PONG — 回應客戶端 PING（unicast，PRD AC-P02-2 ping timeout ≤ 30s 偵測機制）
-// 伺服器 ws 實作：使用 ws 內建 ping/pong（RFC 6455 control frame）偵測連線活性（間隔 30s）
-// 應用層 PING/PONG：額外提供 RTT 量測用途，非心跳主路徑
-{ type: "PONG", ts, payload: { ts: number } }  // payload.ts = echo of client's PING ts for RTT calc
+      // Retry: linear scan up to N-1 attempts to find a free column
+      let found = false;
+      for (let retry = 0; retry < N - 1; retry++) {
+        const candidate = (col + retry) % (N - 1);
+        if (!usedCols.has(candidate) && !usedCols.has(candidate + 1)) {
+          col = candidate;
+          found = true;
+          break;
+        }
+      }
 
-// ERROR — 操作失敗（僅 unicast 給觸發方）
-{ type: "ERROR", ts, payload: ErrorPayload }
-```
+      if (!found) break;
 
-### Client → Server
+      usedCols.add(col);
+      usedCols.add(col + 1);
+      segments.push({ row, col });
+      barsPlaced++;
+      if (barsPlaced >= maxBarsPerRow) break;
+    }
+  }
 
-// 注意：遊戲控制操作（START_GAME、BEGIN_REVEAL、END_GAME、PLAY_AGAIN）
-// 同時支援 WS 訊息（即時）和 HTTP REST（向後相容；HTTP 路由觸發同樣的 GameService 方法）。
-// 前端主要使用 WS 路徑；HTTP 路徑供 CLI/工具使用或 WS 不可用時降級。
-```typescript
-{ type: "START_GAME", ts, payload: {} }
-{ type: "BEGIN_REVEAL", ts, payload: {} }
-
-// REVEAL_NEXT — 手動模式逐一揭示；伺服器以 revealedCount 決定 index，payload 不含 index
-{ type: "REVEAL_NEXT", ts, payload: {} }
-
-// REVEAL_ALL_TRIGGER — 一鍵全揭；伺服器廣播 REVEAL_ALL 含所有剩餘路徑
-// 處理邏輯：server 原子設定 revealedCount = totalCount（SET，非 INCR）後廣播 REVEAL_ALL
-{ type: "REVEAL_ALL_TRIGGER", ts, payload: {} }
-
-// SET_REVEAL_MODE — 切換手動/自動揭示模式（揭示中可隨時切換）
-// mode="auto" 時 intervalSec 必填（正整數 1-30）；缺少或不合法回傳 INVALID_AUTO_REVEAL_INTERVAL（PRD AC-H05-3）
-// mode="manual" 時 intervalSec 忽略
-{ type: "SET_REVEAL_MODE", ts, payload: { mode: "manual"; intervalSec?: never } | { mode: "auto"; intervalSec: number } }
-
-// END_GAME — Host only, revealing state only; all paths must be revealed (revealedCount === totalCount)
-// Transitions revealing→finished; broadcasts ROOM_STATE { status: finished, seed, results }
-// Seed is exposed to clients only at this point (PRD AC-H04-4, FR-04-4)
-{ type: "END_GAME", ts, payload: {} }
-
-// PLAY_AGAIN — Host only, finished state only; re-initializes room (replaces RESET_ROOM)
-// Prunes isOnline=false players, clears kickedPlayerIds, resets all game fields → waiting
-{ type: "PLAY_AGAIN", ts, payload: {} }
-
-{ type: "KICK_PLAYER", ts, payload: { targetPlayerId: string } }
-// PING — 應用層心跳；伺服器回 PONG { ts: echo }；WS 傳輸層心跳由 ws 內建 ping/pong（間隔 30s）處理
-{ type: "PING", ts, payload: {} }
-
-// UPDATE_WINNER_COUNT — Host only, waiting 狀態限定
-// 驗證：1 ≤ winnerCount ≤ playerCount-1（playerCount 含 isOnline=false）
-// 失敗：INVALID_PRIZES_COUNT（範圍不合法）或 UPDATE_WINNER_COUNT_NOT_ALLOWED_IN_STATE（非 waiting）
-// 成功：廣播 ROOM_STATE（含更新後 winnerCount）
-{ type: "UPDATE_WINNER_COUNT", ts, payload: { winnerCount: number } }
-
-// UPDATE_TITLE — Host only, waiting 狀態限定
-// 驗證：title 為 0-50 字元（空字串代表清除）；非 waiting 回傳 TITLE_UPDATE_NOT_ALLOWED_IN_STATE
-// 成功：廣播 ROOM_STATE（含更新後 title）
-{ type: "UPDATE_TITLE", ts, payload: { title: string } }
-```
-
-### Pub/Sub 跨 Pod 廣播
-
-```typescript
-interface PubSubMessage {
-  readonly roomCode: string;
-  readonly event: WsEnvelope<unknown>;
-  readonly excludeSessionId?: string;
+  return { seed, seedSource, rowCount, colCount, segments };
 }
 ```
 
-每 Pod SUBSCRIBE `room:*:events`；任一 Pod PUBLISH → 所有 Pod 對同房間 WsSession 廣播。
+**關鍵參數：**
 
----
+| 參數 | 公式 | 說明 |
+|------|------|------|
+| `rowCount` | `clamp(N×3, 20, 60)` | N=2→20，N=10→30，N=21→60（最小 20，最大 60） |
+| `colCount` | = N | 含所有玩家（含 isOnline=false） |
+| `maxBarsPerRow` | `max(1, round(N/4))` | 每 row 最多橫槓數 |
+| `possiblePositions` | N - 1 | 可能的橫槓位置數量 |
+| `barDensity` | N-1=1:0.50, N-1=2:0.65, N-1=3:0.75, N-1≥4:0.90 | 每 row 出現橫槓的機率 |
+| Segment 衝突防護 | `usedCols.has(col) \|\| usedCols.has(col+1)` | 同 row 橫槓不重疊，最多重試 N-1 次 |
 
-## 6. Security 設計（OWASP Top 10）
+**seed 生成：**
+- `seedSource`：`crypto.randomUUID()`（START_GAME 時在 Server 端生成，UUID v4 hex 字串）
+- `seed`：`djb2(seedSource) >>> 0`（轉為 unsigned 32-bit integer）
+- 安全邊界：seed 及完整樓梯資料在 `status=finished` 前禁止傳送給任何客戶端（PRD NFR-05）
 
-| OWASP | 威脅 | 對應措施 |
-|-------|------|---------|
-| A01 Broken Access Control | 非 host 操作 | JWT HS256 驗證（`jose` 庫），payload: `{ playerId, roomCode, role: "host" \| "player", exp }`；`role` 欄位區分 host 與 player（建立房間時 role="host"，加入房間時 role="player"）；非 host 發送 host-only 操作 → ERROR AUTH_NOT_HOST；雙重驗證：JWT role="host" AND Redis room.hostId === playerId（防止 JWT 偽造或 host 轉移後舊 token 濫用） |
-| A02 Cryptographic Failures | 弱加密 | JWT HS256（標準 RFC 7519）；Redis TLS；Nginx HTTPS + HSTS max-age=31536000 |
-| A03 Injection | 輸入注入 | Fastify JSON Schema AJV 驗證；nickname AJV `pattern: "^[^\x00-\x1F\x7F]{1,20}$"`（禁 null/控制字元，非 DOMPurify）；roomCode 正則 `[A-HJ-NP-Z2-9]{6}` |
-| A04 Insecure Design | WS 訊息洪泛 | `ws` Server `maxPayload: 65536`（64KB，PRD NFR-05）；per-connection rate limit 60 msg/min，超限 WS close code 4029；host-only 操作雙重驗證（JWT role + Redis room.hostId 比對） |
-| A05 Security Misconfiguration | 過度曝露 | 隱藏 Server header；CSP `default-src 'self' connect-src wss://domain`；k8s runAsNonRoot readOnlyRootFilesystem；GET /rooms/:code 僅回傳 RoomSummaryPayload（不含 hostId/prizes） |
-| A06 Vulnerable Components | 舊依賴 | npm audit --audit-level=high 阻斷 PR；Dependabot 週更新；Distroless image 月重建 |
-| A07 Authentication Failures | 重複連線/踢除者重連 | 同 playerId 新連線觸發 SESSION_REPLACED 舊連線強制關閉；kickedPlayerIds 在 WS Upgrade 階段攔截（close 4003） |
-| A08 Software Integrity | Supply chain | CI Docker image SHA256 digest 引用；npm ci lockfile；actions pinned SHA |
-| A09 Logging Failures | 無可觀測性 | pino structured log（schema: `{ roomCode, playerId, wsSessionId, eventType, durationMs, errorCode }`）；fluent-bit DaemonSet 集中 log；HTTP 5xx > 1%/5min 觸發告警；WS ERROR > 0.1%/1min 告警；Redis 失敗 > 0/30s 告警 |
-| A10 SSRF | 外部 HTTP 請求 | 後端零 outbound HTTP；connect-src CSP 限制瀏覽器端 |
+### §5.2 Path Calculation Algorithm
 
----
+**函式：** `packages/shared/src/use-cases/ComputeResults.ts`
 
-## 7. PRNG 算法設計
-
-### 7.1 djb2 Hash
+從頂部追蹤到底部，遇到橫槓段（segment）則切換欄位：
 
 ```typescript
-// packages/shared/src/prng/djb2.ts
+for (let startCol = 0; startCol < colCount; startCol++) {
+  let col = startCol;
+  const path: PathStep[] = [];
+  for (let row = 0; row < rowCount; row++) {
+    if (segmentSet.has(`${row}:${col}`)) {
+      path.push({ row, col, direction: "right" });  // 右側有橫槓 → 向右
+      col++;
+    } else if (col > 0 && segmentSet.has(`${row}:${col - 1}`)) {
+      path.push({ row, col, direction: "left" });   // 左側有橫槓 → 向左
+      col--;
+    } else {
+      path.push({ row, col, direction: "down" });   // 無橫槓 → 向下
+    }
+  }
+  paths.push(path);
+  endCols.push(col);
+}
+```
+
+**中獎指派（Fisher-Yates bijection）：**
+
+```typescript
+// Step 3: Fisher-Yates 洗牌決定哪些 endCol 為中獎（消耗 colCount 次 rng）
+const indices = Array.from({ length: colCount }, (_, i) => i);
+const shuffled = fisherYatesShuffle(indices, rng);
+const winnerEndCols = new Set(shuffled.slice(0, winnerCount));
+```
+
+- **bijection 保證**：N 個起點對應 N 個唯一終點，無共用 endCol
+- **startColumn 指派**：玩家依 `joinedAt` 由早到晚排序（相同時以 `playerId` 字典序升冪），依序指派打亂後的 startColumn
+
+### §5.3 Canvas Rendering
+
+**函式：** `packages/client/src/canvas/renderer.ts`
+
+**繪製流程（drawLadder）：**
+
+1. **Rails（垂直柱）**：從頂到底繪製每條垂直線（N 條）
+2. **Rungs（橫段）**：依 `segments[]` 繪製所有橫槓（連接 col 與 col+1）
+3. **Revealed paths（已揭曉路徑）**：依 `PathStep[]` 逐格繪製走線動畫
+   - 自己的路徑：高亮色（每人一色）
+   - 他人路徑：對應色，`globalAlpha=0.6`（半透明）
+   - 未揭曉路徑：灰色虛線
+4. **Player names（玩家名稱）**：頂部各列顯示玩家暱稱
+5. **Winner stars（中獎標記）**：中獎者 `shadowBlur=10` 金色光暈效果
+
+**顏色系統（`packages/client/src/canvas/colors.ts`）：**
+- `colorFromIndex(i)`：每位玩家一個不重複色（最多 50 色）
+- `colorFromIndexDim(i)`：淡化版（他人路徑，`globalAlpha=0.6`）
+
+**FPS 目標：**
+- 桌機（1080p Chrome）：≥ 30fps
+- 手機（Chrome DevTools Moto G4 throttling，10 秒平均）：≥ 24fps
+
+**PRNG 實作（djb2 + Mulberry32 + Fisher-Yates）：**
+
+```typescript
+// djb2 hash
 export function djb2(str: string): number {
   let hash = 5381;
   for (let i = 0; i < str.length; i++) {
     hash = (Math.imul(hash, 33) + str.charCodeAt(i)) | 0;
   }
-  return hash >>> 0; // unsigned 32-bit
+  return hash >>> 0;
 }
-// seedSource: UUID v4 hex string generated with `crypto.randomUUID()` at START_GAME time
-// seed = djb2(seedSource) >>> 0
-// seedSource stored in LadderData for independent result auditability (PRD FR-03-1)
-```
 
-### 7.2 Mulberry32
-
-```typescript
-// packages/shared/src/prng/mulberry32.ts
+// Mulberry32 PRNG
 export function createMulberry32(seed: number): () => number {
   let s = seed >>> 0;
   return function next(): number {
@@ -698,12 +545,8 @@ export function createMulberry32(seed: number): () => number {
     return ((t ^ (t >>> 14)) >>> 0) / 0x100000000;
   };
 }
-```
 
-### 7.3 Fisher-Yates
-
-```typescript
-// packages/shared/src/prng/fisherYates.ts
+// Fisher-Yates shuffle
 export function fisherYatesShuffle<T>(arr: readonly T[], rng: () => number): T[] {
   const result = [...arr];
   for (let i = result.length - 1; i > 0; i--) {
@@ -714,330 +557,449 @@ export function fisherYatesShuffle<T>(arr: readonly T[], rng: () => number): T[]
 }
 ```
 
-### 7.4 梯子生成
+---
+
+## §6 WebSocket Protocol
+
+### §6.1 Message Types
+
+**連線端點：** `WSS /ws?room={code}&token={sessionToken}`
+
+Server Upgrade 階段驗證 JWT token，失敗直接 403。
+
+**Server → Client 事件（WsEventType）：**
+
+| 事件 | 觸發時機 | 說明 |
+|------|---------|------|
+| `ROOM_STATE` | 房間狀態變更 | 廣播至所有玩家（摘要，不含 ladder/results） |
+| `ROOM_STATE_FULL` | WS 連線成功後 unicast | 含 ladder + results + selfPlayerId；新連線與重連均觸發 |
+| `REVEAL_INDEX` | 手動/自動揭曉單一玩家 | `{ playerIndex, result（含 path）, revealedCount, totalCount }` |
+| `REVEAL_ALL` | 一鍵全揭 | `{ results: ResultSlotPublic[], room }`（省略 path，符合 64KB 限制） |
+| `PLAYER_KICKED` | 玩家被踢除 | unicast 給被踢玩家；WS close code 4003 |
+| `SESSION_REPLACED` | 同一 playerId 新連線登入 | 發給被替換的舊連線 |
+| `HOST_TRANSFERRED` | 主持人轉移（Post-MVP） | 廣播新 hostId |
+| `ERROR` | 操作失敗 | `{ code, message }`；unicast 給觸發方 |
+
+**Client → Server 訊息（WsMsgType）：**
+
+| 訊息 | 說明 |
+|------|------|
+| `START_GAME` | Host 開始遊戲（waiting→running） |
+| `BEGIN_REVEAL` | Host 開始揭曉（running→revealing） |
+| `REVEAL_NEXT` | Host 手動揭曉下一位 |
+| `REVEAL_ALL_TRIGGER` | Host 一鍵全揭 |
+| `SET_REVEAL_MODE` | 切換手動/自動模式；auto 時 intervalSec 必填（1-300 整數） |
+| `END_GAME` | Host 結束本局（revealing→finished，需 revealedCount===totalCount） |
+| `PLAY_AGAIN` | Host 再玩一局（finished→waiting） |
+| `RESET_ROOM` | Host 重置房間（任意狀態，清空結果回 waiting） |
+| `KICK_PLAYER` | Host 踢除玩家；payload: `{ targetPlayerId }` |
+| `PING` | 應用層心跳（Server 不回 PONG，僅維持連線） |
+
+**訊息格式：**
 
 ```typescript
-// packages/shared/src/use-cases/GenerateLadder.ts
-export function generateLadder(seedSource: string, N: number): LadderData {
-  const seed = djb2(seedSource);
-  const rng = createMulberry32(seed);
-  const rowCount = Math.min(Math.max(N * 3, 20), 60);
-  const colCount = N;
-  const maxBarsPerRow = Math.max(1, Math.round(N / 4));
-  const segments: LadderSegment[] = [];
+// Server → Client
+interface ServerEnvelope<T = unknown> {
+  readonly type: WsEventType;
+  readonly ts: number;
+  readonly payload: T;
+}
 
-  for (let row = 0; row < rowCount; row++) {
-    const usedCols = new Set<number>();
-    const attempts = Math.floor(rng() * maxBarsPerRow) + 1;
-    for (let b = 0; b < attempts; b++) {
-      let col = Math.floor(rng() * (colCount - 1));
-      let retry = 0;
-      while ((usedCols.has(col) || usedCols.has(col + 1)) && retry < colCount * 10) {
-        col = (col + 1) % (colCount - 1);
-        retry++;
-      }
-      // retry limit = N×10 (PRD FR-03-2: 每條橫槓最多嘗試 N×10 次)
-      if (!usedCols.has(col) && !usedCols.has(col + 1)) {
-        usedCols.add(col);
-        usedCols.add(col + 1);
-        segments.push({ row, col });
-      }
-    }
-  }
-  return { seed, seedSource, rowCount, colCount, segments };
+// Client → Server
+interface ClientEnvelope<T = unknown> {
+  readonly type: WsMsgType;
+  readonly ts: number;
+  readonly payload: T;
 }
 ```
 
-### 7.5 ComputeResults — 路徑追蹤與 Fisher-Yates 中獎指派
+**安全限制：**
+- `maxPayload: 65536`（64KB），超過則拒絕並關閉連線（PRD NFR-05）
+- 速率限制：60 msg/min/連線，超限 WS close code 4029
+
+### §6.2 Connection Lifecycle
+
+```
+connect
+  → JWT 驗證（main.ts ws.Server upgrade handler）
+  → kickedPlayerIds 攔截（close 4003 if kicked）
+  → Origin 驗證（CORS_ORIGIN 白名單）
+  → WS session 建立（roomSessions map）
+  → unicast ROOM_STATE_FULL
+
+game loop
+  JOIN_ROOM → ROOM_STATE（廣播）
+  START_GAME → ROOM_STATE（running）
+  BEGIN_REVEAL → ROOM_STATE（revealing）
+  REVEAL_NEXT / auto-timer → REVEAL_INDEX（廣播）
+  REVEAL_ALL_TRIGGER → REVEAL_ALL（廣播）
+  END_GAME → ROOM_STATE（finished，seed 公開）
+
+disconnect handling
+  ws close event → player.isOnline = false → 廣播 ROOM_STATE
+  60s grace period → HOST_TRANSFERRED（Post-MVP）
+  最後一位斷線 5 分鐘 → EXPIRE room:{code} 300
+
+reconnect
+  帶 playerId → ROOM_STATE_FULL（狀態快照）
+  同一 playerId 新連線 → SESSION_REPLACED 至舊連線
+  kickedPlayerId → close 4003
+
+WS 重連策略（Client）
+  指數退避：1s / 2s / 4s / 8s / 30s（上限）
+  5 次失敗後停止，顯示「無法連線」+ 手動重試按鈕
+```
+
+---
+
+## §7 Data Models
+
+### §7.1 Redis Key Schema
+
+| Redis Key | 類型 | 內容 | TTL |
+|-----------|------|------|-----|
+| `room:{code}` | String（JSON） | Room 完整物件 | waiting/running: 24h；finished: 1h；最後一人斷線: 5min |
+| `room:{code}:ladder` | String（JSON） | LadderData（含 seed、seedSource、segments、results）；BEGIN_REVEAL 時才創建 | 同 room:{code} |
+| `room:{code}:revealedCount` | Integer | INCR 原子遞增，唯一計數真相來源 | 同 room:{code} |
+
+### §7.2 Room Object
 
 ```typescript
-// packages/shared/src/use-cases/ComputeResults.ts
-// PRD FR-03-3: bijection（N 起點對應 N 唯一終點）+ Fisher-Yates 指派 W 個中獎槽
-export function computeResults(ladder: LadderData, winnerCount: number, rng: () => number): ResultSlot[] {
-  const { rowCount, colCount, segments } = ladder;
-
-  // Step 1: 建立 segment lookup（row→cols 有橫槓）
-  const segmentSet = new Set(segments.map(s => `${s.row}:${s.col}`));
-
-  // Step 2: 追蹤每個起始欄的路徑（bijection 保證 endCol 唯一）
-  const paths: PathStep[][] = [];
-  const endCols: number[] = [];
-
-  for (let startCol = 0; startCol < colCount; startCol++) {
-    let col = startCol;
-    const path: PathStep[] = [];
-    for (let row = 0; row < rowCount; row++) {
-      // 判斷向左或向右移動（橫槓優先向右，被左側橫槓勾走向左）
-      if (segmentSet.has(`${row}:${col}`)) {
-        path.push({ row, col, direction: "right" });
-        col++;
-      } else if (col > 0 && segmentSet.has(`${row}:${col - 1}`)) {
-        path.push({ row, col, direction: "left" });
-        col--;
-      } else {
-        path.push({ row, col, direction: "down" });
-      }
-    }
-    paths.push(path);
-    endCols.push(col);
-  }
-
-  // Step 3: Fisher-Yates 洗牌決定哪些 endCol 為中獎（消耗 N 次 rng，PRD FR-03-3）
-  const indices = Array.from({ length: colCount }, (_, i) => i);
-  const shuffled = fisherYatesShuffle(indices, rng); // 消耗 colCount 次 rng
-  const winnerEndCols = new Set(shuffled.slice(0, winnerCount));
-
-  // Step 4: 組裝 ResultSlot[]
-  return paths.map((path, playerIndex) => ({
-    playerIndex,
-    playerId: "", // 由 Server 在 BEGIN_REVEAL 時填入對應玩家 playerId
-    startCol: playerIndex,
-    endCol: endCols[playerIndex],
-    isWinner: winnerEndCols.has(endCols[playerIndex]),
-    path,
-  }));
+interface Room {
+  code: string;                          // 6-char room code
+  status: RoomStatus;                    // waiting/running/revealing/finished
+  hostId: string;                        // Host playerId
+  readonly players: readonly Player[];   // max 50，含 isOnline=false 的斷線玩家
+  winnerCount: number | null;            // W（1 <= W <= N-1）；null 直到 Host 設定
+  ladder: LadderData | null;             // null 直到 BEGIN_REVEAL
+  results: readonly ResultSlot[] | null;
+  revealedCount: number;                 // 已揭曉數（快照；唯一計數來源為 :revealedCount key）
+  revealMode: "manual" | "auto";
+  autoRevealIntervalSec: number | null;  // 1-300s；null 為手動模式
+  readonly kickedPlayerIds: readonly string[];  // 本局被踢玩家 playerId，RESET_ROOM/PLAY_AGAIN 後清空
+  createdAt: number;
+  updatedAt: number;
 }
 ```
 
-> **注意**：`computeResults` 在 `packages/shared` 中為純函式（零 I/O），
-> Server 端 GameService 於 START_GAME 時呼叫（與 generateLadder 原子合一），並填入 `playerId`（依 players 陣列順序）；BEGIN_REVEAL 時不重新呼叫，ladder 及 results 已存於 Redis。
+### §7.3 Player Object
 
-### 7.6 測試策略
+```typescript
+interface Player {
+  id: string;              // UUID v4
+  nickname: string;        // 1-20 chars
+  colorIndex: number;      // 0-49
+  isHost: boolean;         // 派生：id === room.hostId
+  isOnline: boolean;
+  joinedAt: number;        // Unix ms
+  result?: string | null;  // null 直到揭曉；winner/loser 字串由 GameService 寫入
+}
+```
 
-| 類型 | 覆蓋 |
-|------|------|
-| Unit | djb2 已知輸入輸出；Mulberry32 序列可重現；Fisher-Yates 無元素遺失 |
-| Property-based | 同 row 無重疊橫槓；所有玩家路徑不共享 endCol（bijection） |
-| Determinism | 相同 seed+N 兩次呼叫輸出完全一致（snapshot test） |
-| Edge | N=2, N=50, seed=0, seed=0xFFFFFFFF；rowCount 三邊界值 |
+### §7.4 Game State 生命週期
+
+```mermaid
+stateDiagram-v2
+    [*] --> waiting : POST /api/rooms 建立
+
+    waiting --> waiting : player_joined / player_left / host updates prizes
+    waiting --> running : host START_GAME\nN>=2 AND 1<=W<=N-1\n原子: seed生成（不含梯子）
+
+    running --> revealing : host BEGIN_REVEAL\n此時原子生成 LadderData + ResultSlots\nbcast ROOM_STATE status:revealing
+
+    revealing --> revealing : REVEAL_NEXT（手動）/ auto-timer（自動）\nrevealedCount < N\nbcast REVEAL_INDEX path result
+    revealing --> revealing : SET_REVEAL_MODE 切換手動↔自動
+    revealing --> revealing : REVEAL_ALL_TRIGGER\nbcast REVEAL_ALL（剩餘路徑）
+
+    revealing --> finished : host END_GAME\n（revealedCount === totalCount）\nbcast ROOM_STATE status:finished 含 seed\nTTL 延長 1h
+
+    finished --> waiting : host PLAY_AGAIN\n剔除 isOnline=false 玩家\n清空 kickedPlayerIds\nbcast ROOM_STATE waiting
+
+    waiting --> waiting : host RESET_ROOM（任意狀態可觸發）\n清空結果與 kickedPlayerIds\nbcast ROOM_STATE waiting
+    running --> waiting : host RESET_ROOM
+    revealing --> waiting : host RESET_ROOM
+    finished --> waiting : host RESET_ROOM
+
+    waiting --> [*] : room TTL expired
+    running --> [*] : all disconnected 5 min
+    finished --> [*] : room TTL expired 1h
+```
 
 ---
 
-## 8. BDD 設計
+## §8 API Design Overview
 
-Feature 檔案位於 `packages/server/test/features/`，工具：`@cucumber/cucumber` TypeScript。
+### §8.1 HTTP REST Endpoints
 
-```gherkin
-Feature: 房間生命週期
+所有端點掛載於 `/api/`（無版本前綴），回應格式為直接 JSON（無 success/data/error 包裝）。
 
-  @AC-ROOM-001
-  Scenario: 成功建立房間
-    When 玩家 "Alice" 發送 POST /api/rooms 帶 hostNickname="Alice", winnerCount=1
-    Then 回應狀態碼為 201
-    And 回應包含 6 碼 roomCode（字元集 ABCDEFGHJKLMNPQRSTUVWXYZ23456789）
-    And 回應包含 playerId（UUID v4）及 sessionToken（JWT）
-    And Redis 中存在 key "room:{roomCode}"
+JWT TTL：**6 小時**（`exp = iat + 21600`）。
 
-  @AC-GAME-001
-  Scenario: N < 2 時開始遊戲失敗
-    Given 房間僅有 Host 一人
-    When 房主送出 START_GAME
-    Then WS ERROR { code: "INSUFFICIENT_PLAYERS" }
+| Method | Path | 描述 | 成功碼 | 主要錯誤碼 |
+|--------|------|------|--------|-----------|
+| `POST` | `/api/rooms` | 建立房間（hostNickname, winnerCount）；回傳 `{ roomCode, playerId, token, room }` | 201 | 400 VALIDATION_ERROR, 409 |
+| `GET` | `/api/rooms/:code` | 查詢房間公開摘要（unauthenticated）；回傳 `{ code, status, playerCount, onlineCount, maxPlayers }` | 200 | 404 ROOM_NOT_FOUND |
+| `POST` | `/api/rooms/:code/players` | 加入房間（nickname）；回傳 `{ playerId, token, room }` | 201 | 400/404/409 |
+| `DELETE` | `/api/rooms/:code/players/:playerId` | 踢出玩家（需 Authorization token） | 204 | 401/403/404 |
+| `POST` | `/api/rooms/:code/game/start` | 開始遊戲（需 token） | 200 | 400/401/409 |
+| `POST` | `/api/rooms/:code/game/reveal` | 揭曉（需 token）；body: `{ mode: "next" \| "all" }` | 200 | 400/401/409 |
+| `POST` | `/api/rooms/:code/game/reset` | 重置房間回 waiting（需 token，任意狀態可用） | 200 | 401/403/409 |
+| `POST` | `/api/rooms/:code/game/end` | 結束本局（需 token；revealing 狀態，所有路徑已揭曉） | 200 | 401/403/409 |
+| `POST` | `/api/rooms/:code/game/play-again` | 再玩一局（需 token；finished 狀態限定） | 200 | 401/403/409 |
+| `GET` | `/health` | 健康檢查（liveness）；回傳 `{ status, redis, wsCount, uptime }` | 200 | — |
+| `GET` | `/ready` | 就緒檢查（readiness）；Redis 失敗時回傳 503 | 200 | 503 |
 
-  @AC-GAME-003
-  Scenario: rowCount 邊界驗證
-    Given 房間有 3 位玩家（N=3）
-    When 房主成功開始遊戲
-    Then ladder.rowCount 等於 20（clamp(9, 20, 60)）
+**Rate Limiting：**
+- 全域：100 req/min/IP（`@fastify/rate-limit` 全域套用）
 
-  @AC-REVEAL-001
-  Scenario: 逐一揭示至 END_GAME
-    Given 房間狀態為 revealing，N=2
-    When 房主送出 REVEAL_NEXT {}
-    Then 所有玩家收到 REVEAL_INDEX { playerIndex: 0, revealedCount: 1, totalCount: 2 }
-    When 房主送出 REVEAL_NEXT {}
-    Then 所有玩家收到 REVEAL_INDEX { playerIndex: 1, revealedCount: 2, totalCount: 2 }
-    When 房主送出 END_GAME
-    Then 所有玩家收到 ROOM_STATE { status: finished, seed, results[] }
-    And 房間狀態為 finished
+### §8.2 Authentication
 
-  @AC-REVEAL-002
-  Scenario: REVEAL_ALL_TRIGGER 後 END_GAME 完成局次
-    Given 房間狀態為 revealing，N=3，revealedCount=1
-    When 房主送出 REVEAL_ALL_TRIGGER
-    Then 所有玩家收到 REVEAL_ALL（含剩餘 2 條路徑）
-    And 房間狀態仍為 revealing（等待 END_GAME）
-    When 房主送出 END_GAME
-    Then 所有玩家收到 ROOM_STATE { status: finished, seed }
-
-  @AC-SECURITY-001
-  Scenario: 再玩一局後 kickedPlayerIds 清空
-    Given 玩家 "Bob" 在上局被踢除
-    When 房主送出 PLAY_AGAIN
-    Then Bob 可使用任意暱稱以新 playerId 重新加入新局
-```
-
-PRD AC → Gherkin Tag 對應表：
-
-| PRD AC | Tag | Feature File |
-|--------|-----|--------------|
-| AC-H01 建立房間 | @AC-ROOM-001 | room-lifecycle.feature |
-| AC-H03-2 W未設定 | @AC-GAME-002 | game-flow.feature |
-| AC-H03-4 N<2 | @AC-GAME-001 | game-flow.feature |
-| AC-H03-5 rowCount | @AC-GAME-003 | game-flow.feature |
-| AC-H05 自動揭示 | @AC-AUTO-001 | reveal-flow.feature |
-| AC-H06 一鍵全揭 | @AC-AUTO-002 | reveal-flow.feature |
-| AC-H07-3 狀態拒踢 | @AC-KICK-001 | host-actions.feature |
-| AC-H07-4/5 kickedPlayerIds | @AC-SECURITY-001 | host-actions.feature |
-| AC-H08-1/3 PLAY_AGAIN | @AC-RESET-001 | host-actions.feature |
-| AC-P04 揭示結果 | @AC-REVEAL-001 | reveal-flow.feature |
-| AC-H06-2 REVEAL_ALL+END_GAME | @AC-REVEAL-002 | reveal-flow.feature |
-| PRNG 一致性 | @AC-PRNG-001 | prng.feature |
+- **JWT HS256**（`jose` 套件），payload：`{ playerId, roomCode, role: "host" | "player", exp }`
+- Host 操作雙重驗證：JWT `role=host` AND Redis `room.hostId === playerId`（防止 token 偽造或 host 轉移後舊 token 濫用）
+- WS Upgrade：JWT 驗證在 `main.ts` 的 `ws.Server` upgrade handler 完成；WS 連線建立後不重驗 exp（MVP 接受的安全取捨）
 
 ---
 
-## 9. TDD 設計（測試金字塔）
+## §9 Performance Design
 
-### 9.1 Unit Tests（70%）— Vitest
+### §9.1 Redis Usage
 
-| 模組 | 重點 |
-|------|------|
-| djb2 | 已知輸入輸出，空字串，長字串 |
-| mulberry32 | 序列可重現，範圍 [0,1) |
-| fisherYates | 元素完整性，長度不變 |
-| generateLadder | rowCount clamp，同 row 無重疊 |
-| validateGameStart | N<2, W=0, W>=N, W=N-1 |
-| computeResults | 路徑唯一性，endCol 覆蓋所有 prize |
-| RoomRepository | Mock RedisClient，CRUD |
-| GameService | Mock IRoomRepository |
-| HTTP Schemas | AJV valid/invalid |
+| 操作 | Redis 命令 | 用途 |
+|------|-----------|------|
+| 房間建立 | SETNX（原子） | 確保 Room Code 唯一性 |
+| 狀態讀取 | GET `room:{code}` | 取得完整 Room JSON |
+| 狀態更新 | WATCH + MULTI/EXEC | 樂觀鎖，防 concurrent update |
+| BEGIN_REVEAL | Lua Script | 原子寫入 ladder/results/status=revealing |
+| revealedCount 遞增 | INCR `room:{code}:revealedCount` | 原子計數，防 race condition |
+| 跨 Pod 廣播 | PUBLISH/PSUBSCRIBE `room:*:events` | at-most-once 廣播語意 |
+| Room Code 唯一性重試 | 最多 10 次，超過回傳 ROOM_CODE_GENERATION_FAILED | — |
 
-覆蓋率目標：shared ≥ 90%；server application/domain ≥ 80%；client（Canvas 渲染邏輯、WS 事件解析）≥ 70%（PRD NFR-07）
+**TTL 策略：**
 
-### 9.2 Integration Tests（20%）— testcontainers
+| 房間狀態 | TTL |
+|---------|-----|
+| waiting / running | 24h（活動時 EXPIRE 重置） |
+| finished | 1h（END_GAME 後 EXPIRE 更新） |
+| 最後一位玩家斷線 | 5 分鐘（close event 觸發原子 EXPIRE 300） |
 
-- RoomRepository 對真實 Redis CRUD、TTL、原子 INCR
-- Pub/Sub：PUBLISH/SUBSCRIBE 跨 handler 傳遞
-- Fastify 路由：supertest HTTP 請求
-- WS 連線建立、認證失敗（403）、ROOM_STATE_FULL 接收
-
-### 9.3 E2E Tests（10%）— Playwright
-
-1. 完整流程（2 玩家）：建立 → 加入 → 開始 → 揭示 → 結束
-2. 踢除玩家：被踢者收到 PLAYER_KICKED
-3. 斷線重連：WS 重連後收到 ROOM_STATE_FULL
-4. 50 人上限：第 51 人嘗試加入回傳 409
-
----
-
-## 10. SCALE 設計
-
-> **MVP 部署說明（PRD Out of Scope #9）：** MVP 以單一 Node.js 實例部署，不啟用 HPA 及多 Pod。Redis 以單節點模式運行（不啟用 Sentinel/Cluster）。下方容量設計以 PRD NFR-02 的「100 並發房間 × 50 人 = 5,000 WS 連線」為目標。多 Pod、Redis HA 設計預留於此文件供 Post-MVP 擴展使用。
-
-### 10.1 容量估算（MVP 目標）
-
-| 參數 | MVP 目標 | Post-MVP 目標 |
-|------|----------|--------------|
-| 最大玩家/房間 | 50 | 50 |
-| 目標同時上線房間 | 100 | 200 |
-| 目標同時 WS 連線 | **5,000**（PRD NFR-02）| 10,000 |
-| 峰值 HTTP QPS | 250 | 500 |
-| 峰值 WS 訊息 QPS | 1,000 msg/s | 2,000 msg/s |
-
-### 10.2 QPS 推算
-
-```
-// 基準：PRD NFR-02 = 100 並發房間 × 50 人 = 5,000 WS 連線（MVP 目標）
-加入房間高峰（前 5 分鐘）：
-  100 房 × 50 人 / 300s ≈ 17 QPS
-
-WebSocket 廣播（揭示階段）：
-  100 房 × 1 揭示/s × 50 人 = 5,000 WS 發送/s
-
-Redis 操作：
-  GET/SET: 250 ops/s
-  PUBLISH: 100 ops/s
-  INCR: 100 ops/s
-  總計 < 500 ops/s（Redis 可承受 100k+ ops/s）
-```
-
-### 10.3 HPA 規則
-
-```yaml
-minReplicas: 2
-maxReplicas: 10
-metrics:
-  - custom/ws_active_connections: target averageValue 200
-  - cpu: target 70%
-scaleUp: stabilizationWindow 30s, +2 Pods/60s
-scaleDown: stabilizationWindow 300s
-Pod resources: req {cpu: 250m, mem: 256Mi} / limits {cpu: 1000m, mem: 512Mi}
-```
-
-### 10.4 Redis 記憶體估算
+**Redis 記憶體估算（100 並發房間）：**
 
 ```
 單房間：
   Room JSON (50 players × 200 bytes)  ~10 KB
-  Ladder data (N=50, 600 segments)    ~5 KB
+  Ladder data (N=50, ~600 segments)   ~5 KB
   Results (50 players × 120 steps)    ~72 KB
   小計                                ~90 KB
 
-200 房間：200 × 90 KB = 18 MB
-Pub/Sub overhead: ~2 MB
-System overhead: ~50 MB
-總計 < 100 MB（maxmemory: 512mb）
+100 房間：100 × 90 KB = 9 MB
+Pub/Sub overhead: ~1 MB
+總計 ~10 MB（maxmemory: 512mb 配置）
 ```
 
-### 10.5 分散式計時器與 Pod 崩潰恢復（Post-MVP 注意事項）
+### §9.2 WebSocket Scaling
 
-**MVP（單 Pod）：** 自動揭示 timer 由 GameService 的 `setInterval` 管理，無需分散式鎖。
+**MVP（單 Pod）：**
+- 目標：100 並發房間 × 50 人 = 5,000 WS 連線
+- 自動揭示 timer 由 `GameService` 的 `setInterval` 管理（Pod 本地記憶體）
+- Redis Pub/Sub 退化為本地自訂閱，overhead 可忽略
 
-**Post-MVP（多 Pod）：** 自動揭示 timer 須以 Redis SETNX 分散式鎖確保僅一個 Pod 持有計時器：
-- `SET room:{code}:auto_timer_lock {podId} EX {intervalSec+2} NX`
-- 持鎖 Pod 定期 EXTEND TTL；Pod 崩潰後 TTL 自然過期，其他 Pod 搶鎖接續
-- 10 秒 Rollback Timeout（§12.4）在多 Pod 環境中須以 Redis key `room:{code}:reveal_watchdog EX 10` 實作，
-  任一 Pod 於 SUBSCRIBE 中偵測 expired key 事件後執行 rollback
+**Post-MVP（HPA 多 Pod）：**
+- Kubernetes HPA：`minReplicas: 2, maxReplicas: 10`，metric: `ws_active_connections` 目標 200
+- Traefik sticky session（cookie affinity）確保同一房間玩家路由至同一 Pod
+- 自動揭示 timer 以 Redis SETNX 分散式鎖確保單一 Pod 持有計時器
+- Redis StatefulSet 升級至 2 replicas（master + replica）
 
-### 10.6 Load Test 門檻（k6）
+**WebSocket QPS 推算：**
 
-| 情境 | 設定 | 通過門檻 |
-|------|------|---------|
-| 一般負載 | 100 WS，5 min | P95 延遲 < 100ms，error < 0.1% |
-| 峰值負載 | 500 WS，2 min ramp | P99 延遲 < 300ms，error < 1% |
-| HTTP 壓力 | 500 QPS join | P95 < 200ms，0 5xx |
-| 大房間廣播 | 1 房 50 人，50 次揭示 | 所有端 1000ms 內收到 REVEAL_ALL |
-| 記憶體洩漏 | 200 房，1h | 記憶體增長 < 50MB/h |
-
-### 10.7 可觀測性指標（Prometheus）
-
-```typescript
-// main.ts — prom-client 初始化
-import { register, Gauge, Counter, Histogram } from 'prom-client';
-
-// WS 連線數（HPA 擴展依據，Post-MVP）
-const wsActiveConnections = new Gauge({
-  name: 'ws_active_connections',
-  help: 'Number of active WebSocket connections',
-});
-
-// HTTP 請求
-const httpRequestDuration = new Histogram({
-  name: 'http_request_duration_ms',
-  help: 'HTTP request duration in milliseconds',
-  labelNames: ['method', 'route', 'status'],
-  buckets: [10, 50, 100, 200, 500, 1000],
-});
-
-// WS ERROR 廣播計數（告警觸發源）
-const wsErrorCount = new Counter({
-  name: 'ws_error_total',
-  help: 'Total WebSocket ERROR events sent',
-  labelNames: ['code'],
-});
-
-// /metrics 掛載於獨立 port（8080，不對外）
-fastify.get('/metrics', async (_, reply) => {
-  reply.header('Content-Type', register.contentType);
-  return register.metrics();
-});
+```
+加入房間高峰（前 5 分鐘）：100 房 × 50 人 / 300s ≈ 17 HTTP QPS
+揭示階段廣播：100 房 × 1 揭示/s × 50 人 = 5,000 WS 發送/s
+Redis 操作：< 500 ops/s（Redis 可承受 100k+ ops/s）
 ```
 
 ---
 
-## 11. CI/CD 設計
+## §10 Security Design
 
-### 11.1 CI Workflow
+### §10.1 OWASP Top 10 對應措施
+
+| OWASP | 威脅 | 對應措施 |
+|-------|------|---------|
+| A01 Broken Access Control | 非 host 操作 | JWT HS256 驗證（jose），role 欄位；雙重驗證（JWT role + Redis room.hostId） |
+| A02 Cryptographic Failures | 弱加密 | JWT HS256（RFC 7519）；Redis TLS；Nginx HTTPS + HSTS max-age=31536000 |
+| A03 Injection | 輸入注入 | Fastify JSON Schema AJV 驗證；nickname AJV pattern `^[^\x00-\x1F\x7F]{1,20}$`；roomCode 正則 `[A-HJ-NP-Z2-9]{6}` |
+| A04 Insecure Design | WS 訊息洪泛 | `ws` maxPayload: 65536（64KB）；per-connection rate limit 60 msg/min，超限 close 4029 |
+| A05 Security Misconfiguration | 過度曝露 | 隱藏 Server header；CSP `default-src 'self' connect-src wss://domain`；k8s runAsNonRoot readOnlyRootFilesystem；GET /rooms/:code 僅回傳 RoomSummaryPayload（不含 hostId） |
+| A06 Vulnerable Components | 舊依賴 | npm audit --audit-level=high 阻斷 PR；Dependabot 週更新；Distroless image 月重建 |
+| A07 Authentication Failures | 重複連線/踢除重連 | 同 playerId 新連線觸發 SESSION_REPLACED；kickedPlayerIds 在 WS Upgrade 階段攔截（close 4003） |
+| A08 Software Integrity | Supply chain | CI Docker image SHA256 digest；npm ci lockfile；actions pinned SHA |
+| A09 Logging Failures | 無可觀測性 | pino structured log；fluent-bit DaemonSet；HTTP 5xx > 1%/5min 告警 |
+| A10 SSRF | 外部 HTTP 請求 | 後端零 outbound HTTP；connect-src CSP 限制瀏覽器端 |
+
+### §10.2 Seed 防洩漏機制
+
+| 狀態 | seed 暴露範圍 |
+|------|-------------|
+| waiting / running | seed 不存在（尚未生成） |
+| revealing | seed 存在於 Redis，但 ROOM_STATE_FULL 以 `LadderDataPublic`（省略 seed）傳送客戶端 |
+| finished | seed 首次對客戶端公開（含於 ROOM_STATE 廣播）；可供事後驗算 |
+
+### §10.3 JWT Security
+
+- Token 有效期：6 小時（`exp = iat + 21600`）
+- WS 連線建立後不重驗 exp（MVP 取捨：房間生命週期通常遠低於 6h）
+- host 轉移後舊 token 仍需以 `room.hostId` 雙重驗證，防舊 token 濫用
+- WS Upgrade 前 Origin 驗證（CORS_ORIGIN 環境變數白名單）
+
+---
+
+## §11 Error Handling Strategy
+
+### §11.1 HTTP 錯誤碼
+
+| 錯誤碼 | HTTP | 說明 |
+|--------|------|------|
+| `ROOM_NOT_FOUND` | 404 | 房間不存在或已過期 |
+| `ROOM_FULL` | 409 | 已達 50 人上限 |
+| `ROOM_NOT_ACCEPTING` | 409 | 房間狀態非 waiting（改用 409，房間可能 reset 後重新接受） |
+| `NICKNAME_TAKEN` | 409 | nickname 重複 |
+| `PLAYER_NOT_FOUND` | 404 | 玩家不存在 |
+| `PLAYER_NOT_HOST` | 403 | 需要房主權限 |
+| `AUTH_INVALID_TOKEN` | 401 | JWT Token 無效 |
+| `AUTH_TOKEN_EXPIRED` | 401 | JWT Token 過期 |
+| `INSUFFICIENT_PLAYERS` | 400 | N < 2（開始遊戲時） |
+| `INSUFFICIENT_ONLINE_PLAYERS` | 400 | 再玩一局時在線玩家 < 2 |
+| `PRIZES_NOT_SET` | 400 | W 尚未設定 |
+| `INVALID_PRIZES_COUNT` | 400 | W < 1 或 W >= N |
+| `INVALID_STATE` | 409 | 操作不符合當前狀態 |
+| `CANNOT_KICK_HOST` | 400 | 踢除操作目標為 Host 本身 |
+| `INVALID_NICKNAME` | 400 | 暱稱格式不合法 |
+| `ROOM_CODE_GENERATION_FAILED` | 500 | Room Code 碰撞重試超過 10 次 |
+| `TITLE_UPDATE_NOT_ALLOWED_IN_STATE` | 409 | 在非 waiting 狀態嘗試更新 title |
+| `INVALID_INTERVAL` | 400 | intervalSec 不為有限數字或超出 1-300 範圍（WS ERROR，非 HTTP） |
+| `SYS_INTERNAL_ERROR` | 500 | 非預期錯誤 |
+| `RATE_LIMIT` | 429 | 超過速率限制 |
+
+### §11.2 WebSocket 重連策略
+
+| 場景 | 行為 |
+|------|------|
+| WS 中斷 | 指數退避重連（1/2/4/8/30s max）|
+| 5 次重連失敗 | 顯示「無法連線」，停止重連，手動重試按鈕 |
+| SESSION_REPLACED | Modal 提示，跳回首頁 |
+| WS ERROR | Toast 對應訊息，保持連線 |
+| HTTP 4xx | Toast 顯示 error.message |
+| HTTP 500 | Toast「系統錯誤」+ requestId |
+
+### §11.3 Redis 失敗降級策略
+
+- `RoomRepository` 所有方法拋出 `SYS_REDIS_ERROR`
+- 觸發方收到 `ERROR { code: "SYS_REDIS_ERROR" }` 並保持 WS 連線
+- 新的 HTTP 加入請求回傳 `503 Service Unavailable`
+- `GET /ready` 回傳 `{ redis: "error" }` 讓 Kubernetes readinessProbe 立即移除 Pod
+- ioredis 內建指數退避重連；WS 客戶端重連後收到最新 `ROOM_STATE_FULL`
+
+---
+
+## §12 Testing Strategy
+
+### §12.1 測試金字塔
+
+| 層級 | 工具 | 比例 | 涵蓋範圍 |
+|------|------|------|---------|
+| Unit Tests | Vitest | 70% | djb2、Mulberry32、Fisher-Yates、GenerateLadder、ValidateGameStart、ComputeResults、RoomRepository（mock Redis）、GameService（mock IRoomRepository）、HTTP Schemas（AJV） |
+| Integration Tests | Vitest + testcontainers | 20% | RoomRepository 對真實 Redis CRUD/TTL/原子 INCR；Pub/Sub PUBLISH/SUBSCRIBE；Fastify 路由 HTTP 請求；WS 連線建立、認證失敗（403）、ROOM_STATE_FULL 接收 |
+| E2E Tests | Playwright | 10% | 完整流程（2 玩家）建立→加入→開始→揭示→結束；踢除玩家；斷線重連；50 人上限 |
+
+### §12.2 覆蓋率目標
+
+| 套件 | 目標 |
+|------|------|
+| `packages/shared` | ≥ 90% |
+| `packages/server`（application/domain） | ≥ 80% |
+| `packages/client`（Canvas 渲染邏輯、WS 事件解析） | ≥ 70% |
+
+### §12.3 關鍵測試案例
+
+| 類型 | 測試案例 |
+|------|---------|
+| Unit | djb2 已知輸入輸出；Mulberry32 序列可重現；Fisher-Yates 無元素遺失 |
+| Property-based | 同 row 無重疊橫槓；所有玩家路徑 endCol 唯一（bijection） |
+| Determinism | 相同 seed+N 兩次呼叫輸出完全一致（snapshot test） |
+| Edge | N=2, N=50, seed=0, seed=0xFFFFFFFF；rowCount 三邊界值（N=3→20, N=10→30, N=21→60） |
+| Security | seed 在 `finished` 前不出現在任何廣播 payload |
+| Load | k6：100 房間 × 50 人 WS 並發，成功率 > 99.5%（加入）；P95 延遲 < 2s |
+
+### §12.4 測試基準線
+
+現有 Vitest 測試：**171 tests**（截至 2026-04-21）
+
+CI 覆蓋率閘門：
+
+```yaml
+coverage-gate:
+  runs-on: ubuntu-latest
+  needs: [unit-test, integration-test]
+  steps:
+    - name: Check coverage >= 80%
+      run: npx vitest --coverage --reporter=json
+```
+
+---
+
+## §13 Deployment & Operations
+
+### §13.1 Kubernetes 本機開發流程
+
+**Prerequisites：**
+- Rancher Desktop（containerd runtime，kubectl + nerdctl 可用）
+- `/etc/hosts`：`127.0.0.1 ladder.local`
+
+**一鍵操作：**
+
+```bash
+# 啟動完整環境（build images + apply manifests）
+./scripts/dev-k8s.sh up
+
+# 停止並清理
+./scripts/dev-k8s.sh down
+
+# 重新 build 並 rolling restart
+./scripts/dev-k8s.sh restart
+
+# 串流所有 Pod 日誌
+./scripts/dev-k8s.sh logs
+```
+
+**手動步驟（等效）：**
+
+```bash
+# 1. build server image
+docker build -t ladder-server:local -f Dockerfile .
+
+# 2. build client image
+docker build -t ladder-client:local -f Dockerfile.client .
+
+# 3. load images to Rancher Desktop
+nerdctl image load -i <(docker save ladder-server:local)
+nerdctl image load -i <(docker save ladder-client:local)
+
+# 4. apply k8s manifests
+kubectl apply -f k8s/
+
+# 5. 驗證
+kubectl get pods -n ladder-room
+curl http://ladder.local/health
+```
+
+### §13.2 兩個獨立 Pod 架構
+
+| Pod | Image | Port | 說明 |
+|-----|-------|------|------|
+| `ladder-server-*` | `distroless/nodejs20`（多階段建構） | 3000 | Fastify + ws，REST API + WebSocket |
+| `ladder-client-*` | `nginx:1.27-alpine`（多階段建構） | 80 | SPA 靜態資源服務，catch-all → index.html |
+
+### §13.3 CI/CD Pipeline
 
 ```mermaid
 graph TD
@@ -1070,245 +1032,103 @@ graph TD
     Gate --> Release
 ```
 
-### 11.2 Pages Workflow
+### §13.4 環境變數
 
-```mermaid
-graph TD
-    Trigger["push main / workflow_dispatch"]
-    Checkout["checkout@v4"]
-    Install["npm ci client"]
-    BuildClient["vite build dist/"]
-    Check["validate dist/index.html\nbundle < 150KB gzip"]
-    Deploy["deploy-pages@v4 upload dist/"]
-    Notify["GitHub comment Deploy URL"]
-
-    Trigger --> Checkout --> Install --> BuildClient --> Check --> Deploy --> Notify
-```
+| 變數 | 說明 | 本地預設值 |
+|------|------|-----------|
+| `NODE_ENV` | `development` / `production` | `development` |
+| `PORT` | Fastify 監聽埠 | `3000` |
+| `JWT_SECRET` | HS256 簽章金鑰（≥ 32 bytes） | `dev-secret-do-not-use-in-prod` |
+| `REDIS_URL` | ioredis 連線字串 | `redis://localhost:6379` |
+| `REDIS_PASSWORD` | Redis 驗證密碼（生產必填，k8s Secret 注入） | —（本地不設定） |
+| `LOG_LEVEL` | pino log level | `debug` |
+| `CORS_ORIGIN` | 允許的 HTTP Origin（WS Upgrade Origin 驗證） | `http://localhost:5173` |
 
 ---
 
-## 12. 錯誤處理設計
+## Appendix: ADR（Architecture Decision Records）
 
-### 12.1 HTTP 錯誤碼
+### ADR-001: Vanilla TypeScript over React/Vue
 
-| 錯誤碼 | HTTP | 說明 |
-|--------|------|------|
-| `ROOM_NOT_FOUND` | 404 | 房間不存在或已過期 |
-| `ROOM_FULL` | 409 | 已達 50 人上限 |
-| `ROOM_NOT_ACCEPTING` | 409 | 房間狀態非 waiting（改用 409 而非 410，房間可能 reset 後重新接受） |
-| `NICKNAME_TAKEN` | 409 | nickname 重複 |
-| `PLAYER_NOT_FOUND` | 404 | 玩家不存在 |
-| `PLAYER_NOT_HOST` | 403 | 需要房主權限 |
-| `AUTH_INVALID_TOKEN` | 401 | JWT Token 無效 |
-| `AUTH_TOKEN_EXPIRED` | 401 | JWT Token 過期 |
-| `INSUFFICIENT_PLAYERS` | 400 | N < 2（開始遊戲時） |
-| `INSUFFICIENT_ONLINE_PLAYERS` | 400 | 再玩一局時在線玩家 < 2（AC-H08-3） |
-| `PRIZES_NOT_SET` | 400 | W 尚未設定（AC-H03-2，回傳訊息：「請先設定中獎名額」） |
-| `INVALID_PRIZES_COUNT` | 400 | W < 1 或 W >= N |
-| `INVALID_STATE` | 409 | 操作不符合當前狀態（統一用此碼，PRD FR-04-3/FR-09-3） |
-| `CANNOT_KICK_HOST` | 400 | 踢除操作目標為 Host 本身，不允許（PRD AC-H07-3b） |
-| `INVALID_NICKNAME` | 400 | 暱稱格式不合法（長度超限、含禁止字元）（PRD AC-P01-3） |
-| `INVALID_NAME` | 400 | title 格式不合法（長度超限、含禁止字元）；與 INVALID_NICKNAME 分開以區分語意 |
-| `ROOM_CODE_GENERATION_FAILED` | 500 | Room Code 碰撞重試超過 10 次，無法生成唯一碼 |
-| `TITLE_UPDATE_NOT_ALLOWED_IN_STATE` | 409 | 在非 waiting 狀態嘗試更新 title |
-| `UPDATE_WINNER_COUNT_NOT_ALLOWED_IN_STATE` | 409 | 在非 waiting 狀態嘗試更新 winnerCount |
-| `INVALID_AUTO_REVEAL_INTERVAL` | 400 | SET_REVEAL_MODE 中 intervalSec 不為整數或超出 1-30 範圍 |
-| `SYS_INTERNAL_ERROR` | 500 | 非預期錯誤 |
-| `RATE_LIMIT` | 429 | 超過速率限制 |
+**決策：** 前端採用 Vanilla TypeScript + Vite，不使用任何 UI 框架。
 
-### 12.2 WebSocket 錯誤策略
+**理由：**
+- 無框架冗餘依賴，確保 JS bundle < 80KB gzip（首頁）/ < 150KB gzip（遊戲頁）
+- HTML5 Canvas 渲染邏輯本質上是命令式，React/Vue 的宣告式模型反而增加 overhead
+- 目標瀏覽器（Chrome 110+）完整支援 Vanilla TS 所需的 Web API
 
-```
-Client → Server 錯誤：
-  JSON parse 失敗          → ERROR { WS_INVALID_MSG }（保持連線）
-  未知 type               → ERROR { WS_UNKNOWN_TYPE }
-  權限不足（非 host）       → ERROR { AUTH_NOT_HOST }
-  踢除自己（host kick self）→ ERROR { CANNOT_KICK_HOST }（PRD AC-H07-3b）
-  狀態不符                → ERROR { INVALID_STATE }
-  REVEAL_NEXT 超出        → ERROR { INVALID_STATE }（server-side: reject if revealedCount >= totalCount）
-  KICK_PLAYER 在非 waiting → ERROR { INVALID_STATE, KICK_NOT_ALLOWED_IN_STATE }（PRD AC-H07-3）
-
-WS Upgrade 特殊拒絕：
-  kickedPlayerIds 命中 → close code 4003，發送 PLAYER_KICKED frame 後斷線（讓前端區分一般 403）
-
-Server 內部錯誤：
-  Redis 讀取失敗（取狀態）  → ERROR { SYS_REDIS_ERROR } 給觸發方；無法廣播一致狀態時記錄 critical 告警
-  Redis 寫入失敗（中途）   → WATCH/MULTI/EXEC 失敗時重試最多 3 次；仍失敗則回退並發 ERROR { SYS_REDIS_ERROR } 給觸發方
-  Pub/Sub 失敗           → 3 次 retry（100ms/200ms/400ms），仍失敗 critical alert
-
-WS 斷線：
-  close event        → player.isOnline = false，廣播 ROOM_STATE
-  60s grace period   → 若未重連，HOST_TRANSFERRED 廣播（新 host = 下一個 isOnline=true 玩家）
-                       若無其他在線玩家（無法轉移），room 進入 「無 host 等待」狀態，等待 5 分鐘 TTL 清理
-  最後一位斷線 5 分鐘 → EXPIRE room:{code} 300（在最後一個 close 事件觸發時執行原子設定）
-```
-
-### 12.3 PLAY_AGAIN 完整流程（對應 PRD FR-08，取代舊 RESET_ROOM）
-
-```
-1. 驗證 JWT role=host 且 room.hostId 比對
-2. 驗證 status === "finished"，否則 INVALID_STATE
-3. 計算 onlinePlayers = players.filter(p => p.isOnline)
-4. 若 onlinePlayers.length < 2 → INSUFFICIENT_ONLINE_PLAYERS（PRD AC-H08-3）
-5. 清除 kickedPlayerIds → []（再玩一局後被踢者可用新 playerId 加入新局，PRD AC-H07-5）
-6. 若 winnerCount >= onlinePlayers.length → winnerCount = null，通知 host 重新設定（PRD AC-H08-2）
-7. 原子更新（MULTI/EXEC）：
-     room.players = onlinePlayers
-     room.status = "waiting"
-     room.seedSource = null, room.ladder = null, room.results = null, room.revealedCount = 0
-     room.revealMode = "manual", room.autoRevealIntervalSec = null
-     room.kickedPlayerIds = []
-     room.winnerCount = 調整後的值
-8. 廣播 ROOM_STATE（status: waiting）
-```
-
-### 12.4 START_GAME / BEGIN_REVEAL / END_GAME 原子性
-
-**START_GAME（`waiting → running`）：**
-
-```
-// START_GAME 原子生成 seed + ladderMap + resultSlots，一次性寫入 Redis
-// seed 生成與樓梯計算合一，避免中間狀態（PRD AC-H03-1, FR-04-4）
-const seedSource = crypto.randomUUID();
-// seed = djb2(seedSource) >>> 0
-// ladder = generateLadder(seedSource, N) → ladderMap + resultSlots（含 playerId 綁定）
-// 完整樓梯資料存入 Redis，但不廣播給客戶端（seed 及 ladder 在 status=finished 前保密）
-
-WATCH room:{code}
-MULTI
-  SET room:{code} {...room, status: "running", seedSource, ladder, results, rowCount: clamp(N*3,20,60), revealedCount: 0}
-EXEC
-// EXEC null 代表被 WATCH 修改，需重試（最多 3 次）
-// 成功後廣播 ROOM_STATE（status: "running", rowCount）— 不含 seed、不含 ladder
-// PRD AC-H03-1：seed 及完整樓梯資料在 status=finished 前禁止傳送給任何客戶端
-```
-
-**BEGIN_REVEAL（`running → revealing`）：**
-
-```
-// BEGIN_REVEAL 只做狀態轉換，ladder 及 results 已於 START_GAME 生成
-// 不重新計算 ladder，直接更新 status 並廣播揭曉開始（PRD AC-H04-1, FR-04-4）
-
-WATCH room:{code}
-MULTI
-  SET room:{code} {...room, status: "revealing"}
-EXEC
-// 成功後廣播 ROOM_STATE（status: "revealing"）
-```
-
-**10 秒 Rollback Timeout（PDD §7.1）：**
-若 BEGIN_REVEAL 後 10 秒內 Server 未收到任何 REVEAL_NEXT/REVEAL_ALL_TRIGGER，
-GameService 自動將 status 回退為 `running`，廣播 ROOM_STATE 通知客戶端重試。
-此保護避免 Server 崩潰後房間永久卡在 `revealing` 初始化狀態。
-
-**END_GAME（`revealing → finished`）：**
-
-```
-// PRD AC-H04-4, AC-H06-2：END_GAME 由 Host 在所有路徑揭曉後手動觸發
-// REVEAL_ALL 本身不自動觸發 finished（維持揭曉節奏控制）
-// 僅在 revealedCount === totalCount 時允許（否則回傳 INVALID_STATE）
-
-WATCH room:{code}
-MULTI
-  SET room:{code} {...room, status: "finished"}
-EXEC
-// 成功後廣播 ROOM_STATE（status: "finished"，含 seed、完整 results[]）
-// seed 至此首次對客戶端公開（PRD AC-H03-1, NFR-05）
-// EXEC null 代表被 WATCH 修改，需重試（最多 3 次）
-// TTL 延長至 1 小時（finished 狀態保留結果）
-```
-
-### 12.5 前端錯誤策略
-
-| 場景 | 行為 |
-|------|------|
-| HTTP 4xx | Toast 顯示 error.message |
-| HTTP 500 | Toast「系統錯誤」+ requestId |
-| WS ERROR | Toast 對應訊息，保持連線 |
-| SESSION_REPLACED | Modal 提示，跳回首頁 |
-| WS 中斷 | 指數退避重連（1/2/4/8/30s max） |
-| 5 次重連失敗 | 顯示「無法連線」，停止重連，手動重試按鈕 |
+**取捨：** 需手動管理 DOM 操作與事件處理，測試需自行模擬 Canvas API；後續加入 UI 框架的遷移成本相對較高。
 
 ---
 
-## Client-Side Storage 規格
+### ADR-002: WebSocket over SSE
 
-### localStorage Keys
+**決策：** 即時通訊採用 WebSocket（ws 原生套件），不使用 Server-Sent Events（SSE）。
 
-| Key | 型別 | 用途 | 生命週期 |
-|-----|------|------|---------|
-| `playerId` | `string` (UUID v4) | 玩家身份識別，用於斷線重連 | 永久（手動清除或被踢除後失效） |
-| `ladder_last_nickname` | `string` (1-20 chars) | 記憶上次使用的暱稱，下次加入時自動預填 | 永久（每次成功加入時更新） |
+**理由：**
+- 遊戲狀態需要雙向通訊：客戶端發送 `START_GAME`、`REVEAL_NEXT` 等操作，SSE 為單向（Server→Client）
+- 主持人控制操作（踢人、揭曉控制）需要低延遲雙向通道
+- 所有目標瀏覽器均原生支援 WebSocket，無需 polling fallback
 
-### ladder_last_nickname 操作規格
-
-**寫入時機**：玩家 WebSocket JOIN_ROOM 握手成功（收到 `ROOM_STATE` 廣播，自己出現在 players 列表）後立即寫入：
-```ts
-localStorage.setItem('ladder_last_nickname', nickname)
-```
-
-**讀取時機**：Join 頁面（/#/ 或 / 路由）DOMContentLoaded 事件觸發時：
-```ts
-const saved = localStorage.getItem('ladder_last_nickname')
-if (saved) nicknameInput.value = saved
-```
-
-**優先順序**：URL param `?room=` 優先覆蓋 room code 欄位；localStorage nickname 優先填入暱稱欄位（使用者仍可手動覆蓋）。
-
-### 邀請連結規格
-
-**格式**：`{window.location.origin}/?room={roomCode}`
-
-**生成邏輯**（client-side only，無後端變更）：
-```ts
-const inviteUrl = `${window.location.origin}/?room=${roomCode}`
-```
-
-**複製機制**：
-1. 優先使用 `navigator.clipboard.writeText(inviteUrl)`（需 HTTPS 或 localhost）
-2. Fallback：建立 `<input>` 元素，設值後 `.select()` + `document.execCommand('copy')`；若 execCommand 也失敗，顯示包含 URL 的文字框供手動複製
-
-**UI 反饋**：
-- 複製成功：按鈕文字短暫改為「已複製！」（1500ms 後恢復）
-- Fallback 觸發：顯示可全選的 `<input>` 文字框
-
-### LocalStorageService 模組
-
-新增 `packages/client/src/state/LocalStorageService.ts`：
-```ts
-export const LocalStorageService = {
-  getNickname(): string { return localStorage.getItem('ladder_last_nickname') ?? '' },
-  setNickname(v: string): void { localStorage.setItem('ladder_last_nickname', v) },
-  getPlayerId(): string { return localStorage.getItem('playerId') ?? '' },
-  setPlayerId(v: string): void { localStorage.setItem('playerId', v) },
-  clearPlayerId(): void { localStorage.removeItem('playerId') },
-}
-```
+**取捨：** 需自行實作心跳、重連、房間廣播邏輯；MVP 實作集中於 `main.ts`（roomSessions Map + broadcast helper）；複雜度可控。
 
 ---
 
-*EDD 版本：v1.4*
-*生成時間：2026-04-19（STEP-06 devsop-autodev EDD Review 修訂）*
-*修訂重點（v1.3 vs v1.2）：*
-*1. 安全修正（關鍵）：引入 LadderDataPublic（省略 seed）於 revealing 狀態；LadderData（含 seed）僅於 finished 時發送（PRD AC-H03-1, NFR-05）*
-*2. 效能修正：REVEAL_ALL payload 採 ResultSlotPublic（省略 path）解決 N=50 時 ~150KB 超過 64KB maxPayload 的問題；MVP Option A*
-*3. 類型新增：RevealAllPayload、ResultSlotPublic、LadderDataPublic、PONG 事件類型*
-*4. 錯誤碼補齊：新增 INVALID_NICKNAME（對應 PRD AC-P01-3），補充 CANNOT_KICK_HOST 和 KICK_NOT_ALLOWED_IN_STATE 至 WS 錯誤策略*
-*5. PRNG 修正：generateLadder retry limit 修正為 N×10（PRD FR-03-2）*
-*6. ComputeResults 實作：新增路徑追蹤與 Fisher-Yates 中獎指派完整算法（PRD FR-03-3）*
-*7. JWT 安全補充：role 欄位語意明確（"host" | "player"），雙重驗證（JWT role + Redis hostId）細節*
-*8. 分散式計時器設計：新增 Post-MVP 多 Pod 自動揭示 Redis 分散式鎖設計（§10.5）*
-*9. 狀態機修正：waiting TTL 更正為 4h（PRD FR-01-2）；新增 running 狀態 TTL/斷線清理路徑*
-*10. PING/PONG 補充：ws 內建心跳（30s）為主路徑；應用層 PONG 用於 RTT 量測*
-*11. REVEAL_ALL_TRIGGER：明確 revealedCount = totalCount 原子 SET 語意*
-*12. BDD AC-ROOM-001：更正為 winnerCount 參數（非舊版 prizes 陣列）*
-*修訂重點（v1.4 vs v1.3）：*
-*13. 前端部署架構重構：新增 Nginx Pod（ladder-client:local）作為本機 k8s 開發模式的靜態檔案服務，取代原 GitHub Pages 僅選項設計；兩者並存（本機 Nginx Pod / 生產 GitHub Pages）*
-*14. Ingress 路由補充：新增 `path: /`（catch-all）→ ladder-client-service 路由規則；Traefik sticky session 僅對 /ws /api 路徑生效*
-*15. 本機開發工具：新增 `scripts/dev-k8s.sh [up|down|restart|logs]` 一鍵啟動腳本，統一管理 docker build + kubectl apply 完整流程；存取 http://ladder.local（需 /etc/hosts: 127.0.0.1 ladder.local）*
-*16. Docker image 策略：Dockerfile（server）維持 Distroless Node.js；新增 Dockerfile.client（Nginx 1.27-alpine）多階段建構；兩者均 imagePullPolicy: Never（本機 image，不從 registry pull）*
-*17. Ingress 控制器：更正為 Traefik（Rancher Desktop 內建，ingressClassName: traefik）；保留 NGINX 備選設定（已註解）*
-*基於 PDD v2.2 + PRD v1.3（Ladder Room Online）*
+### ADR-003: Redis over In-Memory State
+
+**決策：** 所有房間狀態儲存於 Redis，Pod 本地記憶體不快取業務狀態。
+
+**理由：**
+- Pod 重啟（rolling update、崩潰恢復）後狀態存活，客戶端指數退避重連後可恢復
+- Post-MVP 多 Pod 水平擴展時，Redis 作為唯一共享狀態層，無需額外同步機制
+- Redis WATCH/MULTI/EXEC 原子操作天然解決 concurrent update（多玩家同時加入等）
+
+**取捨：** Redis 單節點為 MVP SPOF；Redis 失敗時所有操作降級（503）；ioredis 內建重連機制在 Redis 重啟後自動恢復。
+
+---
+
+### ADR-004: packages/shared 前後端共用算法
+
+**決策：** PRNG（Mulberry32、djb2、Fisher-Yates）、GenerateLadder、ComputeResults 封裝於 `packages/shared`，前後端共用相同實作。
+
+**理由：**
+- 確保算法一致性：前端 Canvas 渲染路徑動畫 = 後端計算結果，100% 一致（PRD NFR-03）
+- 結果可事後審計：seed 公開後，任何人可用相同算法驗證本局結果
+- 1,000 次 seed 自動化驗證 CI 閘門確保 bijection 特性
+
+**取捨：** `packages/shared` 必須保持零 I/O（不得 import Node.js 內建模組），限制了可在共用層處理的邏輯。
+
+---
+
+### ADR-005: JWT HS256 over Session Cookie
+
+**決策：** Host 身份驗證採用 JWT HS256（jose 套件），而非 Session Cookie。
+
+**理由：**
+- 無狀態驗證：每個請求自帶 `{ playerId, roomCode, role, exp }`，不需額外 Redis 查詢
+- WS Upgrade 場景：JWT 可附在 URL query parameter，Cookie 在跨域 WS 場景較複雜
+- `jose` 支援 Web Crypto API，瀏覽器端未來可直接驗證（可審計性）
+
+**取捨：** JWT 一旦簽發無法提前撤銷；host 轉移後舊 token 在 exp 前仍有效，須以 `room.hostId` 雙重驗證。WS 連線建立後不重驗 exp（MVP 取捨：連線生命週期通常遠低於 6h）。
+
+---
+
+### ADR-006: Traefik over NGINX Ingress（Rancher Desktop 本機環境）
+
+**決策：** 本機 Kubernetes 環境採用 Traefik Ingress（Rancher Desktop 內建），不採用 NGINX Ingress Controller。
+
+**理由：**
+- Rancher Desktop 預設內建 Traefik，零額外安裝步驟
+- Traefik 原生支援 WebSocket upgrade（無需額外 annotation）
+- sticky session（cookie affinity）在 Traefik 與 NGINX 均可實現，切換成本低
+
+**取捨：** 生產環境可能使用 NGINX Ingress；k8s manifest 中保留 NGINX 備選設定（已註解）供遷移參考。Post-MVP 升級時若切換 Ingress Controller，需驗證 sticky session 行為一致性。
+
+---
+
+*EDD 版本：v2.0*
+*生成時間：2026-04-21（devsop-autodev STEP-07：從 BRD v1.0 + PRD v1.0 + legacy-EDD v1.4 + legacy-ARCH v1.2 整合重建）*
+*基於 BRD v1.0 + PRD v1.0 + legacy-EDD v1.4 + legacy-ARCH v1.3（Ladder Room Online）*
 
 ## 變更追蹤
 
@@ -1317,6 +1137,5 @@ export const LocalStorageService = {
 - **分類**：ECR / 需求面
 - **日期**：2026-04-20
 - **描述**：HOST 開好房間後可 COPY 邀請 link（含 6 碼房號），受邀者點 link 自動帶入房號，名字欄位自動帶入上次輸入過的名字，一鍵加入。
-- **影響範圍**：§localStorage 規格（新增 ladder_last_nickname key）、§Client 架構（新增 LocalStorageService）
-- **修正/實作內容**：新增 Client-Side Storage 規格章節（ladder_last_nickname + 邀請連結規格 + LocalStorageService 模組設計）
+- **影響範圍**：§4.2 Client Modules（LocalStorageService）、邀請連結規格
 - **commit**：70b1e66

@@ -83,7 +83,7 @@ export function drawLadder(params: DrawParams): void {
     const isWinner = result.isWinner;
 
     const isAnimThis = animatingIndex === i && animProgress !== undefined;
-    const progress   = isAnimThis ? animProgress! : 1;
+    const progress   = isAnimThis ? (animProgress as number) : 1;
 
     // Every player keeps their own distinct color throughout.
     // Winners get a gold glow (shadow) instead of having their color replaced.

@@ -36,6 +36,10 @@
 <a class="sidebar__link" href="schema.html">🗄️ Schema 文件</a>
 <a class="sidebar__link" href="design.html">🎨 Design 設計文件</a>
 <a class="sidebar__link" href="align_report.html">📊 對齊報告</a>
+<a class="sidebar__link" href="brd.html">📄 Brd</a>
+<a class="sidebar__link" href="idea.html">📄 Idea</a>
+<a class="sidebar__link" href="migration_code_snapshot.html">📄 Migration Code Snapshot</a>
+<a class="sidebar__link" href="test_plan.html">📄 Test Plan</a>
 <a class="sidebar__link active" href="bdd.html">🧪 BDD Scenarios</a>
       </div>
     </aside>
@@ -610,6 +614,166 @@ Feature: 遊戲流程控制
       | 21 | 60                | clamp(63, 20, 60)=60     |
       | 50 | 60                | clamp(150, 20, 60)=60    |
 </code></pre>
+<h2>game-lifecycle</h2>
+<pre><code class="language-gherkin">Feature: Game Lifecycle
+  As a host
+  I want to manage the full game lifecycle from start to finish
+  So that all players can participate in a fair and synchronized lottery
+
+  Background:
+    Given a room with code &quot;GAME01&quot; exists and status is &quot;waiting&quot;
+    And the host is authenticated with a valid hostToken
+
+  # ---------------------------------------------------------------------------
+  # AC-H03-1 — Start game with valid state transitions to running
+  # ---------------------------------------------------------------------------
+  Scenario: Start game with 2 or more players
+    # AC-H03-1
+    Given room has 3 players and winnerCount is set to 1
+    When host sends { type: &quot;START_GAME&quot; } via WebSocket
+    Then all players receive ROOM_STATE with status &quot;running&quot;
+    And the broadcast contains rowCount equal to clamp(N*3, 20, 60)
+    And seed and ladderData are NOT included in the broadcast
+
+  # ---------------------------------------------------------------------------
+  # AC-H03-1 — Ladder data is generated at BEGIN_REVEAL, not START_GAME
+  # ---------------------------------------------------------------------------
+  Scenario: Ladder data is generated when host triggers BEGIN_REVEAL
+    # AC-H03-1, FR-04-1
+    Given room status is &quot;running&quot; with 3 players and winnerCount 1
+    When host sends { type: &quot;BEGIN_REVEAL&quot; } via WebSocket
+    Then room status transitions to &quot;revealing&quot;
+    And all players receive ROOM_STATE_FULL with ladderData (without seed)
+    And all players see identical ladder structure and bar positions
+
+  # ---------------------------------------------------------------------------
+  # AC-H03-2 — Start game fails when winnerCount is not set
+  # ---------------------------------------------------------------------------
+  Scenario: Start game rejected when winnerCount is not set
+    # AC-H03-2
+    Given room has 3 players and winnerCount is null
+    When host sends { type: &quot;START_GAME&quot; } via WebSocket
+    Then host receives ERROR event with code &quot;PRIZES_NOT_SET&quot;
+    And room status remains &quot;waiting&quot;
+
+  # ---------------------------------------------------------------------------
+  # AC-H03-4 — Start game rejected when player count is insufficient
+  # ---------------------------------------------------------------------------
+  Scenario: Start game rejected when only host is in the room
+    # AC-H03-4
+    Given room has only the host (N=1) and winnerCount is set to 1
+    When host sends { type: &quot;START_GAME&quot; } via WebSocket
+    Then host receives ERROR event with code &quot;INSUFFICIENT_PLAYERS&quot;
+    And the message indicates at least 2 players are required
+    And room status remains &quot;waiting&quot;
+
+  # ---------------------------------------------------------------------------
+  # AC-H03-5 — rowCount formula clamp(N*3, 20, 60) boundary values
+  # ---------------------------------------------------------------------------
+  Scenario Outline: rowCount follows clamp(N*3, 20, 60) formula
+    # AC-H03-5
+    Given room has &lt;N&gt; players and winnerCount is validly set
+    When host starts the game successfully
+    Then broadcast rowCount equals &lt;expected_rowCount&gt;
+
+    Examples:
+      | N  | expected_rowCount | note                    |
+      | 2  | 20                | clamp(6, 20, 60)=20     |
+      | 3  | 20                | clamp(9, 20, 60)=20     |
+      | 10 | 30                | clamp(30, 20, 60)=30    |
+      | 21 | 60                | clamp(63, 20, 60)=60    |
+
+  # ---------------------------------------------------------------------------
+  # AC-H04-1 — BEGIN_REVEAL transitions state to revealing
+  # ---------------------------------------------------------------------------
+  Scenario: Begin reveal transitions room from running to revealing
+    # AC-H04-1
+    Given room status is &quot;running&quot; with 3 players and winnerCount 1
+    When host sends { type: &quot;BEGIN_REVEAL&quot; } via WebSocket
+    Then room status transitions to &quot;revealing&quot;
+    And all players receive ROOM_STATE broadcast with status &quot;revealing&quot;
+    And the operation completes within 1 second
+
+  # ---------------------------------------------------------------------------
+  # AC-H04-2 — Reveal one player path manually
+  # ---------------------------------------------------------------------------
+  Scenario: Reveal one player&#x27;s path manually
+    # AC-H04-2
+    Given room status is &quot;revealing&quot; with 3 players and revealedCount is 0
+    When host sends { type: &quot;REVEAL_NEXT&quot; } via WebSocket
+    Then all players receive REVEAL_INDEX event
+    And REVEAL_INDEX payload contains playerIndex, result, and revealedCount=1
+    And all clients render the player&#x27;s path animation synchronously
+
+  # ---------------------------------------------------------------------------
+  # AC-H06-1, AC-H06-2 — Reveal all paths simultaneously
+  # ---------------------------------------------------------------------------
+  Scenario: Reveal all remaining paths simultaneously with REVEAL_ALL_TRIGGER
+    # AC-H06-1, AC-H06-2
+    Given room status is &quot;revealing&quot; with 4 players and revealedCount is 1
+    When host sends { type: &quot;REVEAL_ALL_TRIGGER&quot; } via WebSocket
+    Then all players receive REVEAL_ALL event
+    And REVEAL_ALL payload contains all remaining 3 unrevealed results
+    And all clients render the animations within 2 seconds
+    And host then sends END_GAME to finalize the game
+    And room status transitions to &quot;finished&quot;
+    And all players receive ROOM_STATE with status &quot;finished&quot; containing complete results and seed
+
+  # ---------------------------------------------------------------------------
+  # AC-H04-4 — END_GAME after all paths revealed transitions to finished
+  # ---------------------------------------------------------------------------
+  Scenario: Game completion with winner announcement after all paths revealed
+    # AC-H04-4, US-P04
+    Given room status is &quot;revealing&quot; with 3 players and all paths revealed (revealedCount=3)
+    When host sends { type: &quot;END_GAME&quot; } via WebSocket
+    Then room status transitions to &quot;finished&quot;
+    And all players receive ROOM_STATE with status &quot;finished&quot;
+    And the broadcast includes complete winner list and seed
+    And each player&#x27;s screen correctly shows their own result (winner or loser)
+
+  # ---------------------------------------------------------------------------
+  # AC-H04-4b — END_GAME rejected when paths not fully revealed
+  # ---------------------------------------------------------------------------
+  Scenario: END_GAME rejected when not all paths are revealed
+    # AC-H04-4b
+    Given room status is &quot;revealing&quot; with 3 players and revealedCount is 1
+    When host sends { type: &quot;END_GAME&quot; } via WebSocket
+    Then host receives ERROR event with code &quot;END_GAME_REQUIRES_ALL_REVEALED&quot;
+    And room status remains &quot;revealing&quot;
+
+  # ---------------------------------------------------------------------------
+  # AC-H08-1 — Play again resets room to waiting after finished
+  # ---------------------------------------------------------------------------
+  Scenario: Play again resets room to waiting with online players only
+    # AC-H08-1
+    Given room status is &quot;finished&quot; with 3 players (1 offline)
+    When host sends { type: &quot;PLAY_AGAIN&quot; } via WebSocket
+    Then offline players are removed from the player list
+    And room status resets to &quot;waiting&quot; with the remaining online players
+    And all remaining players receive ROOM_STATE with status &quot;waiting&quot;
+    And kickedPlayerIds is cleared
+
+  # ---------------------------------------------------------------------------
+  # AC-H08-3 — Play again rejected when insufficient online players
+  # ---------------------------------------------------------------------------
+  Scenario: Play again rejected when fewer than 2 online players remain
+    # AC-H08-3
+    Given room status is &quot;finished&quot; with only 1 online player remaining
+    When host sends { type: &quot;PLAY_AGAIN&quot; } via WebSocket
+    Then host receives ERROR event with code &quot;INSUFFICIENT_ONLINE_PLAYERS&quot;
+    And room status remains &quot;finished&quot;
+
+  # ---------------------------------------------------------------------------
+  # AC-H03-6 — Duplicate START_GAME rejected after game has started
+  # ---------------------------------------------------------------------------
+  Scenario: Duplicate START_GAME is rejected without resetting state
+    # AC-H03-6
+    Given room status is already &quot;running&quot;
+    When host sends { type: &quot;START_GAME&quot; } again via WebSocket
+    Then host receives ERROR event with code &quot;INVALID_STATE&quot;
+    And room status remains &quot;running&quot;
+    And seed and ladderMap are not regenerated
+</code></pre>
 <h2>host-actions</h2>
 <pre><code class="language-gherkin"># features/host-actions.feature
 Feature: 主持人管理操作
@@ -833,6 +997,137 @@ Feature: 主持人管理操作
     When 主持人嘗試送出 POST /api/rooms/DELTA5/game/start
     Then HTTP 回應狀態碼為 401
     And 回應錯誤碼為 &quot;AUTH_TOKEN_EXPIRED&quot;
+</code></pre>
+<h2>ladder-generation</h2>
+<pre><code class="language-gherkin">Feature: Ladder Generation
+  As a system
+  I want to generate deterministic and valid ladder structures using Mulberry32 PRNG
+  So that all clients get identical results and outcomes cannot be predicted before reveal
+
+  # ---------------------------------------------------------------------------
+  # FR-04-1, FR-04-2 — Deterministic generation with same seed produces same ladder
+  # ---------------------------------------------------------------------------
+  Scenario: Deterministic generation with same seed produces identical ladders
+    # FR-04-1, AC-H03-1
+    Given seedSource &quot;550e8400-e29b-41d4-a716-446655440000&quot; and 5 players
+    When ladder is generated twice using the same seedSource and N
+    Then both ladders are identical (deep equality on segments, rowCount, colCount)
+    And both ladders have the same rowCount
+    And both ladders have the same colCount equal to the player count
+
+  # ---------------------------------------------------------------------------
+  # FR-04-3 — rowCount clamping to [20, 60]
+  # ---------------------------------------------------------------------------
+  Scenario Outline: rowCount is clamped to [20, 60] for all player counts
+    # AC-H03-5, FR-04-3
+    Given seedSource &quot;test-seed-xyz&quot; and &lt;N&gt; players
+    When ladder is generated
+    Then ladder rowCount equals &lt;expected_rowCount&gt;
+
+    Examples:
+      | N  | expected_rowCount | note                    |
+      | 2  | 20                | clamp(6, 20, 60)=20     |
+      | 3  | 20                | clamp(9, 20, 60)=20     |
+      | 7  | 21                | clamp(21, 20, 60)=21    |
+      | 10 | 30                | clamp(30, 20, 60)=30    |
+      | 20 | 60                | clamp(60, 20, 60)=60    |
+      | 21 | 60                | clamp(63, 20, 60)=60    |
+      | 50 | 60                | clamp(150, 20, 60)=60   |
+
+  # ---------------------------------------------------------------------------
+  # FR-04-2 — Segment validity: no overlap within the same row
+  # ---------------------------------------------------------------------------
+  Scenario: No segments overlap within the same row
+    # FR-04-2
+    Given seedSource &quot;550e8400-e29b-41d4-a716-446655440000&quot; and 10 players
+    When ladder is generated
+    Then for every pair of segments in the same row (col_a, col_b)
+    And |col_a - col_b| &gt; 1 (no adjacent overlap)
+
+  Scenario Outline: No overlapping segments for various player counts
+    # FR-04-2
+    Given seedSource &quot;test-seed-abc123&quot; and &lt;N&gt; players
+    When ladder is generated
+    Then no row contains overlapping segments
+
+    Examples:
+      | N  |
+      | 2  |
+      | 5  |
+      | 20 |
+      | 50 |
+
+  # ---------------------------------------------------------------------------
+  # FR-04-2 — Bar density: target max(1, round(N/4)) bars per row
+  # ---------------------------------------------------------------------------
+  Scenario Outline: Bar density target is max(1, round(N/4)) per row
+    # FR-04-2
+    Given seedSource &quot;deterministic-seed-xyz&quot; and &lt;N&gt; players
+    When ladder is generated
+    Then the average bars per row approaches &lt;target_density&gt;
+    And each bar attempt does not exceed N*10 retries
+
+    Examples:
+      | N  | target_density |
+      | 2  | 1              |
+      | 4  | 1              |
+      | 8  | 2              |
+      | 12 | 3              |
+      | 20 | 5              |
+
+  # ---------------------------------------------------------------------------
+  # FR-04-4 — Bijection: N players produce N unique endCol values
+  # ---------------------------------------------------------------------------
+  Scenario: Result bijection ensures N unique endCol values for N players
+    # FR-04-4
+    Given seedSource &quot;550e8400-e29b-41d4-a716-446655440000&quot; and 8 players with winnerCount 3
+    When ladder is generated and results are computed
+    Then resultSlots array length equals 8
+    And all endCol values are unique (no duplicates, covering 0 to 7)
+    And the number of isWinner=true results equals 3
+    And the number of isWinner=false results equals 5
+
+  Scenario Outline: Bijection holds for various N and winnerCount combinations
+    # FR-04-4
+    Given seedSource &quot;deterministic-seed-xyz&quot; and &lt;N&gt; players with winnerCount &lt;W&gt;
+    When ladder is generated and results are computed
+    Then resultSlots array length equals &lt;N&gt;
+    And all endCol values are unique
+    And isWinner=true count equals &lt;W&gt;
+
+    Examples:
+      | N  | W  |
+      | 2  | 1  |
+      | 5  | 2  |
+      | 10 | 3  |
+      | 50 | 10 |
+
+  # ---------------------------------------------------------------------------
+  # FR-04-4 — 1000-seed automated bijection validation
+  # ---------------------------------------------------------------------------
+  Scenario: 1000 random seeds all satisfy bijection property
+    # FR-04-4, NFR-03
+    Given 1000 randomly generated seedSource values with N=10 and winnerCount=3
+    When ladder and results are computed for each seed
+    Then all 1000 results satisfy bijection (all endCol values unique)
+    And no result has more or fewer than N entries
+
+  # ---------------------------------------------------------------------------
+  # FR-04-6 — Seed not exposed to clients before finished state
+  # ---------------------------------------------------------------------------
+  Scenario: Seed is not transmitted to clients before room status is finished
+    # FR-04-6
+    Given a room is in &quot;revealing&quot; status with ladder generated
+    When a client receives ROOM_STATE or ROOM_STATE_FULL
+    Then the payload does NOT contain the seed field
+    And the payload does NOT contain the seedSource field
+
+  Scenario: Seed is transmitted to clients when room status becomes finished
+    # FR-04-6, AC-H04-4
+    Given a room transitions to &quot;finished&quot; status
+    When all clients receive ROOM_STATE broadcast
+    Then the payload contains the seed field
+    And the payload contains the complete results array
 </code></pre>
 <h2>player-management</h2>
 <pre><code class="language-gherkin"># features/player-management.feature
@@ -1433,6 +1728,286 @@ Feature: 房間生命週期
     When 主持人送出 UPDATE_WINNER_COUNT（winnerCount=1）
     Then 伺服器回傳錯誤碼 &quot;UPDATE_WINNER_COUNT_NOT_ALLOWED_IN_STATE&quot;
     And 房間狀態維持 &quot;running&quot;
+</code></pre>
+<h2>room-management</h2>
+<pre><code class="language-gherkin">Feature: Room Management
+  As a player
+  I want to create and join rooms
+  So that I can participate in lottery activities
+
+  # ---------------------------------------------------------------------------
+  # AC-H01-1 — Create a new room successfully
+  # ---------------------------------------------------------------------------
+  Scenario: Create a new room with valid host nickname
+    # AC-H01-1
+    Given I provide a valid nickname &quot;Alice&quot;
+    When I POST to /api/rooms with { hostNickname: &quot;Alice&quot;, winnerCount: 1 }
+    Then response status is 201
+    And response contains roomCode, playerId, and token
+    And roomCode matches pattern [A-HJ-NP-Z2-9]{6}
+    And the room exists in Redis with TTL up to 14400 seconds
+
+  # ---------------------------------------------------------------------------
+  # AC-H01-2 — Host enters waiting lobby after room creation
+  # ---------------------------------------------------------------------------
+  Scenario: Host enters waiting lobby after room creation
+    # AC-H01-2
+    Given I have successfully created a room and received roomCode and token
+    When I connect WebSocket to /ws with the host token
+    Then I receive a ROOM_STATE_FULL event
+    And the payload status is &quot;waiting&quot;
+    And the player list contains only the host
+    And the page includes a winner count input field
+
+  # ---------------------------------------------------------------------------
+  # AC-H01-3 — Room creation failure does not produce orphan rooms
+  # ---------------------------------------------------------------------------
+  Scenario: Room creation failure does not produce orphan rooms
+    # AC-H01-3
+    Given the backend is configured to simulate HTTP 500 error
+    When I POST to /api/rooms with { hostNickname: &quot;Alice&quot;, winnerCount: 1 }
+    Then response status is 500
+    And no orphan &quot;room:{*}&quot; key exists in Redis
+    And the error message indicates creation failure
+
+  # ---------------------------------------------------------------------------
+  # AC-H01-4 — Room code collision exceeds 10 retries returns error
+  # ---------------------------------------------------------------------------
+  Scenario: Room code collision exceeds 10 retries returns ROOM_CODE_GENERATION_FAILED
+    # AC-H01-4
+    Given Redis already contains more than 10 colliding Room Codes
+    When I POST to /api/rooms with { hostNickname: &quot;Alice&quot;, winnerCount: 1 }
+    Then response status is 500
+    And response error code is &quot;ROOM_CODE_GENERATION_FAILED&quot;
+
+  # ---------------------------------------------------------------------------
+  # AC-P01-1 — Player joins existing room via WebSocket
+  # ---------------------------------------------------------------------------
+  Scenario: Join existing room via WebSocket
+    # AC-P01-1, AC-P02-1
+    Given a room with code &quot;ABC123&quot; exists and status is &quot;waiting&quot;
+    When I POST to /api/rooms/ABC123/players with { nickname: &quot;Bob&quot; }
+    Then response status is 201
+    And response contains playerId and token
+    When I connect WebSocket to /ws?room=ABC123 with the player token
+    Then I send { type: &quot;JOIN_ROOM&quot;, nickname: &quot;Bob&quot; }
+    And all players receive ROOM_UPDATE message
+    And the player list includes &quot;Bob&quot;
+
+  # ---------------------------------------------------------------------------
+  # AC-P01-7 — Room not found returns 404
+  # ---------------------------------------------------------------------------
+  Scenario: Room not found
+    # AC-P01-7
+    When I GET /api/rooms/INVALID
+    Then response status is 404
+    And response error code is &quot;ROOM_NOT_FOUND&quot;
+
+  # ---------------------------------------------------------------------------
+  # AC-P01-4 — Room is full returns ROOM_FULL error
+  # ---------------------------------------------------------------------------
+  Scenario: Room is full when 50 players already joined
+    # AC-P01-4
+    Given a room with code &quot;ABC123&quot; exists and already has 50 players
+    When I POST to /api/rooms/ABC123/players with { nickname: &quot;LateComer&quot; }
+    Then response status is 409
+    And response error code is &quot;ROOM_FULL&quot;
+    And the message indicates the room is full
+
+  # ---------------------------------------------------------------------------
+  # AC-P01-2 — Duplicate nickname returns NICKNAME_TAKEN error
+  # ---------------------------------------------------------------------------
+  Scenario: Duplicate nickname in the same room returns NICKNAME_TAKEN
+    # AC-P01-2
+    Given a room with code &quot;ABC123&quot; exists and has a player with nickname &quot;Bob&quot;
+    When I POST to /api/rooms/ABC123/players with { nickname: &quot;Bob&quot; }
+    Then response status is 409
+    And response error code is &quot;NICKNAME_TAKEN&quot;
+    And the message says &quot;此暱稱已被使用，請換一個&quot;
+
+  # ---------------------------------------------------------------------------
+  # AC-P01-8 — Cannot join room that has already started
+  # ---------------------------------------------------------------------------
+  Scenario: Cannot join a room that has already started
+    # AC-P01-8
+    Given a room with code &quot;ABC123&quot; exists and status is &quot;running&quot;
+    When I POST to /api/rooms/ABC123/players with { nickname: &quot;LateComer&quot; }
+    Then response status is 409
+    And response error code is &quot;ROOM_NOT_ACCEPTING&quot;
+    And the message indicates the game has already started
+</code></pre>
+<h2>websocket-protocol</h2>
+<pre><code class="language-gherkin">Feature: WebSocket Protocol
+  As a player or host
+  I want reliable WebSocket communication with the server
+  So that I can participate in real-time room events without losing state
+
+  # ---------------------------------------------------------------------------
+  # FR-03-1, FR-03-2 — Connection and join flow
+  # ---------------------------------------------------------------------------
+  Scenario: Player connects and receives initial room state
+    # FR-03-1, AC-P01-1
+    Given a room with code &quot;WS0001&quot; exists and status is &quot;waiting&quot;
+    And a player has obtained a token via POST /api/rooms/WS0001/players
+    When the player connects WebSocket to /ws?room=WS0001&amp;token={token}
+    Then the server sends ROOM_STATE_FULL unicast to the player
+    And ROOM_STATE_FULL payload contains status, players, selfPlayerId, ladder (null), and results (null)
+    And the WebSocket connection is established within 1.5 seconds
+
+  Scenario: Host connects and receives host-specific room state
+    # FR-03-1, AC-H01-2
+    Given a host has created a room and obtained a host token
+    When the host connects WebSocket to /ws?room={roomCode}&amp;token={hostToken}
+    Then the server sends ROOM_STATE_FULL unicast to the host
+    And ROOM_STATE_FULL payload status is &quot;waiting&quot;
+    And the host can issue host-only messages (START_GAME, BEGIN_REVEAL, etc.)
+
+  # ---------------------------------------------------------------------------
+  # FR-03-3 — WebSocket message envelope format validation
+  # ---------------------------------------------------------------------------
+  Scenario: Server sends messages in correct envelope format
+    # FR-03-3
+    Given a player is connected to a room
+    When any server event is broadcast
+    Then the message JSON contains &quot;type&quot;, &quot;ts&quot;, and &quot;payload&quot; fields
+    And &quot;ts&quot; is a Unix milliseconds timestamp
+
+  Scenario: Client sends messages in correct envelope format
+    # FR-03-3
+    Given a host is connected to a room in &quot;waiting&quot; status
+    When the host sends { type: &quot;START_GAME&quot;, ts: 1745050000000, payload: {} }
+    Then the server processes the message without error
+    And the server responds or broadcasts within 1 second
+
+  # ---------------------------------------------------------------------------
+  # FR-03-4 — Error events include machine-readable code and human-readable message
+  # ---------------------------------------------------------------------------
+  Scenario: Error events include code and message fields
+    # FR-03-4
+    Given a player (not host) is connected to a room
+    When the player sends a host-only message { type: &quot;START_GAME&quot;, ts: 1745050000000, payload: {} }
+    Then the server sends ERROR unicast to the player
+    And the ERROR payload contains &quot;code&quot; field (e.g. &quot;PLAYER_NOT_HOST&quot;)
+    And the ERROR payload contains &quot;message&quot; field with human-readable description
+    And the WebSocket connection remains open
+
+  # ---------------------------------------------------------------------------
+  # FR-03-5 — WebSocket message size limit 64KB
+  # ---------------------------------------------------------------------------
+  Scenario: Server rejects oversized WebSocket messages
+    # FR-03-5
+    Given a player is connected to a room
+    When the player sends a WebSocket message exceeding 64KB
+    Then the server rejects the message and closes the connection
+
+  # ---------------------------------------------------------------------------
+  # AC-P05-2, FR-10-4 — Disconnect handling: player offline status broadcast
+  # ---------------------------------------------------------------------------
+  Scenario: Disconnect handling updates player online status
+    # AC-P02-2, FR-10-1
+    Given a room &quot;WS0001&quot; has players &quot;Alice&quot; and &quot;Bob&quot; both online
+    When &quot;Bob&quot;&#x27;s WebSocket connection is closed (TCP close or ping timeout)
+    Then the server detects the disconnect within 30 seconds
+    And the server broadcasts ROOM_STATE to all remaining players
+    And ROOM_STATE payload shows &quot;Bob&quot; with isOnline=false
+    And &quot;Bob&quot;&#x27;s slot and path are preserved (not removed from player list)
+
+  # ---------------------------------------------------------------------------
+  # FR-10-3 — Session replacement when same playerId reconnects from new device
+  # ---------------------------------------------------------------------------
+  Scenario: Session is replaced when same playerId connects from a new device
+    # FR-10-3, AC-RECONNECT-005
+    Given player &quot;Dave&quot; (playerId=&quot;player-dave-uuid&quot;) is connected via device A
+    And room &quot;WS0001&quot; status is &quot;waiting&quot;
+    When &quot;Dave&quot; connects from device B using the same playerId
+    Then device A receives SESSION_REPLACED unicast event
+    And device A&#x27;s WebSocket connection is closed
+    And device B receives ROOM_STATE_FULL with complete room state
+    And &quot;Dave&quot;&#x27;s isOnline is updated to true for device B&#x27;s connection
+
+  # ---------------------------------------------------------------------------
+  # AC-P05-1 — Reconnect restores complete state
+  # ---------------------------------------------------------------------------
+  Scenario: Reconnect restores player state with full room snapshot
+    # AC-P05-1, FR-10-1
+    Given player &quot;Carol&quot; (playerId=&quot;player-carol-uuid&quot;) has disconnected from room &quot;WS0001&quot;
+    And &quot;Carol&quot;&#x27;s localStorage contains the playerId
+    When &quot;Carol&quot; reconnects using the same token
+    Then the server sends ROOM_STATE_FULL unicast to &quot;Carol&quot;
+    And ROOM_STATE_FULL contains complete room state (status, players, ladder, results, selfPlayerId)
+    And &quot;Carol&quot;&#x27;s isOnline is restored to true in the broadcast ROOM_STATE
+    And reconnect completes within 3 seconds
+
+  Scenario: Reconnect during revealing state returns static snapshot without replaying animations
+    # AC-P05-2, FR-10-4
+    Given room &quot;WS0001&quot; is in &quot;revealing&quot; status with revealedCount=3
+    And player &quot;Eve&quot; has disconnected during revealing
+    When &quot;Eve&quot; reconnects to the room
+    Then the server sends ROOM_STATE_FULL with revealedCount=3 and current results
+    And the client renders already-revealed paths as static results
+    And no animations are replayed for previously revealed paths
+
+  # ---------------------------------------------------------------------------
+  # FR-03-4 — Heartbeat: server sends PING every 30 seconds
+  # ---------------------------------------------------------------------------
+  Scenario: Heartbeat keeps connection alive with PING/PONG exchange
+    # FR-03-1 (Heartbeat)
+    Given a player is connected to a room
+    When 30 seconds pass without activity
+    Then the server sends a WebSocket protocol-level PING frame
+    And the client responds with a PONG frame
+    And the connection remains open
+
+  Scenario: Server closes connection when client does not respond to PING
+    # FR-03-1 (Heartbeat timeout)
+    Given a player is connected to a room
+    When the server sends a PING frame and the client does NOT respond within 30 seconds
+    Then the server closes the connection with close code 1001
+
+  # ---------------------------------------------------------------------------
+  # FR-03-4 — Application-level PING/PONG for RTT measurement
+  # ---------------------------------------------------------------------------
+  Scenario: Application-level PING returns PONG with echo timestamp
+    # FR-03-3, §3.4
+    Given a player is connected to a room
+    When the player sends { type: &quot;PING&quot;, ts: 1745049600000, payload: {} }
+    Then the server responds with { type: &quot;PONG&quot;, payload: { ts: 1745049600000 } }
+    And the response ts echoes the original PING ts for RTT measurement
+
+  # ---------------------------------------------------------------------------
+  # FR-11-1, FR-11-4 — Player kicked event flow
+  # ---------------------------------------------------------------------------
+  Scenario: Kicked player receives PLAYER_KICKED and connection closes
+    # AC-H07-1, FR-11-4
+    Given room &quot;WS0001&quot; is in &quot;waiting&quot; status
+    And player &quot;Frank&quot; (playerId=&quot;player-frank-uuid&quot;) is connected
+    When the host sends KICK_PLAYER targeting &quot;player-frank-uuid&quot;
+    Then the server sends PLAYER_KICKED unicast to &quot;Frank&quot;
+    And &quot;Frank&quot;&#x27;s WebSocket connection is closed with close code 4003
+    And all other players receive updated ROOM_STATE without &quot;Frank&quot;
+
+  Scenario: Kicked player is blocked from reconnecting with same playerId
+    # AC-H07-2, FR-11-2
+    Given player &quot;Grace&quot; has been kicked from room &quot;WS0001&quot;
+    When &quot;Grace&quot; attempts to reconnect using the same playerId
+    Then the server sends PLAYER_KICKED and closes connection with close code 4003
+    And &quot;Grace&quot; cannot rejoin the same game session
+
+  # ---------------------------------------------------------------------------
+  # §3.2 — WebSocket upgrade validation rejects unauthorized connections
+  # ---------------------------------------------------------------------------
+  Scenario: WebSocket upgrade is rejected with invalid token
+    # §3.2, NFR-05
+    Given a room with code &quot;WS0001&quot; exists
+    When a client attempts to connect WebSocket with an invalid JWT token
+    Then the WebSocket upgrade is rejected with HTTP 401
+    And no WebSocket connection is established
+
+  Scenario: WebSocket upgrade is rejected for kicked player
+    # §3.2, FR-11-2
+    Given a player has been kicked from room &quot;WS0001&quot; (playerId in kickedPlayerIds)
+    When the kicked player attempts to connect WebSocket to the room
+    Then the server sends PLAYER_KICKED and closes the connection with close code 4003
 </code></pre></main>
   </div>
   <script type="module">

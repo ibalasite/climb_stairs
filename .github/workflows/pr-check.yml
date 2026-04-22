@@ -1,0 +1,87 @@
+# STEP-28: PR快速檢查 — lint + type-check + unit tests (no Redis service)
+# Runs on every PR targeting main; optimized for fast feedback (<3 min target).
+name: PR Check
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  # ─── Lint + type-check ────────────────────────────────────────────────────────
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Type check (shared)
+        run: npm run typecheck --workspace=packages/shared
+
+      - name: Build shared (required for server/client type resolution)
+        run: npm run build --workspace=packages/shared
+
+      - name: Type check (server)
+        run: npm run typecheck --workspace=packages/server
+
+  # ─── Unit tests (no Redis — pure unit scope only) ────────────────────────────
+  unit-test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Build shared
+        run: npm run build --workspace=packages/shared
+
+      - name: Run unit tests (shared)
+        run: npm run test:unit --workspace=packages/shared
+
+      - name: Run unit tests (server)
+        run: npm run test:unit --workspace=packages/server
+        env:
+          JWT_SECRET: test-secret-for-ci
+
+      - name: Run unit tests (client)
+        run: npm run test --workspace=packages/client
+        continue-on-error: true
+
+  # ─── Security audit (quick) ───────────────────────────────────────────────────
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: npm audit
+        run: npm audit --audit-level=high

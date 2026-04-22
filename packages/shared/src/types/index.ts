@@ -12,7 +12,8 @@ export type WsEventType =
   | 'PLAYER_KICKED'
   | 'SESSION_REPLACED'
   | 'HOST_TRANSFERRED'
-  | 'ERROR';
+  | 'ERROR'
+  | 'PONG';
 
 // ─── WebSocket Message Types (Client → Server) ──────────────────────────────
 
@@ -24,7 +25,9 @@ export type WsMsgType =
   | 'SET_REVEAL_MODE'
   | 'RESET_ROOM'
   | 'KICK_PLAYER'
-  | 'PING';
+  | 'PING'
+  | 'END_GAME'
+  | 'PLAY_AGAIN';
 
 // ─── Core Domain Interfaces ──────────────────────────────────────────────────
 

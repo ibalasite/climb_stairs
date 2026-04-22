@@ -21,10 +21,6 @@ function broadcast(roomCode: string, payload: unknown, excludePlayerId?: string)
   }
 }
 
-function broadcastAll(roomCode: string, payload: unknown): void {
-  broadcast(roomCode, payload);
-}
-
 /**
  * Strip the ladder (seed-derived structure) from a room object before
  * sending it to clients. The ladder must never be exposed while the game
@@ -326,217 +322,266 @@ async function bootstrap(): Promise<void> {
 
   const wss = new WebSocketServer({ server: app.server, path: '/ws', maxPayload: 65536 });
 
-  wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
-    // Extract JWT from query string: /ws?token=...
-    const url = new URL(req.url ?? '', `http://localhost`);
-    const token = url.searchParams.get('token');
-
-    if (!token) {
-      ws.close(4001, 'Missing token');
-      return;
-    }
-
-    let claims: JwtClaims;
-    try {
-      claims = await verifyToken(token);
-    } catch {
-      ws.close(4001, 'Invalid token');
-      return;
-    }
-
-    const { playerId, roomCode } = claims;
-
-    // Validate room query param matches JWT roomCode
-    const roomParam = url.searchParams.get('room');
-    if (roomParam && roomParam !== roomCode) {
-      ws.close(4001, 'Room mismatch');
-      return;
-    }
-
-    // Reject kicked players
-    try {
-      const kicked = await repo.isKicked(roomCode, playerId);
-      if (kicked) { ws.close(4003, 'Kicked'); return; }
-    } catch { /* ignore on error */ }
-
-    // Register in room sessions map
-    if (!roomSessions.has(roomCode)) roomSessions.set(roomCode, new Map());
-    const roomMap = roomSessions.get(roomCode)!;
-
-    // Kick previous session if same player reconnects
-    const prev = roomMap.get(playerId);
-    if (prev && prev.readyState === WebSocket.OPEN) {
-      prev.send(JSON.stringify({ type: 'SESSION_REPLACED', payload: { message: 'Session replaced by new connection' } }));
-      prev.close(4002, 'Session replaced');
-    }
-    roomMap.set(playerId, ws);
-
-    // Send current room state on connect
-    try {
-      const room = await repo.findByCode(roomCode);
-      if (room) ws.send(JSON.stringify({
-        type: 'ROOM_STATE_FULL',
-        payload: { ...sanitizeRoomForClient(room), selfPlayerId: playerId },
-      }));
-    } catch { /* ignore */ }
-
-    // Mark player online
-    try {
-      const room = await repo.findByCode(roomCode);
-      if (room) {
-        const updatedPlayers = room.players.map(p =>
-          p.id === playerId ? { ...p, isOnline: true } : p
-        );
-        const updated = await repo.update(roomCode, { players: updatedPlayers });
-        broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(updated) });
-      }
-    } catch { /* ignore */ }
-
-    // ─── Message handler ─────────────────────────────────────────────────────
-    ws.on('message', async (raw) => {
-      let msg: { type: string; payload?: unknown };
-      try {
-        msg = JSON.parse(raw.toString()) as { type: string; payload?: unknown };
-      } catch {
-        ws.send(JSON.stringify({ type: 'ERROR', payload: { code: 'WS_INVALID_MSG', message: 'Invalid JSON' } }));
-        return;
-      }
-
-      const send = (type: string, payload?: unknown) =>
-        ws.send(JSON.stringify({ type, payload }));
-
-      try {
-        switch (msg.type) {
-          case 'PING':
-            break;
-
-          case 'START_GAME': {
-            const room = await gameService.startGame(roomCode, playerId);
-            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
-            break;
-          }
-
-          case 'BEGIN_REVEAL': {
-            const room = await gameService.beginReveal(roomCode, playerId);
-            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
-            break;
-          }
-
-          case 'REVEAL_NEXT': {
-            const { result, room } = await gameService.revealNext(roomCode, playerId);
-            broadcastAll(roomCode, {
-              type: 'REVEAL_INDEX',
-              payload: {
-                playerIndex: room.revealedCount - 1,
-                result,
-                revealedCount: room.revealedCount,
-                totalCount: room.players.length,
-              },
-            });
-            break;
-          }
-
-          case 'REVEAL_ALL_TRIGGER': {
-            const { results, room } = await gameService.revealAll(roomCode, playerId);
-            broadcastAll(roomCode, { type: 'REVEAL_ALL', payload: { results, room: sanitizeRoomForClient(room) } });
-            break;
-          }
-
-          case 'END_GAME': {
-            const room = await gameService.endGame(roomCode, playerId);
-            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
-            break;
-          }
-
-          case 'PLAY_AGAIN': {
-            const room = await gameService.playAgain(roomCode, playerId);
-            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
-            break;
-          }
-
-          case 'RESET_ROOM': {
-            const room = await gameService.resetRoom(roomCode, playerId);
-            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
-            break;
-          }
-
-          case 'SET_REVEAL_MODE': {
-            const p = msg.payload as { mode?: unknown; intervalSec?: unknown } | undefined;
-            const mode = p?.mode;
-            if (mode !== 'manual' && mode !== 'auto') {
-              send('ERROR', { code: 'INVALID_MODE', message: 'mode must be "manual" or "auto"' });
-              break;
-            }
-            // Only the host may change the reveal mode
-            const revealModeRoom = await repo.findByCode(roomCode);
-            if (revealModeRoom === null) {
-              send('ERROR', { code: 'ROOM_NOT_FOUND', message: 'Room not found' });
-              break;
-            }
-            if (revealModeRoom.hostId !== playerId) {
-              send('ERROR', { code: 'NOT_HOST', message: 'Only the host can change the reveal mode' });
-              break;
-            }
-            const rawIntervalSec = mode === 'auto' && typeof p?.intervalSec === 'number' ? p.intervalSec : null;
-            // Guard: interval must be between 1 and 300 seconds when in auto mode
-            if (rawIntervalSec !== null && (rawIntervalSec < 1 || rawIntervalSec > 300 || !Number.isFinite(rawIntervalSec))) {
-              send('ERROR', { code: 'INVALID_INTERVAL', message: 'intervalSec must be between 1 and 300' });
-              break;
-            }
-            const intervalSec = rawIntervalSec;
-            const room = await repo.update(roomCode, { revealMode: mode, autoRevealIntervalSec: intervalSec });
-            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
-            break;
-          }
-
-          case 'KICK_PLAYER': {
-            const kpPayload = msg.payload as { targetPlayerId?: string; playerId?: string } | undefined;
-            const targetId = kpPayload?.targetPlayerId ?? kpPayload?.playerId;
-            if (!targetId) { send('ERROR', { code: 'MISSING_PARAM', message: 'targetPlayerId required' }); break; }
-            const room = await gameService.kickPlayer(roomCode, playerId, targetId);
-            // Notify kicked player
-            const kickedWs = roomSessions.get(roomCode)?.get(targetId);
-            if (kickedWs?.readyState === WebSocket.OPEN) {
-              kickedWs.send(JSON.stringify({ type: 'PLAYER_KICKED', payload: { kickedPlayerId: targetId, reason: 'host_kick' } }));
-              kickedWs.close(4003, 'Kicked');
-            }
-            broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
-            break;
-          }
-
-          default:
-            send('ERROR', { code: 'WS_UNKNOWN_TYPE', message: `Unknown type: ${msg.type}` });
-        }
-      } catch (err) {
-        if (err instanceof DomainError) {
-          send('ERROR', { code: err.code, message: err.message });
-        } else {
-          send('ERROR', { code: 'SYS_INTERNAL_ERROR', message: 'Internal server error' });
-        }
-      }
-    });
-
-    // ─── Disconnect handler ───────────────────────────────────────────────────
-    ws.on('close', async () => {
-      const rm = roomSessions.get(roomCode);
-      if (rm?.get(playerId) === ws) rm.delete(playerId);
-      if (rm?.size === 0) roomSessions.delete(roomCode);
-
-      try {
-        const room = await repo.findByCode(roomCode);
-        if (room) {
-          const updatedPlayers = room.players.map(p =>
-            p.id === playerId ? { ...p, isOnline: false } : p
-          );
-          await repo.update(roomCode, { players: updatedPlayers });
-          const updated = await repo.findByCode(roomCode);
-          if (updated) broadcastAll(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(updated) });
-        }
-      } catch { /* ignore */ }
+  wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
+    handleWsConnection(ws, req, repo, gameService).catch(() => {
+      ws.close(4000, 'Connection setup failed');
     });
   });
 
   app.log.info('WebSocket server ready at /ws');
+}
+
+// ─── Dependency interfaces for WS handler ─────────────────────────────────────
+
+interface WsHandlerDeps {
+  findByCode: (code: string) => Promise<import('@ladder-room/shared').Room | null>;
+  isKicked: (code: string, playerId: string) => Promise<boolean>;
+  update: (code: string, partial: Partial<import('@ladder-room/shared').Room>) => Promise<import('@ladder-room/shared').Room>;
+}
+
+interface WsGameDeps {
+  startGame: (roomCode: string, playerId: string) => Promise<import('@ladder-room/shared').Room>;
+  beginReveal: (roomCode: string, playerId: string) => Promise<import('@ladder-room/shared').Room>;
+  revealNext: (roomCode: string, playerId: string) => Promise<{ result: import('@ladder-room/shared').ResultSlot; room: import('@ladder-room/shared').Room }>;
+  revealAll: (roomCode: string, playerId: string) => Promise<{ results: readonly import('@ladder-room/shared').ResultSlot[]; room: import('@ladder-room/shared').Room }>;
+  endGame: (roomCode: string, playerId: string) => Promise<import('@ladder-room/shared').Room>;
+  playAgain: (roomCode: string, playerId: string) => Promise<import('@ladder-room/shared').Room>;
+  resetRoom: (roomCode: string, playerId: string) => Promise<import('@ladder-room/shared').Room>;
+  kickPlayer: (roomCode: string, hostPlayerId: string, targetPlayerId: string) => Promise<import('@ladder-room/shared').Room>;
+}
+
+async function handleWsConnection(
+  ws: WebSocket,
+  req: IncomingMessage,
+  repo: WsHandlerDeps,
+  gameService: WsGameDeps,
+): Promise<void> {
+  // Extract JWT from query string: /ws?token=...
+  const url = new URL(req.url ?? '', `http://localhost`);
+  const token = url.searchParams.get('token');
+
+  if (!token) {
+    ws.close(4001, 'Missing token');
+    return;
+  }
+
+  let claims: JwtClaims;
+  try {
+    claims = await verifyToken(token);
+  } catch {
+    ws.close(4001, 'Invalid token');
+    return;
+  }
+
+  const { playerId, roomCode } = claims;
+
+  // Validate room query param matches JWT roomCode
+  const roomParam = url.searchParams.get('room');
+  if (roomParam && roomParam !== roomCode) {
+    ws.close(4001, 'Room mismatch');
+    return;
+  }
+
+  // Reject kicked players
+  try {
+    const kicked = await repo.isKicked(roomCode, playerId);
+    if (kicked) { ws.close(4003, 'Kicked'); return; }
+  } catch { /* ignore on error */ }
+
+  // Register in room sessions map
+  if (!roomSessions.has(roomCode)) roomSessions.set(roomCode, new Map());
+  const roomMap = roomSessions.get(roomCode)!;
+
+  // Kick previous session if same player reconnects
+  const prev = roomMap.get(playerId);
+  if (prev && prev.readyState === WebSocket.OPEN) {
+    prev.send(JSON.stringify({ type: 'SESSION_REPLACED', payload: { message: 'Session replaced by new connection' } }));
+    prev.close(4002, 'Session replaced');
+  }
+  roomMap.set(playerId, ws);
+
+  // Send current room state on connect
+  try {
+    const room = await repo.findByCode(roomCode);
+    if (room) ws.send(JSON.stringify({
+      type: 'ROOM_STATE_FULL',
+      payload: { ...sanitizeRoomForClient(room), selfPlayerId: playerId },
+    }));
+  } catch { /* ignore */ }
+
+  // Mark player online
+  try {
+    const room = await repo.findByCode(roomCode);
+    if (room) {
+      const updatedPlayers = room.players.map(p =>
+        p.id === playerId ? { ...p, isOnline: true } : p
+      );
+      const updated = await repo.update(roomCode, { players: updatedPlayers });
+      broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(updated) });
+    }
+  } catch { /* ignore */ }
+
+  // ─── Message handler ───────────────────────────────────────────────────────
+  ws.on('message', (raw) => {
+    handleWsMessage(ws, raw, roomCode, playerId, repo, gameService).catch(() => {
+      ws.send(JSON.stringify({ type: 'ERROR', payload: { code: 'SYS_INTERNAL_ERROR', message: 'Internal server error' } }));
+    });
+  });
+
+  // ─── Disconnect handler ────────────────────────────────────────────────────
+  ws.on('close', async () => {
+    const rm = roomSessions.get(roomCode);
+    if (rm?.get(playerId) === ws) rm.delete(playerId);
+    if (rm?.size === 0) roomSessions.delete(roomCode);
+
+    try {
+      const room = await repo.findByCode(roomCode);
+      if (room) {
+        const updatedPlayers = room.players.map(p =>
+          p.id === playerId ? { ...p, isOnline: false } : p
+        );
+        await repo.update(roomCode, { players: updatedPlayers });
+        const updated = await repo.findByCode(roomCode);
+        if (updated) broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(updated) });
+      }
+    } catch { /* ignore */ }
+  });
+}
+
+async function handleWsMessage(
+  ws: WebSocket,
+  raw: import('ws').RawData,
+  roomCode: string,
+  playerId: string,
+  repo: WsHandlerDeps,
+  gameService: WsGameDeps,
+): Promise<void> {
+  let msg: { type: string; payload?: unknown };
+  try {
+    const parsed: unknown = JSON.parse(raw.toString());
+    if (typeof parsed !== 'object' || parsed === null || typeof (parsed as Record<string, unknown>)['type'] !== 'string') {
+      ws.send(JSON.stringify({ type: 'ERROR', payload: { code: 'WS_INVALID_MSG', message: 'Invalid message structure' } }));
+      return;
+    }
+    msg = parsed as { type: string; payload?: unknown };
+  } catch {
+    ws.send(JSON.stringify({ type: 'ERROR', payload: { code: 'WS_INVALID_MSG', message: 'Invalid JSON' } }));
+    return;
+  }
+
+  const send = (type: string, payload?: unknown) =>
+    ws.send(JSON.stringify({ type, payload }));
+
+  try {
+    switch (msg.type) {
+      case 'PING':
+        send('PONG');
+        break;
+
+      case 'START_GAME': {
+        const room = await gameService.startGame(roomCode, playerId);
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        break;
+      }
+
+      case 'BEGIN_REVEAL': {
+        const room = await gameService.beginReveal(roomCode, playerId);
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        break;
+      }
+
+      case 'REVEAL_NEXT': {
+        const { result, room } = await gameService.revealNext(roomCode, playerId);
+        broadcast(roomCode, {
+          type: 'REVEAL_INDEX',
+          payload: {
+            playerIndex: room.revealedCount - 1,
+            result,
+            revealedCount: room.revealedCount,
+            totalCount: room.players.length,
+          },
+        });
+        break;
+      }
+
+      case 'REVEAL_ALL_TRIGGER': {
+        const { results, room } = await gameService.revealAll(roomCode, playerId);
+        broadcast(roomCode, { type: 'REVEAL_ALL', payload: { results, room: sanitizeRoomForClient(room) } });
+        break;
+      }
+
+      case 'END_GAME': {
+        const room = await gameService.endGame(roomCode, playerId);
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        break;
+      }
+
+      case 'PLAY_AGAIN': {
+        const room = await gameService.playAgain(roomCode, playerId);
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        break;
+      }
+
+      case 'RESET_ROOM': {
+        const room = await gameService.resetRoom(roomCode, playerId);
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        break;
+      }
+
+      case 'SET_REVEAL_MODE': {
+        const p = msg.payload as { mode?: unknown; intervalSec?: unknown } | undefined;
+        const mode = p?.mode;
+        if (mode !== 'manual' && mode !== 'auto') {
+          send('ERROR', { code: 'INVALID_MODE', message: 'mode must be "manual" or "auto"' });
+          break;
+        }
+        // Only the host may change the reveal mode
+        const revealModeRoom = await repo.findByCode(roomCode);
+        if (revealModeRoom === null) {
+          send('ERROR', { code: 'ROOM_NOT_FOUND', message: 'Room not found' });
+          break;
+        }
+        if (revealModeRoom.hostId !== playerId) {
+          send('ERROR', { code: 'NOT_HOST', message: 'Only the host can change the reveal mode' });
+          break;
+        }
+        const rawIntervalSec = mode === 'auto' && typeof p?.intervalSec === 'number' ? p.intervalSec : null;
+        // Guard: interval must be between 1 and 300 seconds when in auto mode
+        if (rawIntervalSec !== null && (rawIntervalSec < 1 || rawIntervalSec > 300 || !Number.isFinite(rawIntervalSec))) {
+          send('ERROR', { code: 'INVALID_INTERVAL', message: 'intervalSec must be between 1 and 300' });
+          break;
+        }
+        const intervalSec = rawIntervalSec;
+        const room = await repo.update(roomCode, { revealMode: mode, autoRevealIntervalSec: intervalSec });
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        break;
+      }
+
+      case 'KICK_PLAYER': {
+        const kpPayload = msg.payload as { targetPlayerId?: string; playerId?: string } | undefined;
+        const targetId = kpPayload?.targetPlayerId ?? kpPayload?.playerId;
+        if (!targetId) { send('ERROR', { code: 'MISSING_PARAM', message: 'targetPlayerId required' }); break; }
+        const room = await gameService.kickPlayer(roomCode, playerId, targetId);
+        // Notify kicked player
+        const kickedWs = roomSessions.get(roomCode)?.get(targetId);
+        if (kickedWs?.readyState === WebSocket.OPEN) {
+          kickedWs.send(JSON.stringify({ type: 'PLAYER_KICKED', payload: { kickedPlayerId: targetId, reason: 'host_kick' } }));
+          kickedWs.close(4003, 'Kicked');
+        }
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        break;
+      }
+
+      default:
+        send('ERROR', { code: 'WS_UNKNOWN_TYPE', message: `Unknown type: ${msg.type}` });
+    }
+  } catch (err) {
+    if (err instanceof DomainError) {
+      send('ERROR', { code: err.code, message: err.message });
+    } else {
+      send('ERROR', { code: 'SYS_INTERNAL_ERROR', message: 'Internal server error' });
+    }
+  }
 }
 
 bootstrap().catch((err: unknown) => {
