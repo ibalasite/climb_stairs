@@ -31,8 +31,47 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
+    # ladder.local — production-style hostname (add to /etc/hosts if needed)
     - host: ladder.local
       http:
+        paths:
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: ladder-server-service
+                port:
+                  name: http
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: ladder-server-service
+                port:
+                  name: http
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: ladder-server-service
+                port:
+                  name: http
+          - path: /ready
+            pathType: Exact
+            backend:
+              service:
+                name: ladder-server-service
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ladder-client-service
+                port:
+                  name: http
+    # catch-all rule — allows access via localhost:8888 without /etc/hosts
+    - http:
         paths:
           # WebSocket upgrade path
           - path: /ws

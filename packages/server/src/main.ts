@@ -22,15 +22,18 @@ function broadcast(roomCode: string, payload: unknown, excludePlayerId?: string)
 }
 
 /**
- * Strip the ladder (seed-derived structure) from a room object before
- * sending it to clients. The ladder must never be exposed while the game
- * is in a non-finished state because it encodes the full result mapping.
- * Once status is 'finished', the ladder is already resolved and safe to omit
- * entirely — clients only need the results array.
+ * Strip the PRNG seed from the ladder before sending to clients.
+ * The visual structure (rowCount, colCount, segments) is needed by the
+ * renderer to draw the grid. Only seed + seedSource are stripped to prevent
+ * clients from running ComputeResults locally to pre-determine outcomes.
  */
-function sanitizeRoomForClient<T extends { ladder?: unknown; status?: unknown }>(room: T): T {
-  const { ladder: _ladder, ...rest } = room as Record<string, unknown>;
-  return rest as T;
+function sanitizeRoomForClient<T extends { ladder?: unknown }>(room: T): T {
+  const r = room as Record<string, unknown>;
+  if (r['ladder'] && typeof r['ladder'] === 'object') {
+    const { seed: _seed, seedSource: _seedSource, ...ladderRest } = r['ladder'] as Record<string, unknown>;
+    return { ...r, ladder: ladderRest } as T;
+  }
+  return room;
 }
 
 // ─── JWT helpers ─────────────────────────────────────────────────────────────
