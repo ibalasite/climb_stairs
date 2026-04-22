@@ -2,7 +2,7 @@
   "index.html": {
     "url": "index.html",
     "title": "首頁",
-    "excerpt": "Ladder Room Online\n\n\n\n\n基於 LINE 爬樓梯玩法的 HTML5 線上多人互動抽獎遊戲，支援最多 50 位玩家從不同地點透過瀏覽器加入同一場抽獎活動，主持人掌控揭曉節奏，Mulberry32 PRNG 確保結果 100% 公正可驗證。\n\n📋 專案說明\nLadder Room O"
+    "excerpt": "Ladder Room Online\n\n\n\n多人線上梯子遊戲平台，主持人建立房間、玩家即時加入，透過公平隨機梯子抽籤決定命運，支援 WebSocket 同步、手動/自動揭曉，以及再玩一局功能。\n\n📋 專案說明\nLadder Room Online 是一個基於瀏覽器的多人即時梯子遊戲（鬼腳圖）。主持人"
   },
   "idea.html": {
     "url": "idea.html",
