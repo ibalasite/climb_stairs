@@ -2,7 +2,7 @@
   "version": "2.0",
   "project_dir": "/Users/tobala/projects/climb_stairs",
   "pdd_path": "/Users/tobala/projects/climb_stairs/docs/PDD.md",
-  "current_step": "31",
+  "current_step": "15d",
   "lang_stack": "ts-fastify-ws-redis-vanillajs-vite",
   "client_type": "web",
   "auto_mode": "full",
@@ -45,10 +45,10 @@
     "31",
     "23"
   ],
-  "last_updated": "2026-04-21T23:00:00Z",
-  "change_desc": "HOST copy 邀請 link（含 6 碼房號）+ localStorage 暱稱記憶，一鍵加入",
-  "change_branch": "change/20260420-host-copy-invite-link-with-room-code-and-nickname-memory",
-  "todo_id": "ECR-20260420-001",
+  "last_updated": "2026-04-22T09:30:00Z",
+  "change_desc": "再玩下一場（play-again）功能",
+  "change_branch": "change/20260422-play-again-after-game-ends",
+  "todo_id": "ECR-20260422-001",
   "idea_path": "/Users/tobala/projects/climb_stairs/docs/IDEA.md",
   "migration_mode": true,
   "code_snapshot": "docs/MIGRATION_CODE_SNAPSHOT.md"
