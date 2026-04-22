@@ -252,4 +252,44 @@ describe('GameService.playAgain', () => {
       expect(player.result).toBeNull();
     }
   });
+
+  // AC-H08-1 / FR-12-1 / feature @AC-H08-1-RESET-DATA:
+  // ladder, results, revealedCount AND rowCount must all be cleared after play-again
+  it('clears ladder, results, revealedCount and sets status to waiting (rowCount cleared via ladder=null)', async () => {
+    const players = [
+      makePlayer({ id: 'player-1', isHost: true, isOnline: true }),
+      makePlayer({ id: 'player-2', nickname: 'Bob', colorIndex: 1, isHost: false, isOnline: true }),
+    ];
+    const repo = makeMockRepo({
+      status: 'finished',
+      players,
+      revealedCount: 5,
+    });
+    const svc = new GameService(repo);
+
+    const room = await svc.playAgain('ABCD12', 'player-1');
+
+    expect(room.status).toBe('waiting');
+    expect(room.ladder).toBeNull();
+    expect(room.results).toBeNull();
+    expect(room.revealedCount).toBe(0);
+  });
+
+  // AC-H08-2 documentation gap: backend silently sets winnerCount=null when out of bounds.
+  // The feature spec asks for a WINNER_COUNT_RESET ERROR event; the unit service layer
+  // does NOT emit it (that would be a transport concern at the WS/HTTP layer).
+  // This test documents the current behaviour: winnerCount becomes null, no exception thrown.
+  it('does not throw when winnerCount is reset to null — caller must emit notification', async () => {
+    const players = [
+      makePlayer({ id: 'player-1', isHost: true, isOnline: true }),
+      makePlayer({ id: 'player-2', nickname: 'Bob', colorIndex: 1, isHost: false, isOnline: true }),
+    ];
+    const repo = makeMockRepo({ status: 'finished', players, winnerCount: 99 });
+    const svc = new GameService(repo);
+
+    const room = await svc.playAgain('ABCD12', 'player-1');
+
+    // winnerCount reset to null silently — transport layer is responsible for notifying host
+    expect(room.winnerCount).toBeNull();
+  });
 });

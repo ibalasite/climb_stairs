@@ -304,6 +304,9 @@ async function bootstrap(): Promise<void> {
     }
 
     const room = await gameService.playAgain(code, auth.claims.playerId);
+    // AC-H08-4: broadcast ROOM_STATE to all connected clients so every online
+    // player sees the reset — mirrors what the WS PLAY_AGAIN handler does.
+    broadcast(code, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
     return reply.status(200).send(sanitizeRoomForClient(room));
   });
 
