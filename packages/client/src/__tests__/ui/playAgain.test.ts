@@ -43,6 +43,7 @@ let fetchStub: FetchStub;
 
 const storeModule = await import('../../state/store.js');
 const { state, setState } = storeModule;
+const { handlePlayAgain } = await import('../../ui/game.js');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -76,19 +77,6 @@ function makeButton(text = '再玩一局'): HTMLButtonElement {
   return btn;
 }
 
-// Extract the private handlePlayAgain function by calling it through a test shim.
-// Since it is not exported, we invoke it via a dynamic import workaround:
-// we expose it through the module's own internal behaviour by calling renderGame
-// and wiring a fake container — but that requires full DOM.
-//
-// Instead, we test it at the integration boundary: we observe fetch calls and
-// state side-effects triggered by the function.  The function is reachable via
-// a direct module import trick: import the module then inspect the click handler.
-//
-// For simplicity and correctness, the tests below call the private logic
-// by re-implementing the same fetch call shape and asserting on the observable
-// side-effects (fetch args, toast calls, button state).
-
 describe('play-again button behaviour', () => {
   beforeEach(() => {
     toastCalls.length = 0;
@@ -110,59 +98,13 @@ describe('play-again button behaviour', () => {
     vi.restoreAllMocks();
   });
 
-  // ── Inline simulation of handlePlayAgain ─────────────────────────────────
-
-  /**
-   * Simulate what handlePlayAgain does, mirroring the implementation exactly.
-   * This tests the contract without requiring DOM/renderGame.
-   */
-  async function simulateHandlePlayAgain(btn: HTMLButtonElement): Promise<void> {
-    const { room, myToken } = state;
-    if (!room || !myToken) return;
-
-    btn.disabled = true;
-    const originalText = btn.textContent ?? '再玩一局';
-    btn.textContent = '處理中…';
-
-    try {
-      const res = await fetch(`/api/rooms/${room.code}/game/play-again`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${myToken}`,
-        },
-        body: JSON.stringify({}),
-      });
-
-      if (!(res as Response).ok) {
-        let errMsg = '再玩一局失敗';
-        try {
-          const body = await (res as Response).json() as { error?: string; message?: string; code?: string };
-          errMsg = body.message ?? body.error ?? body.code ?? errMsg;
-        } catch {
-          // ignore
-        }
-        const { showToast } = await import('../../ui/toast.js');
-        showToast(errMsg, 'error');
-        btn.disabled = false;
-        btn.textContent = originalText;
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '網路錯誤';
-      const { showToast } = await import('../../ui/toast.js');
-      showToast(msg, 'error');
-      btn.disabled = false;
-      btn.textContent = originalText;
-    }
-  }
-
   // ── fetch call shape ──────────────────────────────────────────────────────
 
   it('calls POST /api/rooms/{code}/game/play-again with Authorization header', async () => {
     fetchStub.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
     const btn = makeButton();
 
-    await simulateHandlePlayAgain(btn);
+    await handlePlayAgain(btn);
 
     expect(fetchStub).toHaveBeenCalledOnce();
     const [url, opts] = fetchStub.mock.calls[0] as [string, RequestInit];
@@ -176,7 +118,7 @@ describe('play-again button behaviour', () => {
     fetchStub.mockReturnValueOnce(new Promise((r) => { resolveRequest = r; }));
     const btn = makeButton();
 
-    const promise = simulateHandlePlayAgain(btn);
+    const promise = handlePlayAgain(btn);
 
     // Before resolution: button should be disabled with loading text
     expect(btn.disabled).toBe(true);
@@ -190,7 +132,7 @@ describe('play-again button behaviour', () => {
     fetchStub.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
     const btn = makeButton();
 
-    await simulateHandlePlayAgain(btn);
+    await handlePlayAgain(btn);
 
     // Button stays disabled — no re-enable on success path
     expect(btn.disabled).toBe(true);
@@ -206,7 +148,7 @@ describe('play-again button behaviour', () => {
     });
     const btn = makeButton();
 
-    await simulateHandlePlayAgain(btn);
+    await handlePlayAgain(btn);
 
     expect(btn.disabled).toBe(false);
     expect(btn.textContent).toBe('再玩一局');
@@ -222,7 +164,7 @@ describe('play-again button behaviour', () => {
     });
     const btn = makeButton();
 
-    await simulateHandlePlayAgain(btn);
+    await handlePlayAgain(btn);
 
     expect(toastCalls[0]?.msg).toBe('再玩一局失敗');
     expect(btn.disabled).toBe(false);
@@ -235,7 +177,7 @@ describe('play-again button behaviour', () => {
     });
     const btn = makeButton();
 
-    await simulateHandlePlayAgain(btn);
+    await handlePlayAgain(btn);
 
     expect(toastCalls[0]?.msg).toBe('INVALID_STATE');
   });
@@ -246,7 +188,7 @@ describe('play-again button behaviour', () => {
     fetchStub.mockRejectedValueOnce(new Error('Failed to fetch'));
     const btn = makeButton();
 
-    await simulateHandlePlayAgain(btn);
+    await handlePlayAgain(btn);
 
     expect(btn.disabled).toBe(false);
     expect(btn.textContent).toBe('再玩一局');
@@ -258,7 +200,7 @@ describe('play-again button behaviour', () => {
     fetchStub.mockRejectedValueOnce('string error');
     const btn = makeButton();
 
-    await simulateHandlePlayAgain(btn);
+    await handlePlayAgain(btn);
 
     expect(toastCalls[0]?.msg).toBe('網路錯誤');
   });
@@ -269,7 +211,7 @@ describe('play-again button behaviour', () => {
     setState({ room: null });
     const btn = makeButton();
 
-    await simulateHandlePlayAgain(btn);
+    await handlePlayAgain(btn);
 
     expect(fetchStub).not.toHaveBeenCalled();
     expect(btn.disabled).toBe(false);
@@ -279,7 +221,7 @@ describe('play-again button behaviour', () => {
     setState({ myToken: null });
     const btn = makeButton();
 
-    await simulateHandlePlayAgain(btn);
+    await handlePlayAgain(btn);
 
     expect(fetchStub).not.toHaveBeenCalled();
   });

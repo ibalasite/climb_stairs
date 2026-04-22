@@ -141,7 +141,7 @@ function wireHostControls(container: HTMLElement, status: string): void {
   }
 }
 
-async function handlePlayAgain(btn: HTMLButtonElement): Promise<void> {
+export async function handlePlayAgain(btn: HTMLButtonElement): Promise<void> {
   const { room, myToken } = state;
   if (!room || !myToken) return;
 
