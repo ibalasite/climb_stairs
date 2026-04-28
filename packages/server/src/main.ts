@@ -6,18 +6,31 @@ import { WebSocketServer, WebSocket } from 'ws';
 import type { IncomingMessage } from 'node:http';
 import { DomainError } from './domain/errors/DomainError.js';
 import { createContainer } from './container.js';
+import { PubSubBroker } from './infrastructure/redis/PubSubBroker.js';
 
 // ─── Room → connected clients map ─────────────────────────────────────────────
 // roomCode → Map<playerId, WebSocket>
 const roomSessions = new Map<string, Map<string, WebSocket>>();
 
-function broadcast(roomCode: string, payload: unknown, excludePlayerId?: string): void {
+// Broker is wired in bootstrap(). Until then, broadcast falls back to local
+// fanout so unit tests and pre-listen code paths still work.
+let broker: PubSubBroker | null = null;
+
+function localFanout(roomCode: string, payload: unknown, excludePlayerId?: string): void {
   const room = roomSessions.get(roomCode);
   if (!room) return;
   const data = JSON.stringify(payload);
   for (const [pid, ws] of room) {
     if (pid === excludePlayerId) continue;
     if (ws.readyState === WebSocket.OPEN) ws.send(data);
+  }
+}
+
+function broadcast(roomCode: string, payload: unknown, excludePlayerId?: string): void {
+  if (broker !== null) {
+    void broker.publish(roomCode, payload, excludePlayerId);
+  } else {
+    localFanout(roomCode, payload, excludePlayerId);
   }
 }
 
@@ -319,6 +332,17 @@ async function bootstrap(): Promise<void> {
     app.log.info('Redis connected');
   } catch (err) {
     app.log.warn({ err }, 'Redis initial connect failed — will retry on demand');
+  }
+
+  broker = new PubSubBroker(redis);
+  try {
+    await broker.start((roomCode, payload, excludePlayerId) =>
+      localFanout(roomCode, payload, excludePlayerId)
+    );
+    app.log.info('PubSubBroker subscribed to room:*:events');
+  } catch (err) {
+    app.log.error({ err }, 'PubSubBroker subscribe failed — multi-pod broadcast will not work');
+    broker = null;
   }
 
   await app.listen({ port, host: '0.0.0.0' });
