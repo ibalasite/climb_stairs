@@ -2,6 +2,7 @@ import { state } from '../state/store.js';
 import { send } from '../ws/client.js';
 import { showToast } from './toast.js';
 import { colorFromIndex } from '../canvas/colors.js';
+import { renderAvatarHtml, fileToAvatarDataUri } from './avatar.js';
 
 function buildInviteUrl(roomCode: string): string {
   return `${window.location.origin}/?room=${roomCode}`;
@@ -54,6 +55,10 @@ export function renderWaitingRoom(container: HTMLElement): void {
     <div class="page">
       <h1 class="page-title">等待大廳</h1>
 
+      ${room.prize !== undefined && room.prize !== '' ? `
+        <div class="prize-banner" style="margin:0 0 1rem">🎁 獎品：${escapeHtml(room.prize)}</div>
+      ` : ''}
+
       <div class="card">
         <div class="room-code-box" id="copy-code" title="點擊複製房間代碼">
           <p class="room-code-label">房間代碼</p>
@@ -75,7 +80,13 @@ export function renderWaitingRoom(container: HTMLElement): void {
         ${room.winnerCount !== null ? `
         <div class="info-row">
           <span>中獎人數</span>
-          <strong class="winner-count-display" style="color:var(--gold)">${room.winnerCount} 人</strong>
+          ${isHost ? `
+            <span class="winner-count-stepper">
+              <button class="btn btn-sm btn-ghost" id="wc-dec" type="button" aria-label="減少">−</button>
+              <strong class="winner-count-display" style="color:var(--gold);min-width:3.2em;text-align:center">${room.winnerCount} 人</strong>
+              <button class="btn btn-sm btn-ghost" id="wc-inc" type="button" aria-label="增加">＋</button>
+            </span>
+          ` : `<strong class="winner-count-display" style="color:var(--gold)">${room.winnerCount} 人</strong>`}
         </div>
         ` : ''}
         <div class="info-row">
@@ -85,7 +96,21 @@ export function renderWaitingRoom(container: HTMLElement): void {
 
         <div class="divider"></div>
 
-        <p class="sidebar-title">玩家列表</p>
+        <p class="sidebar-title">獎品</p>
+        ${isHost ? `
+          <div class="prize-edit">
+            <input id="prize-input" type="text" maxlength="120"
+                   placeholder="例：一個擁抱、星巴克卡、$500"
+                   value="${escapeAttr(room.prize ?? '')}" />
+            <button class="btn btn-sm btn-secondary" id="prize-save">儲存</button>
+          </div>
+        ` : `
+          <p class="prize-display">${room.prize ? escapeHtml(room.prize) : '<span style="color:var(--text-dim)">尚未設定</span>'}</p>
+        `}
+
+        <div class="divider"></div>
+
+        <p class="sidebar-title">玩家列表（點自己頭像可換頭像）</p>
         <div class="player-list" id="player-list">
           ${renderPlayerList(room.players, myPlayerId, room.hostId, isHost, room.code)}
         </div>
@@ -114,6 +139,29 @@ export function renderWaitingRoom(container: HTMLElement): void {
     inviteBtn.addEventListener('click', () => copyInviteLink(room.code, inviteBtn));
   }
 
+  // Winner count stepper (host only)
+  if (isHost && room.winnerCount !== null) {
+    const wcDec = container.querySelector<HTMLButtonElement>('#wc-dec');
+    const wcInc = container.querySelector<HTMLButtonElement>('#wc-inc');
+    const maxWinner = Math.max(1, room.players.length - 1);
+    if (wcDec) {
+      wcDec.disabled = room.winnerCount <= 1;
+      wcDec.addEventListener('click', () => {
+        if (room.winnerCount !== null && room.winnerCount > 1) {
+          send('SET_WINNER_COUNT', { winnerCount: room.winnerCount - 1 });
+        }
+      });
+    }
+    if (wcInc) {
+      wcInc.disabled = room.winnerCount >= maxWinner;
+      wcInc.addEventListener('click', () => {
+        if (room.winnerCount !== null && room.winnerCount < maxWinner) {
+          send('SET_WINNER_COUNT', { winnerCount: room.winnerCount + 1 });
+        }
+      });
+    }
+  }
+
   // Start game
   container.querySelector('#start-btn')?.addEventListener('click', () => {
     send('START_GAME');
@@ -129,6 +177,38 @@ export function renderWaitingRoom(container: HTMLElement): void {
         }
       });
     });
+
+    // Prize save
+    const prizeInput = container.querySelector<HTMLInputElement>('#prize-input');
+    const prizeSave = container.querySelector<HTMLButtonElement>('#prize-save');
+    prizeSave?.addEventListener('click', () => {
+      if (prizeInput) send('SET_PRIZE', { prize: prizeInput.value });
+    });
+    prizeInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') prizeSave?.click();
+    });
+  }
+
+  // Avatar upload — clicking own avatar opens file picker
+  const myAvatarWrap = container.querySelector<HTMLSpanElement>('.player-avatar-me');
+  if (myAvatarWrap) {
+    myAvatarWrap.style.cursor = 'pointer';
+    myAvatarWrap.title = '點擊上傳頭像';
+    myAvatarWrap.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.addEventListener('change', () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        fileToAvatarDataUri(file).then((dataUri) => {
+          send('SET_AVATAR', { avatar: dataUri });
+        }).catch((err: unknown) => {
+          showToast(err instanceof Error ? err.message : '上傳失敗', 'error');
+        });
+      });
+      input.click();
+    });
   }
 }
 
@@ -140,16 +220,18 @@ function renderPlayerList(
   _roomCode: string,
 ): string {
   return players.map((p) => {
-    const dotColor = colorFromIndex(p.colorIndex);
     const isMe     = p.id === myPlayerId;
     const isPlayerHost = p.id === hostId;
+    const avatarHtml = renderAvatarHtml(p.avatar, p.nickname, p.colorIndex, 36);
 
     return `
       <div class="player-item">
-        <span class="player-dot ${p.isOnline ? '' : 'offline'}" style="background:${dotColor}"></span>
+        <span class="player-avatar-wrap${isMe ? ' player-avatar-me' : ''}" data-self="${isMe ? '1' : '0'}">
+          ${avatarHtml}
+          ${!p.isOnline ? '<span class="player-avatar-offline-tag">離線</span>' : ''}
+        </span>
         <span class="player-name">${escapeHtml(p.nickname)}${isMe ? ' <span style="font-size:0.72rem;color:var(--accent)">(你)</span>' : ''}</span>
         ${isPlayerHost ? '<span class="player-badge">房主</span>' : ''}
-        ${!p.isOnline ? '<span class="player-offline-label">離線</span>' : ''}
         ${isHost && !isMe ? `<button class="btn btn-sm btn-danger kick-btn" data-player-id="${p.id}" style="margin-left:auto">踢除</button>` : ''}
       </div>
     `;
@@ -162,4 +244,12 @@ function escapeHtml(s: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function escapeAttr(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }

@@ -12,6 +12,34 @@ const NICKNAME_MIN = 1;
 const NICKNAME_MAX = 20;
 const COLOR_INDICES = 50;
 
+// Server-assigned default avatar pool — emoji that render cross-platform.
+const DEFAULT_AVATARS = [
+  '🦁','🐯','🐶','🐱','🦊','🐻','🐼','🐨','🐸','🐵',
+  '🐰','🐹','🐭','🐔','🐧','🐦','🦄','🐝','🐢','🐳',
+  '🦋','🐙','🐬','🦉','🦅','🦓','🐘','🦒','🦜','🦔',
+];
+
+function pickDefaultAvatar(usedAvatars: Set<string>): string {
+  const available = DEFAULT_AVATARS.filter(a => !usedAvatars.has(a));
+  const pool = available.length > 0 ? available : DEFAULT_AVATARS;
+  return pool[randomInt(0, pool.length)]!;
+}
+
+// Avatar payload validation — ≤ 12KB chars (data URIs are base64 + small overhead).
+const AVATAR_MAX_LEN = 12_000;
+export function validateAvatar(value: string): void {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new DomainError('INVALID_AVATAR', 'Avatar payload required', 422);
+  }
+  if (value.length > AVATAR_MAX_LEN) {
+    throw new DomainError('AVATAR_TOO_LARGE', `Avatar exceeds ${AVATAR_MAX_LEN} chars`, 413);
+  }
+  // Emoji fallback (short string) OR data URI
+  if (value.length > 80 && !value.startsWith('data:image/')) {
+    throw new DomainError('INVALID_AVATAR', 'Avatar must be emoji or data:image/* URI', 422);
+  }
+}
+
 export class RoomService {
   constructor(private readonly repo: IRoomRepository) {}
 
@@ -63,6 +91,7 @@ export class RoomService {
       isOnline: true,
       joinedAt: now,
       result: null,
+      avatar: pickDefaultAvatar(new Set()),
     };
 
     let attempts = 0;
@@ -134,6 +163,10 @@ export class RoomService {
     const now = Date.now();
     const playerId = randomUUID().replace(/-/g, '');
 
+    const usedAvatars = new Set<string>();
+    for (const p of room.players) {
+      if (p.avatar !== undefined && !p.avatar.startsWith('data:')) usedAvatars.add(p.avatar);
+    }
     const newPlayer: Player = {
       id: playerId,
       nickname: trimmedNickname,
@@ -142,6 +175,7 @@ export class RoomService {
       isOnline: true,
       joinedAt: now,
       result: null,
+      avatar: pickDefaultAvatar(usedAvatars),
     };
 
     const updatedRoom = await this.repo.update(code, {
@@ -149,5 +183,19 @@ export class RoomService {
     });
 
     return { room: updatedRoom, playerId };
+  }
+
+  async setAvatar(roomCode: string, playerId: string, avatar: string): Promise<Room> {
+    validateAvatar(avatar);
+    const room = await this.repo.findByCode(roomCode);
+    if (room === null) {
+      throw new DomainError('ROOM_NOT_FOUND', `Room ${roomCode} not found`, 404);
+    }
+    const idx = room.players.findIndex(p => p.id === playerId);
+    if (idx === -1) {
+      throw new DomainError('PLAYER_NOT_FOUND', 'Player not found in room', 404);
+    }
+    const updatedPlayers = room.players.map((p, i) => i === idx ? { ...p, avatar } : p);
+    return this.repo.update(roomCode, { players: updatedPlayers });
   }
 }

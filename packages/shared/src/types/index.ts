@@ -12,6 +12,9 @@ export type WsEventType =
   | 'PLAYER_KICKED'
   | 'SESSION_REPLACED'
   | 'HOST_TRANSFERRED'
+  | 'CHAT_BROADCAST'
+  | 'REVEAL_PLAYER'
+  | 'REPLAY_AVAILABLE'
   | 'ERROR'
   | 'PONG';
 
@@ -27,7 +30,12 @@ export type WsMsgType =
   | 'KICK_PLAYER'
   | 'PING'
   | 'END_GAME'
-  | 'PLAY_AGAIN';
+  | 'PLAY_AGAIN'
+  | 'CHAT_MESSAGE'
+  | 'SET_WINNER_COUNT'
+  | 'SET_AVATAR'
+  | 'SET_PRIZE'
+  | 'REVEAL_PLAYER_PICK';
 
 // ─── Core Domain Interfaces ──────────────────────────────────────────────────
 
@@ -40,6 +48,13 @@ export interface Player {
   isOnline: boolean;
   joinedAt: number;
   result?: string | null;
+  /**
+   * Avatar — one of:
+   *   - emoji string (e.g. "🦊") for server-assigned defaults
+   *   - data URI ("data:image/...") for user-uploaded images
+   *   - undefined / empty for legacy rooms (fallback to colored initial)
+   */
+  avatar?: string;
 }
 
 export interface LadderSegment {
@@ -84,8 +99,34 @@ export interface Room {
   revealMode: 'manual' | 'auto';
   autoRevealIntervalSec: number | null;
   readonly kickedPlayerIds: readonly string[];
+  /** Free-text prize description shown to all players (≤ 120 chars). */
+  prize?: string;
+  /** PlayerIds revealed via REVEAL_PLAYER, in click order (host's pick order). */
+  readonly revealedPlayerIds?: readonly string[];
   createdAt: number;
   updatedAt: number;
+}
+
+// ─── Replay (immutable snapshot stored after game finishes) ─────────────────
+
+export interface Replay {
+  id: string;
+  roomCode: string;
+  prize?: string;
+  players: readonly Player[];
+  ladder: LadderData;
+  results: readonly ResultSlot[];
+  /** Order in which results were revealed (by playerId). */
+  revealedPlayerIds: readonly string[];
+  finishedAt: number;
+}
+
+export interface ReplaySummary {
+  id: string;
+  roomCode: string;
+  prize?: string;
+  playerCount: number;
+  finishedAt: number;
 }
 
 // ─── WebSocket Envelopes ─────────────────────────────────────────────────────
