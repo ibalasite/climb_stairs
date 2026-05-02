@@ -4,6 +4,7 @@ import rateLimit from '@fastify/rate-limit';
 import { SignJWT, jwtVerify, errors as joseErrors } from 'jose';
 import { WebSocketServer, WebSocket } from 'ws';
 import type { IncomingMessage } from 'node:http';
+import type { Room } from '@ladder-room/shared';
 import { DomainError } from './domain/errors/DomainError.js';
 import { createContainer } from './container.js';
 import { PubSubBroker } from './infrastructure/redis/PubSubBroker.js';
@@ -15,6 +16,22 @@ const roomSessions = new Map<string, Map<string, WebSocket>>();
 // Broker is wired in bootstrap(). Until then, broadcast falls back to local
 // fanout so unit tests and pre-listen code paths still work.
 let broker: PubSubBroker | null = null;
+
+// Per-player chat rate limit: 5 messages per 5 seconds, sliding window.
+const CHAT_WINDOW_MS = 5000;
+const CHAT_MAX_PER_WINDOW = 5;
+const chatTimestamps = new Map<string, number[]>();
+function chatRateLimitOk(playerId: string): boolean {
+  const now = Date.now();
+  const arr = (chatTimestamps.get(playerId) ?? []).filter(t => now - t < CHAT_WINDOW_MS);
+  if (arr.length >= CHAT_MAX_PER_WINDOW) {
+    chatTimestamps.set(playerId, arr);
+    return false;
+  }
+  arr.push(now);
+  chatTimestamps.set(playerId, arr);
+  return true;
+}
 
 function localFanout(roomCode: string, payload: unknown, excludePlayerId?: string): void {
   const room = roomSessions.get(roomCode);
@@ -116,7 +133,32 @@ async function requireAuth(
 
 async function bootstrap(): Promise<void> {
   const app = Fastify({ logger: true });
-  const { repo, roomService, gameService, redis } = createContainer();
+  const { repo, replayRepo, roomService, gameService, redis } = createContainer();
+
+  // Persist a fresh replay snapshot when a game transitions to 'finished'.
+  // Returns the replay id (or null on failure).
+  const saveReplayIfFinished = async (room: Room): Promise<string | null> => {
+    if (room.status !== 'finished' || room.results === null || room.ladder === null) {
+      return null;
+    }
+    try {
+      const revealedPlayerIds = room.revealedPlayerIds ?? room.results.map(r => r.playerId);
+      const replay = await replayRepo.save({
+        roomCode: room.code,
+        ...(room.prize !== undefined ? { prize: room.prize } : {}),
+        players: room.players,
+        ladder: room.ladder,
+        results: room.results,
+        revealedPlayerIds,
+        finishedAt: Date.now(),
+      });
+      broadcast(room.code, { type: 'REPLAY_AVAILABLE', payload: { replayId: replay.id } });
+      return replay.id;
+    } catch (err) {
+      app.log.error({ err }, 'Failed to save replay');
+      return null;
+    }
+  };
 
   // ─── Plugins ───────────────────────────────────────────────────────────────
 
@@ -164,6 +206,25 @@ async function bootstrap(): Promise<void> {
     } catch {
       return reply.status(503).send({ status: 'unavailable' });
     }
+  });
+
+  // ─── Replays (public, read-only) ───────────────────────────────────────────
+
+  app.get('/api/replays', async (_req, reply) => {
+    const list = await replayRepo.list(20);
+    return reply.status(200).send({ replays: list });
+  });
+
+  app.get('/api/replays/:id', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (!/^[a-f0-9]{1,32}$/i.test(id)) {
+      return reply.status(400).send({ error: 'INVALID_ID', message: 'Invalid replay id' });
+    }
+    const replay = await replayRepo.findById(id);
+    if (replay === null) {
+      return reply.status(404).send({ error: 'REPLAY_NOT_FOUND', message: `Replay ${id} not found or expired` });
+    }
+    return reply.status(200).send(replay);
   });
 
   // ─── POST /api/rooms ───────────────────────────────────────────────────────
@@ -266,9 +327,11 @@ async function bootstrap(): Promise<void> {
 
     if (mode === 'all') {
       const { results, room } = await gameService.revealAll(code, auth.claims.playerId);
+      await saveReplayIfFinished(room);
       return reply.status(200).send({ results, room: sanitizeRoomForClient(room) });
     } else if (mode === 'next') {
       const { result, room } = await gameService.revealNext(code, auth.claims.playerId);
+      if (room.status === 'finished') await saveReplayIfFinished(room);
       return reply.status(200).send({ result, room: sanitizeRoomForClient(room) });
     } else {
       return reply.status(400).send({
@@ -303,6 +366,7 @@ async function bootstrap(): Promise<void> {
     }
 
     const room = await gameService.endGame(code, auth.claims.playerId);
+    await saveReplayIfFinished(room);
     return reply.status(200).send(sanitizeRoomForClient(room));
   });
 
@@ -353,7 +417,7 @@ async function bootstrap(): Promise<void> {
   const wss = new WebSocketServer({ server: app.server, path: '/ws', maxPayload: 65536 });
 
   wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
-    handleWsConnection(ws, req, repo, gameService).catch(() => {
+    handleWsConnection(ws, req, repo, gameService, roomService, saveReplayIfFinished).catch(() => {
       ws.close(4000, 'Connection setup failed');
     });
   });
@@ -369,6 +433,10 @@ interface WsHandlerDeps {
   update: (code: string, partial: Partial<import('@ladder-room/shared').Room>) => Promise<import('@ladder-room/shared').Room>;
 }
 
+interface WsRoomDeps {
+  setAvatar: (roomCode: string, playerId: string, avatar: string) => Promise<import('@ladder-room/shared').Room>;
+}
+
 interface WsGameDeps {
   startGame: (roomCode: string, playerId: string) => Promise<import('@ladder-room/shared').Room>;
   beginReveal: (roomCode: string, playerId: string) => Promise<import('@ladder-room/shared').Room>;
@@ -378,13 +446,19 @@ interface WsGameDeps {
   playAgain: (roomCode: string, playerId: string) => Promise<import('@ladder-room/shared').Room>;
   resetRoom: (roomCode: string, playerId: string) => Promise<import('@ladder-room/shared').Room>;
   kickPlayer: (roomCode: string, hostPlayerId: string, targetPlayerId: string) => Promise<import('@ladder-room/shared').Room>;
+  setPrize: (roomCode: string, hostPlayerId: string, prize: string) => Promise<import('@ladder-room/shared').Room>;
+  revealPlayer: (roomCode: string, hostPlayerId: string, targetPlayerId: string) => Promise<{ result: import('@ladder-room/shared').ResultSlot; room: import('@ladder-room/shared').Room; allRevealed: boolean }>;
 }
+
+type SaveReplayHook = (room: import('@ladder-room/shared').Room) => Promise<string | null>;
 
 async function handleWsConnection(
   ws: WebSocket,
   req: IncomingMessage,
   repo: WsHandlerDeps,
   gameService: WsGameDeps,
+  roomService: WsRoomDeps,
+  saveReplayIfFinished: SaveReplayHook,
 ): Promise<void> {
   // Extract JWT from query string: /ws?token=...
   const url = new URL(req.url ?? '', `http://localhost`);
@@ -453,7 +527,7 @@ async function handleWsConnection(
 
   // ─── Message handler ───────────────────────────────────────────────────────
   ws.on('message', (raw) => {
-    handleWsMessage(ws, raw, roomCode, playerId, repo, gameService).catch(() => {
+    handleWsMessage(ws, raw, roomCode, playerId, repo, gameService, roomService, saveReplayIfFinished).catch(() => {
       ws.send(JSON.stringify({ type: 'ERROR', payload: { code: 'SYS_INTERNAL_ERROR', message: 'Internal server error' } }));
     });
   });
@@ -485,6 +559,8 @@ async function handleWsMessage(
   playerId: string,
   repo: WsHandlerDeps,
   gameService: WsGameDeps,
+  roomService: WsRoomDeps,
+  saveReplayIfFinished: SaveReplayHook,
 ): Promise<void> {
   let msg: { type: string; payload?: unknown };
   try {
@@ -531,17 +607,63 @@ async function handleWsMessage(
             totalCount: room.players.length,
           },
         });
+        if (room.status === 'finished') {
+          await saveReplayIfFinished(room);
+          broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        }
+        break;
+      }
+
+      case 'REVEAL_PLAYER_PICK': {
+        const rpPayload = msg.payload as { targetPlayerId?: unknown } | undefined;
+        const tid = typeof rpPayload?.targetPlayerId === 'string' ? rpPayload.targetPlayerId : '';
+        if (tid === '') {
+          send('ERROR', { code: 'MISSING_PARAM', message: 'targetPlayerId required' });
+          break;
+        }
+        const { result, room, allRevealed } = await gameService.revealPlayer(roomCode, playerId, tid);
+        broadcast(roomCode, {
+          type: 'REVEAL_PLAYER',
+          payload: {
+            targetPlayerId: tid,
+            result,
+            revealedCount: room.revealedCount,
+            totalCount: room.players.length,
+          },
+        });
+        if (allRevealed) {
+          await saveReplayIfFinished(room);
+          broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        }
         break;
       }
 
       case 'REVEAL_ALL_TRIGGER': {
         const { results, room } = await gameService.revealAll(roomCode, playerId);
         broadcast(roomCode, { type: 'REVEAL_ALL', payload: { results, room: sanitizeRoomForClient(room) } });
+        await saveReplayIfFinished(room);
+        break;
+      }
+
+      case 'SET_AVATAR': {
+        const aPayload = msg.payload as { avatar?: unknown } | undefined;
+        const av = typeof aPayload?.avatar === 'string' ? aPayload.avatar : '';
+        const room = await roomService.setAvatar(roomCode, playerId, av);
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        break;
+      }
+
+      case 'SET_PRIZE': {
+        const pPayload = msg.payload as { prize?: unknown } | undefined;
+        const prize = typeof pPayload?.prize === 'string' ? pPayload.prize : '';
+        const room = await gameService.setPrize(roomCode, playerId, prize);
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
         break;
       }
 
       case 'END_GAME': {
         const room = await gameService.endGame(roomCode, playerId);
+        await saveReplayIfFinished(room);
         broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
         break;
       }
@@ -599,6 +721,51 @@ async function handleWsMessage(
           kickedWs.close(4003, 'Kicked');
         }
         broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(room) });
+        break;
+      }
+
+      case 'SET_WINNER_COUNT': {
+        const swcPayload = msg.payload as { winnerCount?: unknown } | undefined;
+        const wc = swcPayload?.winnerCount;
+        if (typeof wc !== 'number' || !Number.isInteger(wc) || wc < 1) {
+          send('ERROR', { code: 'INVALID_WINNER_COUNT', message: 'winnerCount must be a positive integer' });
+          break;
+        }
+        const swcRoom = await repo.findByCode(roomCode);
+        if (swcRoom === null) {
+          send('ERROR', { code: 'ROOM_NOT_FOUND', message: 'Room not found' });
+          break;
+        }
+        if (swcRoom.hostId !== playerId) {
+          send('ERROR', { code: 'NOT_HOST', message: 'Only the host can change winner count' });
+          break;
+        }
+        if (swcRoom.status !== 'waiting') {
+          send('ERROR', { code: 'INVALID_STATE', message: 'winnerCount can only be changed in waiting state' });
+          break;
+        }
+        if (wc >= swcRoom.players.length) {
+          send('ERROR', { code: 'INVALID_WINNER_COUNT', message: 'winnerCount must be less than total players' });
+          break;
+        }
+        const updated = await repo.update(roomCode, { winnerCount: wc });
+        broadcast(roomCode, { type: 'ROOM_STATE', payload: sanitizeRoomForClient(updated) });
+        break;
+      }
+
+      case 'CHAT_MESSAGE': {
+        const chatPayload = msg.payload as { text?: unknown } | undefined;
+        const raw = typeof chatPayload?.text === 'string' ? chatPayload.text : '';
+        const text = raw.trim().slice(0, 200);
+        if (text === '') { send('ERROR', { code: 'CHAT_EMPTY', message: 'Empty message' }); break; }
+        if (!chatRateLimitOk(playerId)) {
+          send('ERROR', { code: 'CHAT_RATE_LIMIT', message: 'Slow down' });
+          break;
+        }
+        broadcast(roomCode, {
+          type: 'CHAT_BROADCAST',
+          payload: { playerId, text, ts: Date.now() },
+        });
         break;
       }
 

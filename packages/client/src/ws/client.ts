@@ -9,6 +9,7 @@ import type {
 } from '@ladder-room/shared';
 import { setState, state } from '../state/store.js';
 import { showToast } from '../ui/toast.js';
+import { appendChat } from '../ui/chat.js';
 
 type ConnState = 'connected' | 'connecting' | 'disconnected';
 
@@ -105,7 +106,10 @@ function handleMessage(type: WsEventType, payload: unknown): void {
   switch (type) {
     case 'ROOM_STATE':
     case 'ROOM_STATE_FULL': {
-      const p = payload as RoomStateFullPayload;
+      const p = payload as RoomStateFullPayload & {
+        prize?: string;
+        revealedPlayerIds?: readonly string[];
+      };
       const room: Room = {
         code: p.code,
         status: p.status,
@@ -118,6 +122,8 @@ function handleMessage(type: WsEventType, payload: unknown): void {
         revealMode: p.revealMode,
         autoRevealIntervalSec: p.autoRevealIntervalSec ?? null,
         kickedPlayerIds: (p as { kickedPlayerIds?: readonly string[] }).kickedPlayerIds ?? [],
+        ...(p.prize !== undefined ? { prize: p.prize } : {}),
+        ...(p.revealedPlayerIds !== undefined ? { revealedPlayerIds: p.revealedPlayerIds } : {}),
         createdAt: '',
         updatedAt: '',
       };
@@ -164,6 +170,24 @@ function handleMessage(type: WsEventType, payload: unknown): void {
 
     case 'HOST_TRANSFERRED': {
       showToast('房主已轉移', 'success');
+      break;
+    }
+
+    case 'REVEAL_PLAYER': {
+      const p = payload as { result: ResultSlot };
+      setState({ revealedResults: [...state.revealedResults, p.result] });
+      break;
+    }
+
+    case 'REPLAY_AVAILABLE': {
+      const p = payload as { replayId: string };
+      setState({ lastReplayId: p.replayId });
+      break;
+    }
+
+    case 'CHAT_BROADCAST': {
+      const p = payload as { playerId: string; text: string; ts: number };
+      appendChat(p);
       break;
     }
 

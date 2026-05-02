@@ -1,12 +1,14 @@
 import type { Room, ResultSlot } from '@ladder-room/shared';
 
 export interface AppState {
-  view: 'lobby' | 'waiting' | 'game' | 'results';
+  view: 'lobby' | 'waiting' | 'game' | 'results' | 'replay';
   myPlayerId: string | null;
   myToken: string | null;
   room: Room | null;
   revealedResults: ResultSlot[];
   error: string | null;
+  /** Set by ws/client when finished ROOM_STATE arrives carrying replayId. */
+  lastReplayId: string | null;
 }
 
 const initialState: AppState = {
@@ -16,6 +18,7 @@ const initialState: AppState = {
   room: null,
   revealedResults: [],
   error: null,
+  lastReplayId: null,
 };
 
 export const state: AppState = { ...initialState };

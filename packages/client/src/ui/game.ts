@@ -3,6 +3,8 @@ import { send, getConnState } from '../ws/client.js';
 import { drawLadder } from '../canvas/renderer.js';
 import { colorFromIndex } from '../canvas/colors.js';
 import { showToast } from './toast.js';
+import { renderAvatarHtml } from './avatar.js';
+import { isMuted, toggleMuted, playClimb, playWinner, playLoser, unlockAudio } from '../audio.js';
 
 const ANIM_DURATION = 1500; // ms per revealed path
 
@@ -56,30 +58,56 @@ export function renderGame(container: HTMLElement): void {
   const statusCls  = `status-${status}`;
   const connState  = getConnState();
 
+  const muteIcon = isMuted() ? '🔇' : '🔊';
+  const replayId = (state.lastReplayId !== null && status === 'finished') ? state.lastReplayId : null;
+  const replayUrl = replayId !== null ? `${window.location.origin}/?replay=${replayId}` : '';
+
   container.innerHTML = `
     <div class="game-page">
       <header class="game-header">
         <span class="game-title">爬樓梯抽獎</span>
         <span class="status-badge ${statusCls}">${statusText}</span>
         <div style="display:flex;align-items:center;gap:0.5rem;margin-left:auto">
+          <button class="btn btn-ghost btn-sm mute-btn" id="mute-btn" type="button" aria-label="靜音">${muteIcon}</button>
           <span class="conn-dot ${connState}"></span>
           <span style="font-size:0.78rem;color:var(--text-dim)">${room.code}</span>
         </div>
         ${isHost ? renderHostControls(status) : ''}
       </header>
 
+      ${room.prize !== undefined && room.prize !== '' ? `
+        <div class="prize-banner">🎁 獎品：${escapeHtml(room.prize)}</div>
+      ` : ''}
+
+      ${room.players.length >= 2 ? `
+        <div class="avatar-row avatar-row-aligned" id="avatar-row" style="--n:${room.players.length}">
+          ${renderAvatarRow(room, isHost, status)}
+        </div>
+      ` : ''}
+
       <div class="canvas-area">
         <canvas id="ladder-canvas"></canvas>
       </div>
 
       <aside class="sidebar">
-        <div class="sidebar-section">
-          <p class="sidebar-title">玩家 (${room.players.length})</p>
-          ${renderPlayerPills(room)}
+        <div class="sidebar-content">
+          ${replayUrl !== '' ? `
+            <div class="replay-card">
+              <p class="sidebar-title">🎬 重播連結</p>
+              <p style="font-size:0.78rem;color:var(--text-dim);margin:0 0 0.4rem">任何人點此連結都可重看開獎</p>
+              <input class="replay-link-input" id="replay-link-input" readonly value="${replayUrl}" />
+              <button class="btn btn-sm btn-secondary" id="replay-copy-btn" style="width:100%;margin-top:0.4rem">複製連結</button>
+            </div>
+          ` : ''}
+          <div class="sidebar-section">
+            <p class="sidebar-title">玩家 (${room.players.length})</p>
+            ${renderPlayerPills(room)}
+          </div>
+          <div class="result-list" id="result-list">
+            ${renderResults(revealedResults, room.players, myPlayerId, room.winnerCount)}
+          </div>
         </div>
-        <div class="result-list" id="result-list">
-          ${renderResults(revealedResults, room.players, myPlayerId, room.winnerCount)}
-        </div>
+        <div class="sidebar-chat-slot" id="sidebar-chat-slot"></div>
       </aside>
     </div>
   `;
@@ -87,6 +115,27 @@ export function renderGame(container: HTMLElement): void {
   if (isHost) {
     wireHostControls(container, status);
   }
+
+  // Mute toggle
+  const muteBtn = container.querySelector<HTMLButtonElement>('#mute-btn');
+  muteBtn?.addEventListener('click', () => {
+    const m = toggleMuted();
+    muteBtn.textContent = m ? '🔇' : '🔊';
+    showToast(m ? '已靜音' : '已開啟音效', 'info');
+  });
+
+  // Replay link copy
+  const replayCopy = container.querySelector<HTMLButtonElement>('#replay-copy-btn');
+  const replayInput = container.querySelector<HTMLInputElement>('#replay-link-input');
+  replayCopy?.addEventListener('click', () => {
+    if (!replayInput) return;
+    navigator.clipboard.writeText(replayInput.value).then(() => {
+      showToast('已複製重播連結', 'success');
+    }).catch(() => {
+      replayInput.select();
+      showToast(replayInput.value, 'info');
+    });
+  });
 
   const canvas = container.querySelector<HTMLCanvasElement>('#ladder-canvas');
   if (canvas && room.ladder) {
@@ -98,14 +147,14 @@ function renderHostControls(status: string): string {
   if (status === 'running') {
     return `
       <div class="controls-bar" style="margin-left:1rem">
-        <button class="btn btn-gold btn-sm" id="begin-reveal-btn">揭示結果</button>
+        <button class="btn btn-gold btn-sm" id="begin-reveal-btn">開始開獎</button>
       </div>
     `;
   }
   if (status === 'revealing') {
     return `
       <div class="controls-bar" style="margin-left:1rem">
-        <button class="btn btn-gold btn-sm" id="reveal-next-btn">揭示下一位</button>
+        <span style="font-size:0.78rem;color:var(--text-dim)">點頭像逐一揭示</span>
         <button class="btn btn-ghost btn-sm" id="reveal-all-btn">全部揭示</button>
       </div>
     `;
@@ -120,18 +169,47 @@ function renderHostControls(status: string): string {
   return '';
 }
 
-function wireHostControls(container: HTMLElement, status: string): void {
-  container.querySelector('#begin-reveal-btn')?.addEventListener('click', () => {
-    send('BEGIN_REVEAL');
-  });
+function renderAvatarRow(
+  room: import('@ladder-room/shared').Room,
+  isHost: boolean,
+  status: string,
+): string {
+  // Players are positioned at the top of each ladder column in joinedAt order
+  // (matches generateLadder's column assignment).
+  const revealed = new Set(room.revealedPlayerIds ?? []);
+  return room.players.map((p, i) => {
+    const av = renderAvatarHtml(p.avatar, p.nickname, p.colorIndex, 44);
+    const done = revealed.has(p.id);
+    const clickable = isHost && status === 'revealing' && !done;
+    const cls = `avatar-cell${done ? ' avatar-done' : ''}${clickable ? ' avatar-clickable' : ''}`;
+    return `
+      <div class="${cls}" style="--i:${i}" data-player-id="${p.id}">
+        ${av}
+      </div>
+    `;
+  }).join('');
+}
 
-  container.querySelector('#reveal-next-btn')?.addEventListener('click', () => {
-    send('REVEAL_NEXT');
+function wireHostControls(container: HTMLElement, status: string): void {
+  // Unlock audio first, then send — so the SFX for the first reveal aren't
+  // dropped while AudioContext.resume() is still in flight.
+  container.querySelector('#begin-reveal-btn')?.addEventListener('click', () => {
+    void unlockAudio().then(() => send('BEGIN_REVEAL'));
   });
 
   container.querySelector('#reveal-all-btn')?.addEventListener('click', () => {
-    send('REVEAL_ALL_TRIGGER');
+    void unlockAudio().then(() => send('REVEAL_ALL_TRIGGER'));
   });
+
+  if (status === 'revealing') {
+    container.querySelectorAll<HTMLElement>('.avatar-cell.avatar-clickable').forEach((el) => {
+      el.addEventListener('click', () => {
+        const pid = el.dataset['playerId'];
+        if (!pid) return;
+        void unlockAudio().then(() => send('REVEAL_PLAYER_PICK', { targetPlayerId: pid }));
+      });
+    });
+  }
 
   const playAgainBtn = container.querySelector<HTMLButtonElement>('#play-again-btn');
   if (playAgainBtn) {
@@ -258,6 +336,16 @@ function setupCanvas(
     animatingIndex = revealedResults.length - 1;
     animStartTime = performance.now();
     prevRevealedCount = revealedResults.length;
+
+    // SFX: footsteps for the climb, then winner/loser sting at end
+    const last = revealedResults[revealedResults.length - 1];
+    if (last !== undefined) {
+      const stepCount = Math.max(4, Math.min(16, last.path.length));
+      playClimb(stepCount, ANIM_DURATION);
+      setTimeout(() => {
+        if (last.isWinner) playWinner(); else playLoser();
+      }, ANIM_DURATION);
+    }
 
     if (animLoopId !== null) cancelAnimationFrame(animLoopId);
     animLoopId = requestAnimationFrame(runAnimLoop);

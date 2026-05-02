@@ -67,7 +67,50 @@ export class GameService {
       ladder,
       results,
       revealedCount: 0,
+      revealedPlayerIds: [],
     });
+  }
+
+  async setPrize(roomCode: string, hostPlayerId: string, prize: string): Promise<Room> {
+    const room = await this.requireRoom(roomCode);
+    this.assertHost(room, hostPlayerId);
+    if (room.status !== 'waiting') {
+      throw new DomainError('INVALID_STATE', 'Prize can only be set in waiting state', 409);
+    }
+    const trimmed = prize.trim().slice(0, 120);
+    return this.repo.update(roomCode, { prize: trimmed });
+  }
+
+  async revealPlayer(
+    roomCode: string,
+    hostPlayerId: string,
+    targetPlayerId: string,
+  ): Promise<{ result: ResultSlot; room: Room; allRevealed: boolean }> {
+    const room = await this.requireRoom(roomCode);
+    this.assertHost(room, hostPlayerId);
+
+    if (room.status !== 'revealing') {
+      throw new DomainError('INVALID_STATE', 'Room must be in revealing state', 409);
+    }
+    if (room.results === null) {
+      throw new DomainError('NO_RESULTS', 'No results available', 500);
+    }
+    const result = room.results.find(r => r.playerId === targetPlayerId);
+    if (result === undefined) {
+      throw new DomainError('PLAYER_NOT_FOUND', 'Target player not in results', 404);
+    }
+    const already = room.revealedPlayerIds ?? [];
+    if (already.includes(targetPlayerId)) {
+      throw new DomainError('ALREADY_REVEALED', 'Player already revealed', 409);
+    }
+    const nextRevealed = [...already, targetPlayerId];
+    const allRevealed = nextRevealed.length >= room.results.length;
+    const updatedRoom = await this.repo.update(roomCode, {
+      revealedPlayerIds: nextRevealed,
+      revealedCount: nextRevealed.length,
+      ...(allRevealed ? { status: 'finished' } : {}),
+    });
+    return { result, room: updatedRoom, allRevealed };
   }
 
   async beginReveal(roomCode: string, hostPlayerId: string): Promise<Room> {
@@ -173,6 +216,7 @@ export class GameService {
       ladder: null,
       results: null,
       revealedCount: 0,
+      revealedPlayerIds: [],
       players: resetPlayers,
       winnerCount: adjustedWinnerCount,
     });
@@ -233,6 +277,7 @@ export class GameService {
       ladder: null,
       results: null,
       revealedCount: 0,
+      revealedPlayerIds: [],
       players: resetPlayers,
       winnerCount: adjustedWinnerCount,
     });
